@@ -1,0 +1,44 @@
+.editor-container {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+}
+
+.editor-header {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  padding: 12px 16px;
+  border-bottom: 1px solid #e5e7eb;
+  flex-shrink: 0;
+}
+
+.editor-label {
+  font-size: 15px;
+  font-weight: 600;
+  color: #1f2937;
+}
+
+.editor-hint {
+  font-size: 12px;
+  color: #9ca3af;
+}
+
+.editor-textarea {
+  flex: 1;
+  width: 100%;
+  padding: 16px;
+  border: none;
+  outline: none;
+  resize: none;
+  font-family: 'Noto Sans SC', 'Microsoft YaHei', sans-serif;
+  font-size: 14px;
+  line-height: 1.8;
+  color: #374151;
+  background: #fafafa;
+}
+
+.editor-textarea::placeholder {
+  color: #d1d5db;
+}

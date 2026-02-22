@@ -1,0 +1,194 @@
+/* A4 纸张模拟 (按 210:297 比例缩放) */
+.a4-page {
+  position: relative;
+  width: 100%;
+  max-width: 595px; /* A4 @ 72dpi */
+  aspect-ratio: 210 / 297;
+  margin: 0 auto;
+  background: white;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+/* 多页间距 */
+.a4-page + .a4-page {
+  margin-top: 16px;
+}
+
+.a4-content {
+  /* 页边距通过 CSS 变量控制，fallback 为国标默认值 */
+  padding:
+    var(--margin-top, 17.62%)
+    var(--margin-right, 12.38%)
+    var(--margin-bottom, 16.67%)
+    var(--margin-left, 13.33%);
+  height: 100%;
+  overflow: hidden;
+  box-sizing: border-box;
+}
+
+/* 视窗裁剪容器：高度由 JS clipHeight 精确控制（已对齐到行边界），
+   不设 max-height 避免 CSS 亚像素精度与 JS 计算冲突导致二次截断 */
+.a4-content-viewport {
+  overflow: hidden;
+}
+
+/* 公文标题: 方正小标宋_GBK 22pt 居中, 固定行距 */
+.a4-title {
+  font-family: var(--title-font, 'FZXiaoBiaoSong-B05S'), 'STSong', 'SimSun', serif;
+  font-size: var(--title-size, 22px);
+  font-weight: bold;
+  text-align: center;
+  line-height: var(--title-line-height, 29px);
+  margin: 0;
+}
+
+/* 一级标题段落: 基础样式（含首句拆分时的段落容器） */
+.a4-h1 {
+  font-size: var(--h1-size, 16px);
+  font-weight: normal;
+  text-indent: var(--body-indent, 2em);
+  text-align: justify;
+  line-height: var(--body-line-height, 29px);
+  margin: 0;
+}
+
+/* 一级小标题 inline: 黑体 */
+.a4-h1-inline {
+  font-family: var(--h1-font, 'SimHei'), 'Heiti SC', sans-serif;
+}
+
+/* 二级标题段落: 楷体_GB2312 基础样式（含首句拆分时的段落容器） */
+.a4-h2 {
+  font-size: var(--h2-size, 16px);
+  font-weight: normal;
+  font-style: normal;
+  text-indent: var(--body-indent, 2em);
+  text-align: justify;
+  line-height: var(--body-line-height, 29px);
+  margin: 0;
+}
+
+/* 二级小标题 inline: 楷体 */
+.a4-h2-inline {
+  font-family: var(--h2-font, 'KaiTi_GB2312'), 'KaiTi', 'STKaiti', serif;
+  font-style: normal;
+}
+
+/* 二级标题后续正文 inline: 仿宋 */
+.a4-paragraph-inline {
+  font-family: var(--body-font, 'FangSong_GB2312'), 'FangSong', 'STFangsong', serif;
+}
+
+/* 三级标题: 仿宋加粗 */
+.a4-h3 {
+  font-family: var(--h3-font, 'FangSong_GB2312'), 'FangSong', 'STFangsong', serif;
+  font-size: var(--body-size, 16px);
+  font-weight: bold;
+  text-indent: var(--body-indent, 2em);
+  line-height: var(--body-line-height, 29px);
+  margin: 0;
+}
+
+/* 四级标题: 仿宋 */
+.a4-h4 {
+  font-family: var(--body-font, 'FangSong_GB2312'), 'FangSong', 'STFangsong', serif;
+  font-size: var(--body-size, 16px);
+  font-weight: normal;
+  text-indent: var(--body-indent, 2em);
+  line-height: var(--body-line-height, 29px);
+  margin: 0;
+}
+
+/* 正文: 仿宋 两端对齐 首行缩进 */
+.a4-paragraph {
+  font-family: var(--body-font, 'FangSong_GB2312'), 'FangSong', 'STFangsong', serif;
+  font-size: var(--body-size, 16px);
+  font-weight: normal;
+  text-indent: var(--body-indent, 2em);
+  text-align: justify;
+  line-height: var(--body-line-height, 29px);
+  margin: 0;
+}
+
+/* 空状态占位 */
+.a4-placeholder {
+  text-align: center;
+  color: #d1d5db;
+  font-size: 14px;
+  padding-top: 40%;
+  margin: 0;
+}
+
+/* 主送机关: 顶格 仿宋，段前空一行 */
+.a4-addressee {
+  font-family: var(--body-font, 'FangSong_GB2312'), 'FangSong', 'STFangsong', serif;
+  font-size: var(--body-size, 16px);
+  text-indent: 0;
+  text-align: justify;
+  line-height: var(--body-line-height, 29px);
+  margin: var(--body-line-height, 29px) 0 0 0;
+}
+
+/* 附件说明: 左空二字 仿宋，段前空一行 */
+.a4-attachment {
+  font-family: var(--body-font, 'FangSong_GB2312'), 'FangSong', 'STFangsong', serif;
+  font-size: var(--body-size, 16px);
+  text-indent: 0;
+  padding-left: var(--body-indent, 2em);
+  text-align: justify;
+  line-height: var(--body-line-height, 29px);
+  margin: var(--body-line-height, 29px) 0 0 0;
+}
+
+/* 成文日期: 右对齐 右空四字 仿宋 */
+.a4-date {
+  font-family: var(--body-font, 'FangSong_GB2312'), 'FangSong', 'STFangsong', serif;
+  font-size: var(--body-size, 16px);
+  text-indent: 0;
+  text-align: right;
+  padding-right: 4em;
+  line-height: var(--body-line-height, 29px);
+  margin: 0;
+}
+
+/* 度量容器: absolute 定位，宽度由 JS 动态修正以匹配 A4 页面 */
+.a4-measurer {
+  position: absolute;
+  top: 0;
+  left: 0;
+  max-width: 595px;
+  visibility: hidden;
+  pointer-events: none;
+  z-index: -1;
+}
+
+.a4-measurer-content {
+  padding: 0 var(--margin-right, 12.38%) 0 var(--margin-left, 13.33%);
+  position: relative;
+}
+
+/* 页脚: 页码区域 */
+.a4-footer {
+  position: absolute;
+  bottom: 8.3%;
+  left: var(--margin-left, 13.33%);
+  right: var(--margin-right, 12.38%);
+  font-family: 'Times New Roman', var(--page-number-font, '宋体'), serif;
+  font-size: 14px;
+  color: #374151;
+}
+
+.a4-footer-odd {
+  text-align: right;
+}
+
+.a4-footer-even {
+  text-align: left;
+}
+
+/* 首句加粗样式 */
+.a4-bold-first {
+  font-weight: bold;
+}

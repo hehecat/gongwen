@@ -1,0 +1,23 @@
+.app {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  overflow: hidden;
+}
+
+.app-main {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+}
+
+.app-editor {
+  flex: 1;
+  border-right: 1px solid #e5e7eb;
+  min-width: 0;
+}
+
+.app-preview {
+  flex: 1;
+  min-width: 0;
+}
