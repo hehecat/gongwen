@@ -1,73 +1,57 @@
-# React + TypeScript + Vite
+# 公文排版工具
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+基于 GB/T 9704 国标的党政机关公文在线排版工具，支持实时预览、智能分页和 DOCX 导出。
 
-Currently, two official plugins are available:
+🔗 **在线体验：https://hehecat.github.io/gongwen/**
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+## 功能特性
 
-## React Compiler
+- **实时预览** — 左侧编辑、右侧即时 A4 分页预览
+- **智能解析** — 自动识别公文标题、一至四级标题、主送机关、附件说明、成文日期等结构
+- **DOCX 导出** — 一键生成符合国标格式的 Word 文档
+- **格式可配置** — 页边距、字体、字号、行距、首行缩进等参数均可自定义
+- **国标默认值** — 方正小标宋标题、仿宋正文、三号字、29磅行距等开箱即用
+- **本地持久化** — 配置自动保存到 localStorage，刷新不丢失
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+## 技术栈
 
-## Expanding the ESLint configuration
+- React 19 + TypeScript
+- Vite 7
+- [docx](https://github.com/dolanmedia/docx) — DOCX 文件生成
+- [file-saver](https://github.com/nickeahman/FileSaver.js) — 浏览器端文件下载
+- GitHub Actions — 自动构建部署到 GitHub Pages
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+## 本地开发
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```bash
+npm install
+npm run dev
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+## 构建
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
-
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```bash
+npm run build    # 产物输出到 dist/
+npm run preview  # 本地预览构建产物
 ```
+
+## 项目结构
+
+```
+src/
+├── components/
+│   ├── Editor/          # 文本编辑器
+│   ├── Preview/         # A4 分页预览 (A4Page + Preview)
+│   ├── SettingsModal/   # 格式配置弹窗
+│   └── Toolbar/         # 顶部工具栏
+├── contexts/            # DocumentConfig 全局状态
+├── exporter/            # DOCX 导出 (docxBuilder + styleFactory)
+├── hooks/               # useDocumentParser / usePagination
+├── parser/              # 公文文本 → AST 解析器
+├── types/               # AST 节点类型 / 文档配置类型
+└── constants/           # GB/T 9704 排版常量
+```
+
+## License
+
+MIT
