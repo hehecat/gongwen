@@ -120,7 +120,7 @@ export function buildDocument(ast: GongwenAST, config: DocumentConfig): Document
   const availableWidthPt = (11906 - cmToTwip(config.margins.left) - cmToTwip(config.margins.right)) / 20
   const gridPitchPt = availableWidthPt / CHARS_PER_LINE
   const charSpaceDelta = gridPitchPt - config.body.fontSize // pt
-  const charSpace = Math.round(charSpaceDelta * 4096)
+  const charSpace = Math.floor(charSpaceDelta * 4096)
   const linePitch = ptToTwip(config.body.lineSpacing)
 
   // 页脚配置（条件渲染）

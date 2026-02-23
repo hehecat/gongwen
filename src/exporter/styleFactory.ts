@@ -7,7 +7,7 @@ import {
 } from 'docx'
 import { NodeType } from '../types/ast'
 import type { DocumentConfig } from '../types/documentConfig'
-import { ptToTwip } from '../types/documentConfig'
+import { ptToTwip, cmToTwip, CHARS_PER_LINE } from '../types/documentConfig'
 
 /** 构建 IFontAttributesProperties，支持中英文字体分离 */
 function font(eastAsia: string, ascii = 'Times New Roman'): IFontAttributesProperties {
@@ -76,6 +76,11 @@ export function getRunStyle(type: NodeType, config: DocumentConfig): Partial<IRu
   const bodyFontSize = config.body.fontSize * 2 // pt → half-point
   const titleFontSize = config.title.fontSize * 2
 
+  // 字符间距微调：使每行恰好 28 字 (GB/T 9704)
+  // characterSpacing 单位为 twips (1/20 pt)，向下取整确保不超出可用宽度
+  const availableTwips = 11906 - cmToTwip(config.margins.left) - cmToTwip(config.margins.right)
+  const charSpacing = Math.floor(availableTwips / CHARS_PER_LINE - config.body.fontSize * 20)
+
   switch (type) {
     case NodeType.DOCUMENT_TITLE:
       return {
@@ -87,12 +92,14 @@ export function getRunStyle(type: NodeType, config: DocumentConfig): Partial<IRu
       return {
         font: font(config.advanced.h1.fontFamily, config.advanced.h1.asciiFontFamily || config.advanced.h1.fontFamily),
         size: config.advanced.h1.fontSize * 2,
+        characterSpacing: charSpacing,
       }
 
     case NodeType.HEADING_2:
       return {
         font: font(config.advanced.h2.fontFamily, config.advanced.h2.asciiFontFamily || config.advanced.h2.fontFamily),
         size: config.advanced.h2.fontSize * 2,
+        characterSpacing: charSpacing,
       }
 
     case NodeType.HEADING_3:
@@ -100,6 +107,7 @@ export function getRunStyle(type: NodeType, config: DocumentConfig): Partial<IRu
         font: font(config.advanced.h3.fontFamily, config.advanced.h3.asciiFontFamily || config.advanced.h3.fontFamily),
         size: config.advanced.h3.fontSize * 2,
         bold: true,
+        characterSpacing: charSpacing,
       }
 
     case NodeType.ADDRESSEE:
@@ -109,6 +117,7 @@ export function getRunStyle(type: NodeType, config: DocumentConfig): Partial<IRu
           config.advanced.addressee.asciiFontFamily || config.advanced.addressee.fontFamily,
         ),
         size: config.advanced.addressee.fontSize * 2,
+        characterSpacing: charSpacing,
       }
 
     case NodeType.HEADING_4:
@@ -119,6 +128,7 @@ export function getRunStyle(type: NodeType, config: DocumentConfig): Partial<IRu
       return {
         font: font(config.body.fontFamily),
         size: bodyFontSize,
+        characterSpacing: charSpacing,
       }
   }
 }
