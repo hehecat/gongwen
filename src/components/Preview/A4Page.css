@@ -34,6 +34,19 @@
   overflow: hidden;
 }
 
+/* 字符网格间距：微调 letter-spacing 使每行恰好 28 字 (GB/T 9704) */
+.a4-title,
+.a4-h1,
+.a4-h2,
+.a4-h3,
+.a4-h4,
+.a4-paragraph,
+.a4-addressee,
+.a4-attachment,
+.a4-date {
+  letter-spacing: var(--char-spacing, 0);
+}
+
 /* 公文标题: 方正小标宋_GBK 22pt 居中, 固定行距 */
 .a4-title {
   font-family: var(--title-font, 'FZXiaoBiaoSong-B05S'), 'STSong', 'SimSun', serif;

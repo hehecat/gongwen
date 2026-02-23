@@ -174,6 +174,11 @@ export const INDENT_OPTIONS: { label: string; value: number }[] = [
   { label: '3字符', value: 3 },
 ]
 
+// ---- 版式常量 (GB/T 9704) ----
+
+/** 每行字数 */
+export const CHARS_PER_LINE = 28
+
 // ---- 单位转换工具函数 ----
 
 /** 厘米 → twip (1cm = 567 twip) */

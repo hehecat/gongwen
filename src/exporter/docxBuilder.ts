@@ -1,9 +1,9 @@
-import { Document, Paragraph, TextRun, Footer, PageNumber, AlignmentType } from 'docx'
+import { Document, Paragraph, TextRun, Footer, PageNumber, AlignmentType, DocumentGridType } from 'docx'
 import type { IRunOptions } from 'docx'
 import type { GongwenAST, DocumentNode } from '../types/ast'
 import { NodeType } from '../types/ast'
 import type { DocumentConfig } from '../types/documentConfig'
-import { cmToTwip } from '../types/documentConfig'
+import { cmToTwip, ptToTwip, CHARS_PER_LINE } from '../types/documentConfig'
 import { getParagraphStyle, getRunStyle } from './styleFactory'
 
 // ---- 页码样式 ----
@@ -115,6 +115,14 @@ export function buildDocument(ast: GongwenAST, config: DocumentConfig): Document
   // 4号 = 14pt = 28 half-point
   const pageNumSize = 28
 
+  // 文档字符网格：确保每行恰好 28 字 (GB/T 9704)
+  // charSpace 单位为 4096 分之一磅，表示每个字符额外间距调整
+  const availableWidthPt = (11906 - cmToTwip(config.margins.left) - cmToTwip(config.margins.right)) / 20
+  const gridPitchPt = availableWidthPt / CHARS_PER_LINE
+  const charSpaceDelta = gridPitchPt - config.body.fontSize // pt
+  const charSpace = Math.round(charSpaceDelta * 4096)
+  const linePitch = ptToTwip(config.body.lineSpacing)
+
   // 页脚配置（条件渲染）
   const footers = config.specialOptions.showPageNumber
     ? {
@@ -144,6 +152,11 @@ export function buildDocument(ast: GongwenAST, config: DocumentConfig): Document
               left: cmToTwip(config.margins.left),
               right: cmToTwip(config.margins.right),
             },
+          },
+          grid: {
+            type: DocumentGridType.LINES_AND_CHARS,
+            linePitch,
+            charSpace,
           },
         },
         footers,

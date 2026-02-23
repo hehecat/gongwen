@@ -2,7 +2,7 @@ import { useRef, useMemo, type CSSProperties } from 'react'
 import { NodeType } from '../../types/ast'
 import type { GongwenAST } from '../../types/ast'
 import { useDocumentConfig } from '../../contexts/DocumentConfigContext'
-import { cmToPagePercent } from '../../types/documentConfig'
+import { cmToPagePercent, CHARS_PER_LINE } from '../../types/documentConfig'
 import { usePagination } from '../../hooks/usePagination'
 import { A4Page, NODE_CLASS_MAP, renderHeading1, renderHeading2, renderBoldFirstSentence } from './A4Page'
 import './A4Page.css'
@@ -18,25 +18,36 @@ export function Preview({ ast }: PreviewProps) {
   const pages = usePagination(ast.title, ast.body, measurerRef)
 
   /** 将 config 转换为 CSS 自定义属性 */
-  const cssVars = useMemo((): CSSProperties => ({
-    '--margin-top': `${cmToPagePercent(config.margins.top, 'x')}%`,
-    '--margin-bottom': `${cmToPagePercent(config.margins.bottom, 'x')}%`,
-    '--margin-left': `${cmToPagePercent(config.margins.left, 'x')}%`,
-    '--margin-right': `${cmToPagePercent(config.margins.right, 'x')}%`,
-    '--title-font': config.title.fontFamily,
-    '--title-size': `${config.title.fontSize}px`,
-    '--title-line-height': `${config.title.lineSpacing}px`,
-    '--body-font': config.body.fontFamily,
-    '--body-size': `${config.body.fontSize}px`,
-    '--body-line-height': `${config.body.lineSpacing}px`,
-    '--body-indent': `${config.body.firstLineIndent}em`,
-    '--h1-font': config.headings.h1.fontFamily,
-    '--h1-size': `${config.headings.h1.fontSize}px`,
-    '--h2-font': config.headings.h2.fontFamily,
-    '--h2-size': `${config.headings.h2.fontSize}px`,
-    '--h3-font': config.advanced.h3.fontFamily,
-    '--page-number-font': config.specialOptions.pageNumberFont,
-  } as CSSProperties), [config])
+  const cssVars = useMemo((): CSSProperties => {
+    // 计算字符间距，使每行恰好容纳 28 字 (GB/T 9704)
+    // 预览以 72dpi 渲染，1pt = 1px，页面宽度 595px
+    const pageWidthPx = 595
+    const marginLeftPct = config.margins.left * 10 / 210
+    const marginRightPct = config.margins.right * 10 / 210
+    const availablePx = pageWidthPx * (1 - marginLeftPct - marginRightPct)
+    const charSpacingPx = availablePx / CHARS_PER_LINE - config.body.fontSize
+
+    return {
+      '--margin-top': `${cmToPagePercent(config.margins.top, 'x')}%`,
+      '--margin-bottom': `${cmToPagePercent(config.margins.bottom, 'x')}%`,
+      '--margin-left': `${cmToPagePercent(config.margins.left, 'x')}%`,
+      '--margin-right': `${cmToPagePercent(config.margins.right, 'x')}%`,
+      '--title-font': config.title.fontFamily,
+      '--title-size': `${config.title.fontSize}px`,
+      '--title-line-height': `${config.title.lineSpacing}px`,
+      '--body-font': config.body.fontFamily,
+      '--body-size': `${config.body.fontSize}px`,
+      '--body-line-height': `${config.body.lineSpacing}px`,
+      '--body-indent': `${config.body.firstLineIndent}em`,
+      '--char-spacing': `${charSpacingPx.toFixed(4)}px`,
+      '--h1-font': config.headings.h1.fontFamily,
+      '--h1-size': `${config.headings.h1.fontSize}px`,
+      '--h2-font': config.headings.h2.fontFamily,
+      '--h2-size': `${config.headings.h2.fontSize}px`,
+      '--h3-font': config.advanced.h3.fontFamily,
+      '--page-number-font': config.specialOptions.pageNumberFont,
+    } as CSSProperties
+  }, [config])
 
   const boldFirst = config.specialOptions.boldFirstSentence
 
