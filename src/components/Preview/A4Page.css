@@ -26,6 +26,8 @@
   height: 100%;
   overflow: hidden;
   box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
 }
 
 /* 视窗裁剪容器：高度由 JS clipHeight 精确控制（已对齐到行边界），
@@ -204,4 +206,74 @@
 /* 首句加粗样式 */
 .a4-bold-first {
   font-weight: bold;
+}
+
+/* ---- 版头 ---- */
+.a4-header-section {
+  /* 红线之下空二行再出标题 */
+  margin-bottom: calc(var(--body-line-height, 29px) * 2);
+}
+
+.a4-header-org {
+  font-family: '方正小标宋_GBK', 'STSong', serif;
+  font-size: 30px;
+  color: #e00000;
+  text-align: center;
+  line-height: 1.4;
+  letter-spacing: 0;
+}
+
+/* 红色分隔线：单条红线，位于发文字号/签发人之下 */
+.a4-header-separator {
+  border-bottom: 2px solid #e00000;
+  margin-top: 8px;
+}
+
+/* 发文字号 / 签发人行 */
+.a4-header-meta {
+  display: flex;
+  justify-content: center;
+  padding: 0 1em;
+  font-family: var(--body-font);
+  font-size: var(--body-size);
+  line-height: var(--body-line-height);
+  letter-spacing: 0;
+}
+
+.a4-header-meta--with-signer {
+  justify-content: space-between;
+}
+
+/* 签发人字体：标签仿宋，姓名楷体 */
+.a4-header-signer-label {
+  font-family: var(--body-font, 'FangSong_GB2312'), 'FangSong', 'STFangsong', serif;
+}
+
+.a4-header-signer-name {
+  font-family: 'KaiTi_GB2312', 'KaiTi', 'STKaiti', serif;
+}
+
+/* ---- 版记 ---- */
+.a4-footer-note {
+  margin-top: auto;
+  font-family: var(--body-font);
+  font-size: 14px;
+  line-height: 28px;
+}
+
+.a4-footer-note-line-top {
+  border-top: 1px solid #000;
+}
+
+.a4-footer-note-line-bottom {
+  border-top: 2px solid #000;
+}
+
+.a4-footer-note-cc {
+  text-indent: 0;
+}
+
+.a4-footer-note-printer {
+  display: flex;
+  justify-content: space-between;
 }

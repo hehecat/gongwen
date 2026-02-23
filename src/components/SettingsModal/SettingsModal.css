@@ -140,6 +140,30 @@
   box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.1);
 }
 
+/* 文本输入 */
+.settings-input {
+  padding: 6px 8px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  font-size: 13px;
+  color: #111827;
+  background: white;
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+  transition: border-color 0.15s;
+}
+
+.settings-input:focus {
+  outline: none;
+  border-color: #2563eb;
+  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.1);
+}
+
+.settings-input::placeholder {
+  color: #9ca3af;
+}
+
 /* 数字输入 */
 .settings-number-wrap {
   display: flex;

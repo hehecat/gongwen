@@ -12,6 +12,7 @@
   "dependencies": {
     "docx": "^9.5.3",
     "file-saver": "^2.0.5",
+    "mammoth": "^1.11.0",
     "react": "^19.2.0",
     "react-dom": "^19.2.0"
   },

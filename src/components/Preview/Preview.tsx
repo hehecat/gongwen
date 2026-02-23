@@ -97,6 +97,10 @@ export function Preview({ ast }: PreviewProps) {
             clipHeight={slice.clipHeight}
             showPageNumber={config.specialOptions.showPageNumber}
             boldFirstSentence={boldFirst}
+            headerConfig={config.header}
+            footerNoteConfig={config.footerNote}
+            isFirstPage={index === 0}
+            isLastPage={index === pages.length - 1}
           />
         ))}
       </div>

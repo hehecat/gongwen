@@ -64,6 +64,28 @@ export interface AdvancedConfig {
   h3: AdvancedElementConfig
 }
 
+/** 版头配置 */
+export interface HeaderConfig {
+  enabled: boolean
+  /** 发文机关标志（红色大字居中） */
+  orgName: string
+  /** 发文字号，如"国办发〔2024〕1号" */
+  docNumber: string
+  /** 签发人（上行文使用，为空则不显示） */
+  signer: string
+}
+
+/** 版记配置 */
+export interface FooterNoteConfig {
+  enabled: boolean
+  /** 抄送机关 */
+  cc: string
+  /** 印发机关 */
+  printer: string
+  /** 印发日期，如"2024年1月1日" */
+  printDate: string
+}
+
 /** 完整文档配置 */
 export interface DocumentConfig {
   margins: MarginsConfig
@@ -73,6 +95,8 @@ export interface DocumentConfig {
   table: TableConfig
   specialOptions: SpecialOptionsConfig
   advanced: AdvancedConfig
+  header: HeaderConfig
+  footerNote: FooterNoteConfig
 }
 
 /** 深层 Partial 类型，用于 patch 更新 */
@@ -120,6 +144,18 @@ export const DEFAULT_CONFIG: DocumentConfig = {
     h1: { fontFamily: '黑体', asciiFontFamily: 'Times New Roman', fontSize: 16 },
     h2: { fontFamily: '楷体_GB2312', asciiFontFamily: 'Times New Roman', fontSize: 16 },
     h3: { fontFamily: '仿宋_GB2312', asciiFontFamily: 'Times New Roman', fontSize: 16 },
+  },
+  header: {
+    enabled: false,
+    orgName: '',
+    docNumber: '',
+    signer: '',
+  },
+  footerNote: {
+    enabled: false,
+    cc: '',
+    printer: '',
+    printDate: '',
   },
 }
 

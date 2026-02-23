@@ -69,6 +69,15 @@
   background: #e5e7eb;
 }
 
+.toolbar-btn--import {
+  background: #eff6ff;
+  color: #2563eb;
+}
+
+.toolbar-btn--import:hover:not(:disabled) {
+  background: #dbeafe;
+}
+
 .toolbar-btn--clear {
   background: #f3f4f6;
   color: #374151;

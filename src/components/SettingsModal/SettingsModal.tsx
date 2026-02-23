@@ -104,6 +104,32 @@ function CheckboxField({
   )
 }
 
+/** 通用 text input */
+function TextField({
+  label,
+  value,
+  placeholder,
+  onChange,
+}: {
+  label: string
+  value: string
+  placeholder?: string
+  onChange: (val: string) => void
+}) {
+  return (
+    <label className="settings-field">
+      <span className="settings-field-label">{label}</span>
+      <input
+        type="text"
+        className="settings-input"
+        value={value}
+        placeholder={placeholder}
+        onChange={(e: ChangeEvent<HTMLInputElement>) => onChange(e.target.value)}
+      />
+    </label>
+  )
+}
+
 export function SettingsModal({ onClose }: SettingsModalProps) {
   const { config, updateConfig, resetConfig } = useDocumentConfig()
   const [showAdvanced, setShowAdvanced] = useState(false)
@@ -123,6 +149,74 @@ export function SettingsModal({ onClose }: SettingsModalProps) {
 
         {/* 内容区 */}
         <div className="settings-body">
+          {/* 区块: 版头配置 */}
+          <section className="settings-section">
+            <h3 className="settings-section-title">版头</h3>
+            <div className="settings-options">
+              <CheckboxField
+                label="启用版头"
+                checked={config.header.enabled}
+                onChange={(v) => patch({ header: { enabled: v } })}
+              />
+              {config.header.enabled && (
+                <div className="settings-grid settings-grid--3">
+                  <TextField
+                    label="发文机关标志"
+                    value={config.header.orgName}
+                    placeholder="如：国务院办公厅"
+                    onChange={(v) => patch({ header: { orgName: v } })}
+                  />
+                  <TextField
+                    label="发文字号"
+                    value={config.header.docNumber}
+                    placeholder="如：国办发〔2024〕1号"
+                    onChange={(v) => patch({ header: { docNumber: v } })}
+                  />
+                  <TextField
+                    label="签发人"
+                    value={config.header.signer}
+                    placeholder="选填，上行文使用"
+                    onChange={(v) => patch({ header: { signer: v } })}
+                  />
+                </div>
+              )}
+            </div>
+          </section>
+
+          {/* 区块: 版记配置 */}
+          <section className="settings-section">
+            <h3 className="settings-section-title">版记</h3>
+            <div className="settings-options">
+              <CheckboxField
+                label="启用版记"
+                checked={config.footerNote.enabled}
+                onChange={(v) => patch({ footerNote: { enabled: v } })}
+              />
+              {config.footerNote.enabled && (
+                <div className="settings-grid settings-grid--3">
+                  <TextField
+                    label="抄送"
+                    value={config.footerNote.cc}
+                    placeholder="抄送机关"
+                    onChange={(v) => patch({ footerNote: { cc: v } })}
+                  />
+                  <TextField
+                    label="印发机关"
+                    value={config.footerNote.printer}
+                    placeholder="如：国务院办公厅"
+                    onChange={(v) => patch({ footerNote: { printer: v } })}
+                  />
+                  <TextField
+                    label="印发日期"
+                    value={config.footerNote.printDate}
+                    placeholder="如：2024年1月1日"
+                    onChange={(v) => patch({ footerNote: { printDate: v } })}
+                  />
+                </div>
+              )}
+            </div>
+          </section>
+
           {/* 区块 1: 页面边距 */}
           <section className="settings-section">
             <h3 className="settings-section-title">页面边距</h3>
