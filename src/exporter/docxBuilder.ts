@@ -2,6 +2,7 @@ import {
   Document, Paragraph, TextRun, Footer, PageNumber,
   AlignmentType, BorderStyle, LineRuleType,
   Table, TableRow, TableCell, WidthType,
+  TableAnchorType, RelativeHorizontalPosition, RelativeVerticalPosition, OverlapType,
 } from 'docx'
 import type { IRunOptions, IBorderOptions } from 'docx'
 import type { GongwenAST, DocumentNode } from '../types/ast'
@@ -46,8 +47,8 @@ function pageNumberParagraph(
 }
 
 /**
- * 拆分标题首句：首句（到第一个"。"）用标题字体，其余用仿宋正文字体
- * 适用于一级标题(黑体+仿宋)和二级标题(楷体+仿宋)
+ * 拆分标题首句：首句（到第一个"。"）用标题字体/样式，其余用仿宋正文样式
+ * 适用于一至四级标题（黑体/楷体/仿宋加粗 + 仿宋正文）
  */
 function splitHeadingSentence(content: string, headingStyle: Partial<IRunOptions>, config: DocumentConfig): TextRun[] {
   const idx = content.indexOf('。')
@@ -84,11 +85,25 @@ function splitBoldFirstSentence(content: string, runStyle: Partial<IRunOptions>)
 }
 
 /** 将单个 AST 节点转换为 docx Paragraph */
-function nodeToParagraph(node: DocumentNode, config: DocumentConfig): Paragraph {
-  const paragraphStyle = getParagraphStyle(node.type, config)
+function nodeToParagraph(node: DocumentNode, config: DocumentConfig, spacingBefore = 0): Paragraph {
+  let paragraphStyle = getParagraphStyle(node.type, config)
   const runStyle = getRunStyle(node.type, config)
 
-  if (node.type === NodeType.HEADING_1 || node.type === NodeType.HEADING_2) {
+  // 外部传入的额外 spacing.before（如版头后标题空二行）
+  if (spacingBefore > 0) {
+    paragraphStyle = {
+      ...paragraphStyle,
+      spacing: { ...paragraphStyle.spacing, before: spacingBefore },
+    }
+  }
+
+  // 一至四级标题：首句用标题样式，句号后切换为正文样式
+  if (
+    node.type === NodeType.HEADING_1 ||
+    node.type === NodeType.HEADING_2 ||
+    node.type === NodeType.HEADING_3 ||
+    node.type === NodeType.HEADING_4
+  ) {
     return new Paragraph({
       ...paragraphStyle,
       children: splitHeadingSentence(node.content, runStyle, config),
@@ -140,6 +155,15 @@ export function buildDocument(ast: GongwenAST, config: DocumentConfig): Document
         color: 'E00000',
       })],
     }))
+
+    // 发文机关标志下空二行（三号字行高，确保行距精确）
+    const bodyLineSpacing = ptToTwip(config.body.lineSpacing)
+    for (let i = 0; i < 2; i++) {
+      children.push(new Paragraph({
+        spacing: { line: bodyLineSpacing, lineRule: LineRuleType.EXACT, before: 0, after: 0 },
+        children: [new TextRun({ font: headerFont, size: headerFontSize, text: '' })],
+      }))
+    }
 
     // 2. 发文字号 / 签发人（位于红线之上）
     if (config.header.signer) {
@@ -214,26 +238,24 @@ export function buildDocument(ast: GongwenAST, config: DocumentConfig): Document
       },
       children: [],
     }))
-
-    // 4. 标题前空两行（插入两个正文行高的空段落）
-    const bodyLineSpacing = ptToTwip(config.body.lineSpacing)
-    for (let i = 0; i < 2; i++) {
-      children.push(new Paragraph({
-        spacing: { line: bodyLineSpacing, lineRule: LineRuleType.EXACT, before: 0, after: 0 },
-        children: [],
-      }))
-    }
   }
 
+  // 版头启用时，标题需通过 spacing.before 空二行（56pt = 1120 twips）
+  const titleSpacingBefore = (config.header.enabled && config.header.orgName)
+    ? ptToTwip(config.body.lineSpacing * 2)
+    : 0
+
   if (ast.title) {
-    children.push(nodeToParagraph(ast.title, config))
+    children.push(nodeToParagraph(ast.title, config, titleSpacingBefore))
   }
 
   for (const node of ast.body) {
     children.push(nodeToParagraph(node, config))
   }
 
-  // ---- 版记段落 ----
+  // ---- 版记浮动表格（锚定页面底部版心下边缘） ----
+  // 使用 Table Float 将版记吸附到最后一页底部，
+  // 无需计算空行填充，Word 引擎自动处理文本避让。
   if (config.footerNote.enabled) {
     const bodyFont = {
       ascii: 'Times New Roman',
@@ -242,12 +264,13 @@ export function buildDocument(ast: GongwenAST, config: DocumentConfig): Document
       cs: 'Times New Roman',
     }
     const footerNoteSize = 28 // 四号 14pt = 28 half-point
-    const fnOneCharIndent = `${config.body.fontSize}pt` as `${number}pt`
+    // 使用 twips 数值（表格内段落缩进更可靠）
+    const fnOneCharIndent = ptToTwip(config.body.fontSize)
 
-    // 粗线（首条、末条分隔线，推荐 0.35mm ≈ 1pt）
+    // 粗线（首条、末条分隔线）
     const thickBorder: IBorderOptions = {
       style: BorderStyle.SINGLE,
-      size: 12, // 1.5pt — 保证在各 Word 渲染器中清晰可见
+      size: 12, // 1.5pt
       color: '000000',
     }
     // 细线（抄送与印发之间的分隔线）
@@ -260,16 +283,19 @@ export function buildDocument(ast: GongwenAST, config: DocumentConfig): Document
     const hasCc = !!config.footerNote.cc
     const hasPrint = !!(config.footerNote.printer || config.footerNote.printDate)
 
+    // 版记内容：全部放入浮动表格的唯一单元格
+    const footerNoteChildren: (Paragraph | Table)[] = []
+
     // 1. 首条粗线
-    children.push(new Paragraph({
-      spacing: { before: 200, after: 0 },
+    footerNoteChildren.push(new Paragraph({
+      spacing: { before: 0, after: 0 },
       border: { bottom: thickBorder },
       children: [],
     }))
 
     // 2. 抄送行（左右各空一字）
     if (hasCc) {
-      children.push(new Paragraph({
+      footerNoteChildren.push(new Paragraph({
         alignment: AlignmentType.LEFT,
         indent: { left: fnOneCharIndent, right: fnOneCharIndent },
         children: [new TextRun({
@@ -282,21 +308,21 @@ export function buildDocument(ast: GongwenAST, config: DocumentConfig): Document
 
     // 3. 中间细线（仅在抄送和印发行同时存在时出现）
     if (hasCc && hasPrint) {
-      children.push(new Paragraph({
+      footerNoteChildren.push(new Paragraph({
         spacing: { before: 0, after: 0 },
         border: { bottom: thinBorder },
         children: [],
       }))
     }
 
-    // 4. 印发机关 + 印发日期（无边框表格：左空一字，右空一字）
+    // 4. 印发机关 + 印发日期（嵌套无边框表格：左空一字，右空一字）
     if (hasPrint) {
       const printerText = config.footerNote.printer || ''
       const dateText = config.footerNote.printDate
         ? `${config.footerNote.printDate}印发`
         : ''
 
-      children.push(new Table({
+      footerNoteChildren.push(new Table({
         width: { size: 100, type: WidthType.PERCENTAGE },
         borders: TABLE_NO_BORDERS,
         rows: [
@@ -331,10 +357,34 @@ export function buildDocument(ast: GongwenAST, config: DocumentConfig): Document
     }
 
     // 5. 末条粗线
-    children.push(new Paragraph({
+    footerNoteChildren.push(new Paragraph({
       spacing: { before: 0, after: 0 },
       border: { bottom: thickBorder },
       children: [],
+    }))
+
+    // 浮动表格包装器：无边框 1×1 表格，锚定在版心底部
+    children.push(new Table({
+      width: { size: 100, type: WidthType.PERCENTAGE },
+      borders: TABLE_NO_BORDERS,
+      float: {
+        horizontalAnchor: TableAnchorType.MARGIN,
+        verticalAnchor: TableAnchorType.MARGIN,
+        relativeHorizontalPosition: RelativeHorizontalPosition.LEFT,
+        relativeVerticalPosition: RelativeVerticalPosition.BOTTOM,
+        overlap: OverlapType.NEVER,
+      },
+      rows: [
+        new TableRow({
+          children: [
+            new TableCell({
+              borders: TABLE_NO_BORDERS,
+              margins: { top: 0, bottom: 0, left: 0, right: 0 },
+              children: footerNoteChildren,
+            }),
+          ],
+        }),
+      ],
     }))
   }
 

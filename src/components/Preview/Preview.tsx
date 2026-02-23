@@ -4,7 +4,7 @@ import type { GongwenAST } from '../../types/ast'
 import { useDocumentConfig } from '../../contexts/DocumentConfigContext'
 import { cmToPagePercent, CHARS_PER_LINE } from '../../types/documentConfig'
 import { usePagination } from '../../hooks/usePagination'
-import { A4Page, NODE_CLASS_MAP, renderHeading1, renderHeading2, renderBoldFirstSentence } from './A4Page'
+import { A4Page, NODE_CLASS_MAP, renderHeading1, renderHeading2, renderHeading3, renderHeading4, renderBoldFirstSentence } from './A4Page'
 import './A4Page.css'
 import './Preview.css'
 
@@ -32,6 +32,8 @@ export function Preview({ ast }: PreviewProps) {
       '--margin-bottom': `${cmToPagePercent(config.margins.bottom, 'x')}%`,
       '--margin-left': `${cmToPagePercent(config.margins.left, 'x')}%`,
       '--margin-right': `${cmToPagePercent(config.margins.right, 'x')}%`,
+      // 版记绝对定位使用 y 轴百分比（相对页面高度 297mm，而非宽度 210mm）
+      '--margin-bottom-y': `${cmToPagePercent(config.margins.bottom, 'y')}%`,
       '--title-font': config.title.fontFamily,
       '--title-size': `${config.title.fontSize}px`,
       '--title-line-height': `${config.title.lineSpacing}px`,
@@ -77,9 +79,13 @@ export function Preview({ ast }: PreviewProps) {
                   ? renderHeading1(node.content)
                   : node.type === NodeType.HEADING_2
                     ? renderHeading2(node.content)
-                    : (boldFirst && node.type === NodeType.PARAGRAPH)
-                      ? renderBoldFirstSentence(node.content)
-                      : node.content}
+                    : node.type === NodeType.HEADING_3
+                      ? renderHeading3(node.content)
+                      : node.type === NodeType.HEADING_4
+                        ? renderHeading4(node.content)
+                        : (boldFirst && node.type === NodeType.PARAGRAPH)
+                          ? renderBoldFirstSentence(node.content)
+                          : node.content}
               </p>
             ))}
           </div>

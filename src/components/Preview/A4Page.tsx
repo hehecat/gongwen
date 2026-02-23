@@ -49,6 +49,39 @@ export function renderHeading2(content: string) {
 }
 
 /**
+ * 渲染三级标题：首句（到第一个"。"）用仿宋加粗，其余用仿宋正文样式
+ */
+export function renderHeading3(content: string) {
+  const idx = content.indexOf('。')
+  if (idx === -1 || idx === content.length - 1) {
+    return <span className="a4-h3-inline">{content}</span>
+  }
+  return (
+    <>
+      <span className="a4-h3-inline">{content.slice(0, idx + 1)}</span>
+      <span className="a4-paragraph-inline">{content.slice(idx + 1)}</span>
+    </>
+  )
+}
+
+/**
+ * 渲染四级标题：首句（到第一个"。"）用仿宋，其余用仿宋正文样式
+ * 四级标题本身与正文同字体，但保持拆分逻辑一致性
+ */
+export function renderHeading4(content: string) {
+  const idx = content.indexOf('。')
+  if (idx === -1 || idx === content.length - 1) {
+    return <span className="a4-h4-inline">{content}</span>
+  }
+  return (
+    <>
+      <span className="a4-h4-inline">{content.slice(0, idx + 1)}</span>
+      <span className="a4-paragraph-inline">{content.slice(idx + 1)}</span>
+    </>
+  )
+}
+
+/**
  * 渲染正文首句加粗：首句（到第一个"。"）加粗，其余正常
  */
 export function renderBoldFirstSentence(content: string) {
@@ -138,9 +171,13 @@ export function A4Page({
                   ? renderHeading1(node.content)
                   : node.type === NodeType.HEADING_2
                     ? renderHeading2(node.content)
-                    : (boldFirstSentence && node.type === NodeType.PARAGRAPH)
-                      ? renderBoldFirstSentence(node.content)
-                      : node.content}
+                    : node.type === NodeType.HEADING_3
+                      ? renderHeading3(node.content)
+                      : node.type === NodeType.HEADING_4
+                        ? renderHeading4(node.content)
+                        : (boldFirstSentence && node.type === NodeType.PARAGRAPH)
+                          ? renderBoldFirstSentence(node.content)
+                          : node.content}
               </p>
             ))}
             {!title && body.length === 0 && (
@@ -148,23 +185,23 @@ export function A4Page({
             )}
           </div>
         </div>
-        {/* 版记：仅在最后一页且启用时渲染 */}
-        {isLastPage && footerNoteConfig.enabled && (
-          <div className="a4-footer-note">
-            <div className="a4-footer-note-line-top"></div>
-            {footerNoteConfig.cc && (
-              <div className="a4-footer-note-cc">抄送：{footerNoteConfig.cc}</div>
-            )}
-            {(footerNoteConfig.printer || footerNoteConfig.printDate) && (
-              <div className="a4-footer-note-printer">
-                <span>{footerNoteConfig.printer}</span>
-                <span>{footerNoteConfig.printDate}{footerNoteConfig.printDate && '印发'}</span>
-              </div>
-            )}
-            <div className="a4-footer-note-line-bottom"></div>
-          </div>
-        )}
       </div>
+      {/* 版记：绝对定位到最后一页底部，末条线与版心下边缘重合 */}
+      {isLastPage && footerNoteConfig.enabled && (
+        <div className="a4-footer-note">
+          <div className="a4-footer-note-line-top"></div>
+          {footerNoteConfig.cc && (
+            <div className="a4-footer-note-cc">抄送：{footerNoteConfig.cc}</div>
+          )}
+          {(footerNoteConfig.printer || footerNoteConfig.printDate) && (
+            <div className="a4-footer-note-printer">
+              <span>{footerNoteConfig.printer}</span>
+              <span>{footerNoteConfig.printDate}{footerNoteConfig.printDate && '印发'}</span>
+            </div>
+          )}
+          <div className="a4-footer-note-line-bottom"></div>
+        </div>
+      )}
       {showPageNumber && (
         <div className={`a4-footer ${pageNumber % 2 === 0 ? 'a4-footer-even' : 'a4-footer-odd'}`}>
           — {pageNumber} —

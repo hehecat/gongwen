@@ -91,16 +91,28 @@
   font-style: normal;
 }
 
-/* 二级标题后续正文 inline: 仿宋 */
+/* 标题后续正文 inline: 仿宋，显式重置 bold 防止继承 */
 .a4-paragraph-inline {
+  font-family: var(--body-font, 'FangSong_GB2312'), 'FangSong', 'STFangsong', serif;
+  font-weight: normal;
+}
+
+/* 三级标题 inline: 仿宋加粗（首句用） */
+.a4-h3-inline {
+  font-family: var(--h3-font, 'FangSong_GB2312'), 'FangSong', 'STFangsong', serif;
+  font-weight: bold;
+}
+
+/* 四级标题 inline: 仿宋（首句用，与正文同字体但不缩进） */
+.a4-h4-inline {
   font-family: var(--body-font, 'FangSong_GB2312'), 'FangSong', 'STFangsong', serif;
 }
 
-/* 三级标题: 仿宋加粗 */
+/* 三级标题: 段落容器（不设 bold，由 inline 控制首句加粗） */
 .a4-h3 {
   font-family: var(--h3-font, 'FangSong_GB2312'), 'FangSong', 'STFangsong', serif;
   font-size: var(--body-size, 16px);
-  font-weight: bold;
+  font-weight: normal;
   text-indent: var(--body-indent, 2em);
   line-height: var(--body-line-height, 29px);
   margin: 0;
@@ -234,6 +246,8 @@
   display: flex;
   justify-content: center;
   padding: 0 1em;
+  /* 发文机关标志下空二行 */
+  margin-top: calc(var(--body-line-height, 29px) * 2);
   font-family: var(--body-font);
   font-size: var(--body-size);
   line-height: var(--body-line-height);
@@ -253,9 +267,13 @@
   font-family: 'KaiTi_GB2312', 'KaiTi', 'STKaiti', serif;
 }
 
-/* ---- 版记 ---- */
+/* ---- 版记（绝对定位，锚定最后一页版心底部） ---- */
 .a4-footer-note {
-  margin-top: auto;
+  position: absolute;
+  /* bottom 使用 y 轴百分比（相对页面高度 297mm），末条线与版心下边缘重合 */
+  bottom: var(--margin-bottom-y, 11.78%);
+  left: var(--margin-left, 13.33%);
+  right: var(--margin-right, 12.38%);
   font-family: var(--body-font);
   font-size: 14px;
   line-height: 28px;
