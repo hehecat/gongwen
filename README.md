@@ -4,6 +4,8 @@
 
 🔗 **在线体验：https://hehecat.github.io/gongwen/**
 
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Fhehecat%2Fgongwen)
+
 ## 功能特性
 
 - **实时预览** — 左侧编辑、右侧即时 A4 分页预览
