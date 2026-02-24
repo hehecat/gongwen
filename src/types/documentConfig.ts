@@ -108,15 +108,15 @@ export type DeepPartial<T> = {
 
 export const DEFAULT_CONFIG: DocumentConfig = {
   margins: {
-    top: 3.7,
-    bottom: 3.5,
+    top: 3.46,
+    bottom: 3.26,
     left: 2.8,
     right: 2.6,
   },
   title: {
     fontFamily: '方正小标宋_GBK',
     fontSize: 22,
-    lineSpacing: 29,
+    lineSpacing: 29.6,
   },
   headings: {
     h1: { fontFamily: '黑体', fontSize: 16 },
@@ -125,7 +125,7 @@ export const DEFAULT_CONFIG: DocumentConfig = {
   body: {
     fontFamily: '仿宋_GB2312',
     fontSize: 16,
-    lineSpacing: 29,
+    lineSpacing: 29.6,
     firstLineIndent: 2,
   },
   table: {
@@ -199,6 +199,7 @@ export const LINE_SPACING_OPTIONS: { label: string; value: number }[] = [
   { label: '26磅', value: 26 },
   { label: '28磅', value: 28 },
   { label: '29磅', value: 29 },
+  { label: '29.6磅', value: 29.6 },
   { label: '30磅', value: 30 },
   { label: '32磅', value: 32 },
 ]
@@ -214,6 +215,9 @@ export const INDENT_OPTIONS: { label: string; value: number }[] = [
 
 /** 每行字数 */
 export const CHARS_PER_LINE = 28
+
+/** 每页行数 */
+export const LINES_PER_PAGE = 22
 
 // ---- 单位转换工具函数 ----
 

@@ -28,20 +28,29 @@ const TABLE_NO_BORDERS = {
   insideVertical: NO_BORDER,
 }
 
-// ---- 页码样式 ----
+// ---- 页码样式 (GB/T 9704: 四号宋体, — X — 格式, 奇右偶左各空一字) ----
 
-/** 构建页码段落 (— X — 格式) */
+/** 页码一字线（Unicode EM DASH） */
+const PAGE_NUM_DASH = '\u2014'
+
+/** 页码距版心下边缘 7mm (GB/T 9704)，通过 spacing.before 定位 */
+const PAGE_NUM_SPACING_BEFORE = cmToTwip(0.7) // 7mm = 0.7cm ≈ 397 twips
+
+/** 构建页码段落 */
 function pageNumberParagraph(
   alignment: typeof AlignmentType.LEFT | typeof AlignmentType.RIGHT,
+  indent: { left?: number; right?: number },
   pageNumFont: Record<string, string>,
   pageNumSize: number,
 ): Paragraph {
   return new Paragraph({
     alignment,
+    indent,
+    spacing: { before: PAGE_NUM_SPACING_BEFORE },
     children: [
-      new TextRun({ font: pageNumFont, size: pageNumSize, children: ['— '] }),
+      new TextRun({ font: pageNumFont, size: pageNumSize, children: [PAGE_NUM_DASH + ' '] }),
       new TextRun({ font: pageNumFont, size: pageNumSize, children: [PageNumber.CURRENT] }),
-      new TextRun({ font: pageNumFont, size: pageNumSize, children: [' —'] }),
+      new TextRun({ font: pageNumFont, size: pageNumSize, children: [' ' + PAGE_NUM_DASH] }),
     ],
   })
 }
@@ -388,24 +397,25 @@ export function buildDocument(ast: GongwenAST, config: DocumentConfig): Document
     }))
   }
 
-  // 页码字体
+  // 页码字体：四号宋体（中英文统一宋体，14pt = 28 half-point）
   const pageNumFont = {
-    ascii: 'Times New Roman',
-    eastAsia: config.specialOptions.pageNumberFont,
-    hAnsi: 'Times New Roman',
-    cs: 'Times New Roman',
+    ascii: '宋体',
+    eastAsia: '宋体',
+    hAnsi: '宋体',
+    cs: '宋体',
   }
-  // 4号 = 14pt = 28 half-point
-  const pageNumSize = 28
+  const pageNumSize = 28 // 四号 14pt
+  // 奇偶页各空一字（四号字 14pt = 280 twips）
+  const pageNumIndent = ptToTwip(14)
 
-  // 页脚配置（条件渲染）
+  // 页脚配置：单页码居右空一字，双页码居左空一字
   const footers = config.specialOptions.showPageNumber
     ? {
         default: new Footer({
-          children: [pageNumberParagraph(AlignmentType.RIGHT, pageNumFont, pageNumSize)],
+          children: [pageNumberParagraph(AlignmentType.RIGHT, { right: pageNumIndent }, pageNumFont, pageNumSize)],
         }),
         even: new Footer({
-          children: [pageNumberParagraph(AlignmentType.LEFT, pageNumFont, pageNumSize)],
+          children: [pageNumberParagraph(AlignmentType.LEFT, { left: pageNumIndent }, pageNumFont, pageNumSize)],
         }),
       }
     : undefined
