@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <rect width="512" height="512" rx="64" fill="#c0392b"/>
+  <rect x="96" y="72" width="320" height="368" rx="16" fill="#fff"/>
+  <!-- 红头横线 -->
+  <line x1="128" y1="148" x2="384" y2="148" stroke="#c0392b" stroke-width="6"/>
+  <!-- 文字行 -->
+  <rect x="144" y="172" width="200" height="12" rx="2" fill="#333"/>
+  <rect x="144" y="200" width="224" height="10" rx="2" fill="#888"/>
+  <rect x="144" y="224" width="224" height="10" rx="2" fill="#888"/>
+  <rect x="144" y="248" width="180" height="10" rx="2" fill="#888"/>
+  <rect x="144" y="272" width="224" height="10" rx="2" fill="#888"/>
+  <rect x="144" y="296" width="210" height="10" rx="2" fill="#888"/>
+  <rect x="144" y="320" width="224" height="10" rx="2" fill="#888"/>
+  <rect x="144" y="344" width="160" height="10" rx="2" fill="#888"/>
+  <!-- 五角星 -->
+  <polygon points="256,88 262,108 284,108 266,120 273,140 256,128 239,140 246,120 228,108 250,108" fill="#c0392b"/>
+</svg>

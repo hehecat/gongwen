@@ -4,6 +4,8 @@
 
 🔗 **在线体验：https://hehecat.github.io/gongwen/**
 
+📦 **离线版下载：[Releases](https://github.com/hehecat/gongwen/releases/latest)** — 下载 `gongwen.html`，双击即可使用
+
 [![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Fhehecat%2Fgongwen)
 
 ## 功能特性
@@ -18,6 +20,8 @@
 - **格式可配置** — 页边距、字体、字号、行距、首行缩进等参数均可自定义
 - **国标默认值** — 方正小标宋标题、仿宋正文、三号字、29磅行距等开箱即用
 - **本地持久化** — 编辑内容与配置自动保存到 localStorage，刷新不丢失
+- **PWA 支持** — 可安装为桌面应用，支持离线使用
+- **单文件版本** — 构建为单个 HTML 文件，无需服务器即可双击运行
 
 ## 技术栈
 
@@ -26,7 +30,7 @@
 - [docx](https://github.com/dolanmedia/docx) — DOCX 文件生成
 - [mammoth](https://github.com/mwilliamson/mammoth.js) — .docx 文件纯文本提取
 - [file-saver](https://github.com/nickeahman/FileSaver.js) — 浏览器端文件下载
-- GitHub Actions — 自动构建部署到 GitHub Pages
+- GitHub Actions — 自动构建部署到 GitHub Pages & 发布离线版到 Releases
 
 ## 本地开发
 
@@ -38,8 +42,9 @@ npm run dev
 ## 构建
 
 ```bash
-npm run build    # 产物输出到 dist/
-npm run preview  # 本地预览构建产物
+npm run build          # 标准构建（含 PWA），产物输出到 dist/
+npm run build:single   # 单文件离线构建，生成 dist/index.html（约 1MB）
+npm run preview        # 本地预览构建产物
 ```
 
 ## 项目结构
