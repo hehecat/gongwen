@@ -283,11 +283,15 @@
 /* 底部操作栏 */
 .settings-footer {
   display: flex;
-  justify-content: flex-end;
+  align-items: center;
   gap: 10px;
   padding: 14px 20px;
   border-top: 1px solid #e5e7eb;
   flex-shrink: 0;
+}
+
+.settings-footer-spacer {
+  flex: 1;
 }
 
 .settings-btn {
@@ -316,4 +320,14 @@
 
 .settings-btn--close:hover {
   background: #e5e7eb;
+}
+
+.settings-btn--download {
+  background: #eff6ff;
+  color: #2563eb;
+  text-decoration: none;
+}
+
+.settings-btn--download:hover {
+  background: #dbeafe;
 }

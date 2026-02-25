@@ -141,7 +141,7 @@ export function SettingsModal({ onClose }: SettingsModalProps) {
       <div className="settings-modal" onClick={(e) => e.stopPropagation()}>
         {/* 顶部 */}
         <div className="settings-header">
-          <h2 className="settings-title">格式设置</h2>
+          <h2 className="settings-title">设置</h2>
           <button className="settings-close" onClick={onClose} aria-label="关闭">
             ✕
           </button>
@@ -454,6 +454,15 @@ export function SettingsModal({ onClose }: SettingsModalProps) {
 
         {/* 底部操作栏 */}
         <div className="settings-footer">
+          <a
+            className="settings-btn settings-btn--download"
+            href="https://github.com/hehecat/gongwen/releases/latest/download/gongwen.html"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            下载离线版
+          </a>
+          <div className="settings-footer-spacer" />
           <button className="settings-btn settings-btn--reset" onClick={resetConfig}>
             恢复默认
           </button>
