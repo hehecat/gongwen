@@ -1,0 +1,47 @@
+name: Build & Release Single-File HTML
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+      - run: npm run build:single
+
+      - name: Generate version tag
+        id: version
+        run: |
+          TAG="v$(date +'%Y.%m.%d')-$(git rev-parse --short HEAD)"
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+          echo "date=$(date +'%Y-%m-%d')" >> "$GITHUB_OUTPUT"
+
+      - name: Rename artifact
+        run: mv dist/index.html dist/gongwen.html
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.version.outputs.tag }}
+          name: 公文排版工具 ${{ steps.version.outputs.tag }}
+          body: |
+            ## 离线单文件版本
+
+            下载 `gongwen.html`，双击即可在浏览器中离线使用。
+
+            - 构建日期：${{ steps.version.outputs.date }}
+            - 提交：${{ github.sha }}
+          files: dist/gongwen.html
