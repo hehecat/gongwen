@@ -1,5 +1,6 @@
 import { useState, type ChangeEvent } from 'react'
 import { useDocumentConfig } from '../../contexts/DocumentConfigContext'
+import { useCustomFonts } from '../../hooks/useCustomFonts'
 import {
   FONT_OPTIONS,
   ASCII_FONT_OPTIONS,
@@ -9,6 +10,7 @@ import {
   type DeepPartial,
   type DocumentConfig,
 } from '../../types/documentConfig'
+import { FontSelectField } from './FontSelectField'
 import './SettingsModal.css'
 
 interface SettingsModalProps {
@@ -132,9 +134,26 @@ function TextField({
 
 export function SettingsModal({ onClose }: SettingsModalProps) {
   const { config, updateConfig, resetConfig } = useDocumentConfig()
+  const { customFonts, addFont, removeFont } = useCustomFonts()
   const [showAdvanced, setShowAdvanced] = useState(false)
 
   const patch = (p: DeepPartial<DocumentConfig>) => updateConfig(p)
+
+  /** 通用字体选择属性（中文字体） */
+  const fontFieldProps = {
+    options: FONT_OPTIONS,
+    customFonts,
+    onAddCustomFont: addFont,
+    onRemoveCustomFont: removeFont,
+  }
+
+  /** 通用字体选择属性（英数字体） */
+  const asciiFontFieldProps = {
+    options: ASCII_FONT_OPTIONS,
+    customFonts,
+    onAddCustomFont: addFont,
+    onRemoveCustomFont: removeFont,
+  }
 
   return (
     <div className="settings-overlay" onClick={onClose}>
@@ -250,12 +269,15 @@ export function SettingsModal({ onClose }: SettingsModalProps) {
 
           {/* 区块 2: 标题格式 */}
           <section className="settings-section">
-            <h3 className="settings-section-title">公文标题</h3>
+            <h3 className="settings-section-title">
+              公文标题
+              <span className="font-tooltip-icon" title="所有字体选择均支持直接输入本机已安装的字体名称，预览和导出将使用您输入的字体。">?</span>
+            </h3>
             <div className="settings-grid settings-grid--3">
-              <SelectField
+              <FontSelectField
                 label="字体"
                 value={config.title.fontFamily}
-                options={FONT_OPTIONS}
+                {...fontFieldProps}
                 onChange={(v) => patch({ title: { fontFamily: v } })}
               />
               <SelectField
@@ -277,10 +299,10 @@ export function SettingsModal({ onClose }: SettingsModalProps) {
           <section className="settings-section">
             <h3 className="settings-section-title">各级标题</h3>
             <div className="settings-grid settings-grid--2">
-              <SelectField
+              <FontSelectField
                 label="一级标题字体"
                 value={config.headings.h1.fontFamily}
-                options={FONT_OPTIONS}
+                {...fontFieldProps}
                 onChange={(v) => patch({ headings: { h1: { fontFamily: v } } })}
               />
               <SelectField
@@ -289,10 +311,10 @@ export function SettingsModal({ onClose }: SettingsModalProps) {
                 options={FONT_SIZE_OPTIONS}
                 onChange={(v) => patch({ headings: { h1: { fontSize: Number(v) } } })}
               />
-              <SelectField
+              <FontSelectField
                 label="二级标题字体"
                 value={config.headings.h2.fontFamily}
-                options={FONT_OPTIONS}
+                {...fontFieldProps}
                 onChange={(v) => patch({ headings: { h2: { fontFamily: v } } })}
               />
               <SelectField
@@ -308,10 +330,10 @@ export function SettingsModal({ onClose }: SettingsModalProps) {
           <section className="settings-section">
             <h3 className="settings-section-title">正文格式</h3>
             <div className="settings-grid settings-grid--2">
-              <SelectField
+              <FontSelectField
                 label="字体"
                 value={config.body.fontFamily}
-                options={FONT_OPTIONS}
+                {...fontFieldProps}
                 onChange={(v) => patch({ body: { fontFamily: v } })}
               />
               <SelectField
@@ -342,10 +364,10 @@ export function SettingsModal({ onClose }: SettingsModalProps) {
               表格格式 <span className="settings-tag">预留</span>
             </h3>
             <div className="settings-grid settings-grid--2">
-              <SelectField
+              <FontSelectField
                 label="字体"
                 value={config.table.fontFamily}
-                options={FONT_OPTIONS}
+                {...fontFieldProps}
                 onChange={(v) => patch({ table: { fontFamily: v } })}
               />
               <SelectField
@@ -384,10 +406,10 @@ export function SettingsModal({ onClose }: SettingsModalProps) {
               />
               {config.specialOptions.showPageNumber && (
                 <div className="settings-sub-option">
-                  <SelectField
+                  <FontSelectField
                     label="页码字体"
                     value={config.specialOptions.pageNumberFont}
-                    options={FONT_OPTIONS}
+                    {...fontFieldProps}
                     onChange={(v) => patch({ specialOptions: { pageNumberFont: v } })}
                   />
                 </div>
@@ -420,18 +442,18 @@ export function SettingsModal({ onClose }: SettingsModalProps) {
                   <div key={key} className="settings-advanced-row">
                     <span className="settings-advanced-label">{label}</span>
                     <div className="settings-grid settings-grid--3">
-                      <SelectField
+                      <FontSelectField
                         label="中文字体"
                         value={config.advanced[key].fontFamily}
-                        options={FONT_OPTIONS}
+                        {...fontFieldProps}
                         onChange={(v) =>
                           patch({ advanced: { [key]: { fontFamily: v } } })
                         }
                       />
-                      <SelectField
+                      <FontSelectField
                         label="英数字体"
                         value={config.advanced[key].asciiFontFamily}
-                        options={ASCII_FONT_OPTIONS}
+                        {...asciiFontFieldProps}
                         onChange={(v) =>
                           patch({ advanced: { [key]: { asciiFontFamily: v } } })
                         }

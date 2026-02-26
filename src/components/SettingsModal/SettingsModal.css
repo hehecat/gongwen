@@ -331,3 +331,141 @@
 .settings-btn--download:hover {
   background: #dbeafe;
 }
+
+/* ---- FontSelectField (Combobox) ---- */
+
+.font-combo {
+  position: relative;
+}
+
+.font-combo-input-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.font-combo-input {
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+  padding-right: 24px !important;
+}
+
+.font-combo-arrow {
+  position: absolute;
+  right: 10px;
+  width: 0;
+  height: 0;
+  border-left: 4px solid transparent;
+  border-right: 4px solid transparent;
+  border-top: 5px solid #6b7280;
+  pointer-events: none;
+  transition: transform 0.15s;
+}
+
+.font-combo-arrow--open {
+  transform: rotate(180deg);
+}
+
+/* 下拉面板 */
+.font-combo-dropdown {
+  position: absolute;
+  top: calc(100% + 2px);
+  left: 0;
+  right: 0;
+  z-index: 50;
+  background: white;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+  max-height: 240px;
+  overflow-y: auto;
+  padding: 4px 0;
+}
+
+.font-combo-group-title {
+  font-size: 11px;
+  color: #9ca3af;
+  padding: 4px 10px 2px;
+  user-select: none;
+}
+
+.font-combo-divider {
+  height: 1px;
+  background: #f3f4f6;
+  margin: 4px 0;
+}
+
+.font-combo-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 5px 10px;
+  cursor: pointer;
+  transition: background 0.08s;
+}
+
+.font-combo-item:hover,
+.font-combo-item--active {
+  background: #f3f4f6;
+}
+
+.font-combo-item--selected {
+  color: #2563eb;
+  font-weight: 500;
+}
+
+.font-combo-item-text {
+  font-size: 13px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.font-combo-item-remove {
+  flex-shrink: 0;
+  width: 18px;
+  height: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  background: none;
+  border-radius: 3px;
+  color: #9ca3af;
+  font-size: 14px;
+  cursor: pointer;
+  line-height: 1;
+  padding: 0;
+  transition: color 0.1s, background 0.1s;
+}
+
+.font-combo-item-remove:hover {
+  color: #dc2626;
+  background: #fef2f2;
+}
+
+.font-combo-hint {
+  font-size: 12px;
+  color: #6b7280;
+  padding: 8px 10px;
+  text-align: center;
+}
+
+/* tooltip 问号图标 */
+.font-tooltip-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 14px;
+  height: 14px;
+  margin-left: 6px;
+  border-radius: 50%;
+  background: #dbeafe;
+  color: #2563eb;
+  font-size: 10px;
+  font-weight: 600;
+  cursor: help;
+  vertical-align: middle;
+  flex-shrink: 0;
+}
