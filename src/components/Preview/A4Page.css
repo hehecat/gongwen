@@ -159,7 +159,7 @@
   margin: var(--body-line-height, 29px) 0 0 0;
 }
 
-/* 附件说明: 左空二字 仿宋，段前空一行 */
+/* 附件说明基础样式：左空二字，段前空一行 */
 .a4-attachment {
   font-family: var(--body-font, 'FangSong_GB2312'), 'FangSong', 'STFangsong', serif;
   font-size: var(--body-size, 16px);
@@ -168,6 +168,34 @@
   text-align: justify;
   line-height: var(--body-line-height, 29px);
   margin: var(--body-line-height, 29px) 0 0 0;
+}
+
+/* 单附件换行悬挂缩进：首行正常，后续行缩进 3 字符 */
+.a4-attachment--single {
+  padding-left: calc(var(--body-indent, 2em) + 3em);
+  text-indent: -3em;
+}
+
+/* 多附件第一行：附件：1.xxx，左空 2 字符，换行后悬挂缩进 3 字符 */
+.a4-attachment--multi-first {
+  padding-left: calc(var(--body-indent, 2em) + 3em);
+  text-indent: -3em;
+}
+
+/* 多附件项：从第二个附件开始，每项单独一行 */
+.a4-attachment-item {
+  font-family: var(--body-font, 'FangSong_GB2312'), 'FangSong', 'STFangsong', serif;
+  font-size: var(--body-size, 16px);
+  text-align: justify;
+  line-height: var(--body-line-height, 29px);
+  margin: 0;
+  letter-spacing: var(--char-spacing, 0);
+}
+
+/* 多附件项：左缩进 5 字符（2 + 3），首行和换行后都从 5 字符开始 */
+.a4-attachment-item--multi {
+  padding-left: calc(var(--body-indent, 2em) + 3em);
+  text-indent: 0;
 }
 
 /* 成文日期: 右对齐 仿宋

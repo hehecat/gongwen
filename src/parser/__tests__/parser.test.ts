@@ -1,7 +1,8 @@
 import { describe, it, expect } from 'vitest'
 import { parseGongwen } from '../parser'
-import { detectNodeType } from '../matchers'
+import { detectNodeType, extractAttachmentItemsFromLine } from '../matchers'
 import { NodeType } from '../../types/ast'
+import type { AttachmentNode } from '../../types/ast'
 
 // ---- detectNodeType 单元测试 ----
 describe('detectNodeType', () => {
@@ -169,5 +170,163 @@ describe('parseGongwen', () => {
     expect(ast.body[2].type).toBe(NodeType.PARAGRAPH)
     expect(ast.body[3].type).toBe(NodeType.ATTACHMENT)
     expect(ast.body[4].type).toBe(NodeType.DATE)
+  })
+})
+
+// ---- extractAttachmentItemsFromLine 单元测试 ----
+describe('extractAttachmentItemsFromLine', () => {
+  it('提取单个附件项', () => {
+    const result = extractAttachmentItemsFromLine('1.实施方案', 1)
+    expect(result.items).toHaveLength(1)
+    expect(result.items[0]).toEqual({ index: 1, name: '实施方案' })
+    expect(result.remaining).toBe('')
+  })
+
+  it('提取多个连续附件项', () => {
+    const result = extractAttachmentItemsFromLine('1.方案A 2.方案B 3.方案C', 1)
+    expect(result.items).toHaveLength(3)
+    expect(result.items[0]).toEqual({ index: 1, name: '方案A' })
+    expect(result.items[1]).toEqual({ index: 2, name: '方案B' })
+    expect(result.items[2]).toEqual({ index: 3, name: '方案C' })
+    expect(result.remaining).toBe('')
+  })
+
+  it('序号不连续时停止提取', () => {
+    const result = extractAttachmentItemsFromLine('1.方案A 2.方案B 4.方案D', 1)
+    expect(result.items).toHaveLength(2)
+    expect(result.remaining).toBe('4.方案D')
+  })
+
+  it('支持不同点号格式', () => {
+    const result = extractAttachmentItemsFromLine('1．实施方案 2.责任清单', 1)
+    expect(result.items).toHaveLength(2)
+    expect(result.items[0].name).toBe('实施方案')
+    expect(result.items[1].name).toBe('责任清单')
+  })
+})
+
+// ---- 附件说明解析测试 ----
+describe('附件说明解析', () => {
+  describe('单附件模式', () => {
+    it('识别单附件（冒号后无数字）', () => {
+      const text = '标题\n\n附件：关于开展2025年安全生产专项检查的实施方案'
+      const ast = parseGongwen(text)
+
+      expect(ast.body[0].type).toBe(NodeType.ATTACHMENT)
+      const node = ast.body[0] as AttachmentNode
+      expect(node.isMultiple).toBe(false)
+      expect(node.items).toHaveLength(1)
+      expect(node.items[0].index).toBe(0)
+      expect(node.items[0].name).toBe('关于开展2025年安全生产专项检查的实施方案')
+    })
+
+    it('单附件冒号后有空格也能识别', () => {
+      const text = '标题\n\n附件： 实施方案'
+      const ast = parseGongwen(text)
+
+      const node = ast.body[0] as AttachmentNode
+      expect(node.isMultiple).toBe(false)
+      expect(node.items[0].name).toBe('实施方案')
+    })
+
+    it('冒号后数字不是1时视为单附件', () => {
+      const text = '标题\n\n附件：2.责任清单'
+      const ast = parseGongwen(text)
+
+      const node = ast.body[0] as AttachmentNode
+      expect(node.isMultiple).toBe(false)
+      expect(node.items[0].name).toBe('2.责任清单')
+    })
+  })
+
+  describe('多附件模式', () => {
+    it('识别多附件（同行多数字）', () => {
+      const text = '标题\n\n附件：1.实施方案 2.责任清单 3.工作计划'
+      const ast = parseGongwen(text)
+
+      expect(ast.body[0].type).toBe(NodeType.ATTACHMENT)
+      const node = ast.body[0] as AttachmentNode
+      expect(node.isMultiple).toBe(true)
+      expect(node.items).toHaveLength(3)
+      expect(node.items[0]).toEqual({ index: 1, name: '实施方案' })
+      expect(node.items[1]).toEqual({ index: 2, name: '责任清单' })
+      expect(node.items[2]).toEqual({ index: 3, name: '工作计划' })
+    })
+
+    it('识别多附件（分行数字）', () => {
+      const text = [
+        '标题',
+        '',
+        '附件：1.实施方案',
+        '2.责任清单',
+        '3.工作计划',
+      ].join('\n')
+      const ast = parseGongwen(text)
+
+      const node = ast.body[0] as AttachmentNode
+      expect(node.isMultiple).toBe(true)
+      expect(node.items).toHaveLength(3)
+    })
+
+    it('识别多附件（混合格式）', () => {
+      const text = [
+        '标题',
+        '',
+        '附件：1.实施方案 2.责任清单',
+        '3.工作计划',
+      ].join('\n')
+      const ast = parseGongwen(text)
+
+      const node = ast.body[0] as AttachmentNode
+      expect(node.isMultiple).toBe(true)
+      expect(node.items).toHaveLength(3)
+    })
+
+    it('序号不连续时停止解析（同行剩余内容作为附件说明的一部分）', () => {
+      const text = '标题\n\n附件：1.方案A 2.方案B 4.方案D'
+      const ast = parseGongwen(text)
+
+      const node = ast.body[0] as AttachmentNode
+      expect(node.items).toHaveLength(2)
+      // 同行的剩余内容 "4.方案D" 作为附件说明的一部分，不单独解析
+      expect(ast.body).toHaveLength(1)
+    })
+
+    it('序号不连续时停止解析（分行情况）', () => {
+      const text = [
+        '标题',
+        '',
+        '附件：1.方案A 2.方案B',
+        '4.方案D',
+      ].join('\n')
+      const ast = parseGongwen(text)
+
+      const node = ast.body[0] as AttachmentNode
+      expect(node.items).toHaveLength(2)
+      // 分行的 "4.方案D" 应该被解析为三级标题
+      expect(ast.body[1].type).toBe(NodeType.HEADING_3)
+    })
+
+    it('支持不同点号格式', () => {
+      const text = '标题\n\n附件：1．实施方案 2.责任清单'
+      const ast = parseGongwen(text)
+
+      const node = ast.body[0] as AttachmentNode
+      expect(node.items).toHaveLength(2)
+    })
+
+    it('多附件后正确解析后续内容', () => {
+      const text = [
+        '标题',
+        '',
+        '附件：1.实施方案 2.责任清单',
+        '2025年10月21日',
+      ].join('\n')
+      const ast = parseGongwen(text)
+
+      expect(ast.body).toHaveLength(2)
+      expect(ast.body[0].type).toBe(NodeType.ATTACHMENT)
+      expect(ast.body[1].type).toBe(NodeType.DATE)
+    })
   })
 })

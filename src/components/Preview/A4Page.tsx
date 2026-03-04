@@ -1,6 +1,6 @@
 import React, { type CSSProperties } from 'react'
 import { NodeType } from '../../types/ast'
-import type { DocumentNode } from '../../types/ast'
+import type { DocumentNode, AttachmentNode } from '../../types/ast'
 import type { HeaderConfig, FooterNoteConfig } from '../../types/documentConfig'
 import './A4Page.css'
 
@@ -136,6 +136,48 @@ export function renderBoldFirstSentence(content: string) {
   )
 }
 
+/**
+ * 渲染附件说明
+ *
+ * 单附件模式：附件：xxx
+ * 多附件模式：附件：1.xxx
+ *                   2.xxx
+ *                   3.xxx
+ */
+export function renderAttachment(node: AttachmentNode): React.ReactNode {
+  if (!node.isMultiple) {
+    // 单附件模式
+    return (
+      <p className="a4-attachment a4-attachment--single">
+        附件：{node.items[0].name}
+      </p>
+    )
+  }
+
+  // 多附件模式
+  const elements: React.ReactNode[] = []
+
+  // 第一个附件紧跟在 "附件：" 后
+  const firstItem = node.items[0]
+  elements.push(
+    <p key="first" className="a4-attachment a4-attachment--multi-first">
+      附件：{firstItem.index}.{firstItem.name}
+    </p>
+  )
+
+  // 从第二个附件开始，每项单独一行
+  for (let i = 1; i < node.items.length; i++) {
+    const item = node.items[i]
+    elements.push(
+      <p key={i} className="a4-attachment-item a4-attachment-item--multi">
+        {item.index}.{item.name}
+      </p>
+    )
+  }
+
+  return <>{elements}</>
+}
+
 interface A4PageProps {
   title: DocumentNode | null
   body: DocumentNode[]
@@ -238,29 +280,38 @@ export function A4Page({
                 }
               }
               
-              elements.push(
-                <p
-                  key={node.lineNumber}
-                  className={
-                    node.type === NodeType.HEADING_1 ? 'a4-h1'
-                    : node.type === NodeType.HEADING_2 ? 'a4-h2'
-                    : NODE_CLASS_MAP[node.type]
-                  }
-                  style={getNodeStyle(node, index)}
-                >
-                  {node.type === NodeType.HEADING_1
-                    ? renderHeading1(node.content)
-                    : node.type === NodeType.HEADING_2
-                      ? renderHeading2(node.content)
-                      : node.type === NodeType.HEADING_3
-                        ? renderHeading3(node.content)
-                        : node.type === NodeType.HEADING_4
-                          ? renderHeading4(node.content)
-                          : (boldFirstSentence && node.type === NodeType.PARAGRAPH)
-                            ? renderBoldFirstSentence(node.content)
-                            : node.content}
-                </p>
-              )
+              // 附件说明特殊渲染
+              if (node.type === NodeType.ATTACHMENT) {
+                elements.push(
+                  <React.Fragment key={node.lineNumber}>
+                    {renderAttachment(node as AttachmentNode)}
+                  </React.Fragment>
+                )
+              } else {
+                elements.push(
+                  <p
+                    key={node.lineNumber}
+                    className={
+                      node.type === NodeType.HEADING_1 ? 'a4-h1'
+                      : node.type === NodeType.HEADING_2 ? 'a4-h2'
+                      : NODE_CLASS_MAP[node.type]
+                    }
+                    style={getNodeStyle(node, index)}
+                  >
+                    {node.type === NodeType.HEADING_1
+                      ? renderHeading1(node.content)
+                      : node.type === NodeType.HEADING_2
+                        ? renderHeading2(node.content)
+                        : node.type === NodeType.HEADING_3
+                          ? renderHeading3(node.content)
+                          : node.type === NodeType.HEADING_4
+                            ? renderHeading4(node.content)
+                            : (boldFirstSentence && node.type === NodeType.PARAGRAPH)
+                              ? renderBoldFirstSentence(node.content)
+                              : node.content}
+                  </p>
+                )
+              }
               
               return elements
             })}

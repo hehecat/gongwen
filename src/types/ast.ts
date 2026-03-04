@@ -30,6 +30,23 @@ export interface DocumentNode {
   lineNumber: number
 }
 
+/** 附件项 */
+export interface AttachmentItem {
+  /** 附件序号（1, 2, 3...），单附件时为 0 */
+  index: number
+  /** 附件名称（不含序号和点号） */
+  name: string
+}
+
+/** 附件说明节点 */
+export interface AttachmentNode extends DocumentNode {
+  type: NodeType.ATTACHMENT
+  /** 是否为多附件模式 */
+  isMultiple: boolean
+  /** 附件列表（单附件时只有一项，index 为 0） */
+  items: AttachmentItem[]
+}
+
 /** 完整公文 AST */
 export interface GongwenAST {
   title: DocumentNode | null

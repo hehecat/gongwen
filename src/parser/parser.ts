@@ -1,6 +1,6 @@
-import type { DocumentNode, GongwenAST } from '../types/ast'
+import type { DocumentNode, GongwenAST, AttachmentNode } from '../types/ast'
 import { NodeType } from '../types/ast'
-import { detectNodeType, HEADING_1_RE } from './matchers'
+import { detectNodeType, HEADING_1_RE, ATTACHMENT_RE, extractAttachmentItemsFromLine } from './matchers'
 
 /** 不应被识别为发文机关署名的结尾标点 */
 const SIGNATURE_EXCLUDE_ENDINGS = ['。', '：', ':', '；', ';', '！', '!', '？', '?', '，', ',']
@@ -14,6 +14,95 @@ function isPossibleSignature(node: DocumentNode | undefined): boolean {
   const content = node.content.trim()
   if (content.length === 0 || content.length > 15) return false
   return !SIGNATURE_EXCLUDE_ENDINGS.some(ending => content.endsWith(ending))
+}
+
+/**
+ * 解析附件说明
+ *
+ * 单附件模式：附件：xxx（冒号后无数字或数字不是1）
+ * 多附件模式：附件：1.xxx 2.xxx ...（冒号后紧跟数字1）
+ */
+function parseAttachment(
+  line: string,
+  lines: string[],
+  currentIndex: number
+): { node: AttachmentNode; nextIndex: number } {
+  // 1. 提取冒号后的内容
+  const colonMatch = line.match(/^附件[：:](.*)$/)
+  if (!colonMatch) {
+    throw new Error('Invalid attachment line')
+  }
+  const contentAfterColon = colonMatch[1].trim()
+
+  // 2. 判断单附件还是多附件
+  const firstItemMatch = contentAfterColon.match(/^(\d+)[.．．.]/)
+
+  if (!firstItemMatch || firstItemMatch[1] !== '1') {
+    // 单附件模式：冒号后不是 "1." 开头
+    return {
+      node: {
+        type: NodeType.ATTACHMENT,
+        content: line,
+        lineNumber: currentIndex + 1,
+        isMultiple: false,
+        items: [{ index: 0, name: contentAfterColon }],
+      },
+      nextIndex: currentIndex + 1,
+    }
+  }
+
+  // 3. 多附件模式：收集所有附件项
+  const items: AttachmentNode['items'] = []
+  let remainingText = contentAfterColon
+  let expectedIndex = 1
+  // 记录已消费的最后一行索引（初始为当前行）
+  let lastConsumedIndex = currentIndex
+
+  while (true) {
+    // 从当前文本中提取连续的附件项
+    const { items: foundItems, remaining } = extractAttachmentItemsFromLine(
+      remainingText,
+      expectedIndex
+    )
+
+    items.push(...foundItems)
+    expectedIndex += foundItems.length
+
+    // 如果剩余文本不为空，说明序号不连续，停止解析
+    if (remaining.trim() !== '') {
+      break
+    }
+
+    // 当前行的附件项已提取完毕，检查下一行是否有后续附件
+    const nextLineIndex = lastConsumedIndex + 1
+    if (nextLineIndex < lines.length) {
+      const nextLine = lines[nextLineIndex].trim()
+      // 跳过空行
+      if (nextLine.length === 0) {
+        lastConsumedIndex = nextLineIndex
+        continue
+      }
+      // 检查下一行是否以期望的序号开头
+      const nextItemMatch = nextLine.match(/^(\d+)[.．．.]/)
+      if (nextItemMatch && parseInt(nextItemMatch[1]) === expectedIndex) {
+        remainingText = nextLine
+        lastConsumedIndex = nextLineIndex
+        continue
+      }
+    }
+    break
+  }
+
+  return {
+    node: {
+      type: NodeType.ATTACHMENT,
+      content: line,
+      lineNumber: currentIndex + 1,
+      isMultiple: true,
+      items,
+    },
+    nextIndex: lastConsumedIndex + 1,
+  }
 }
 
 /**
@@ -32,13 +121,17 @@ export function parseGongwen(text: string): GongwenAST {
 
   let titleFound = false
   let addresseeChecked = false
+  let i = 0
 
-  for (let i = 0; i < lines.length; i++) {
+  while (i < lines.length) {
     const raw = lines[i]
     const trimmed = raw.trim()
 
     // 跳过空行
-    if (trimmed.length === 0) continue
+    if (trimmed.length === 0) {
+      i++
+      continue
+    }
 
     const lineNumber = i + 1
 
@@ -46,30 +139,42 @@ export function parseGongwen(text: string): GongwenAST {
     if (!titleFound) {
       title = { type: NodeType.DOCUMENT_TITLE, content: trimmed, lineNumber }
       titleFound = true
+      i++
       continue
     }
 
-    // 后续行：先检测主送机关（标题后第一个非空行 + 冒号结尾），再做正则检测
+    // 主送机关检测（标题后第一个非空行 + 冒号结尾，但不是附件说明）
     if (!addresseeChecked) {
       addresseeChecked = true
       if (
         (trimmed.endsWith('：') || trimmed.endsWith(':')) &&
-        !HEADING_1_RE.test(trimmed)
+        !HEADING_1_RE.test(trimmed) &&
+        !ATTACHMENT_RE.test(trimmed)
       ) {
         body.push({ type: NodeType.ADDRESSEE, content: trimmed, lineNumber })
+        i++
         continue
       }
+    }
+
+    // 附件说明检测
+    if (ATTACHMENT_RE.test(trimmed)) {
+      const { node, nextIndex } = parseAttachment(trimmed, lines, i)
+      body.push(node)
+      i = nextIndex
+      continue
     }
 
     // 正则检测类型
     const type = detectNodeType(trimmed)
     body.push({ type, content: trimmed, lineNumber })
+    i++
   }
 
   // 识别发文机关署名：遍历 body，找到 DATE 节点，检查前一个节点
-  for (let i = 1; i < body.length; i++) {
-    if (body[i].type === NodeType.DATE && isPossibleSignature(body[i - 1])) {
-      body[i - 1] = { ...body[i - 1], type: NodeType.SIGNATURE }
+  for (let j = 1; j < body.length; j++) {
+    if (body[j].type === NodeType.DATE && isPossibleSignature(body[j - 1])) {
+      body[j - 1] = { ...body[j - 1], type: NodeType.SIGNATURE }
     }
   }
 

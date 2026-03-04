@@ -5,11 +5,11 @@ import {
   TableAnchorType, RelativeHorizontalPosition, RelativeVerticalPosition, OverlapType,
 } from 'docx'
 import type { IRunOptions, IBorderOptions } from 'docx'
-import type { GongwenAST, DocumentNode } from '../types/ast'
+import type { GongwenAST, DocumentNode, AttachmentNode } from '../types/ast'
 import { NodeType } from '../types/ast'
 import type { DocumentConfig } from '../types/documentConfig'
 import { cmToTwip, ptToTwip } from '../types/documentConfig'
-import { getParagraphStyle, getRunStyle } from './styleFactory'
+import { getParagraphStyle, getRunStyle, getAttachmentParagraphStyle, getAttachmentRunStyle } from './styleFactory'
 
 // ---- 无边框定义（用于版头表格） ----
 
@@ -91,6 +91,64 @@ function splitBoldFirstSentence(content: string, runStyle: Partial<IRunOptions>)
     new TextRun({ ...runStyle, text: firstSentence, bold: true }),
     new TextRun({ ...runStyle, text: rest }),
   ]
+}
+
+/**
+ * 将附件说明节点转换为 DOCX 段落
+ *
+ * 单附件模式：附件：xxx
+ * 多附件模式：附件：1.xxx
+ *                   2.xxx
+ *                   3.xxx
+ */
+function attachmentToParagraphs(node: AttachmentNode, config: DocumentConfig): Paragraph[] {
+  const paragraphs: Paragraph[] = []
+  const runStyle = getAttachmentRunStyle(config)
+
+  if (!node.isMultiple) {
+    // 单附件模式
+    const paragraphStyle = getAttachmentParagraphStyle(false, false, config)
+    paragraphs.push(
+      new Paragraph({
+        ...paragraphStyle,
+        children: [
+          new TextRun({ ...runStyle, text: '附件：' }),
+          new TextRun({ ...runStyle, text: node.items[0].name }),
+        ],
+      })
+    )
+  } else {
+    // 多附件模式
+    node.items.forEach((item, index) => {
+      const isFirst = index === 0
+      const paragraphStyle = getAttachmentParagraphStyle(true, isFirst, config)
+
+      if (isFirst) {
+        // 第一个附件：附件：1.xxx
+        paragraphs.push(
+          new Paragraph({
+            ...paragraphStyle,
+            children: [
+              new TextRun({ ...runStyle, text: '附件：' }),
+              new TextRun({ ...runStyle, text: `${item.index}.${item.name}` }),
+            ],
+          })
+        )
+      } else {
+        // 后续附件：2.xxx
+        paragraphs.push(
+          new Paragraph({
+            ...paragraphStyle,
+            children: [
+              new TextRun({ ...runStyle, text: `${item.index}.${item.name}` }),
+            ],
+          })
+        )
+      }
+    })
+  }
+
+  return paragraphs
 }
 
 /** 将单个 AST 节点转换为 docx Paragraph */
@@ -284,6 +342,13 @@ export function buildDocument(ast: GongwenAST, config: DocumentConfig): Document
           children: [new TextRun({ font: bodyFont, size: bodyFontSize, text: '' })],
         }))
       }
+    }
+    
+    // 附件说明特殊处理
+    if (node.type === NodeType.ATTACHMENT) {
+      const attachmentParagraphs = attachmentToParagraphs(node as AttachmentNode, config)
+      children.push(...attachmentParagraphs)
+      continue
     }
     
     // 对于 SIGNATURE 节点，查找下一个节点是否为 DATE

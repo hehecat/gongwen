@@ -215,7 +215,6 @@ export function getRunStyle(type: NodeType, config: DocumentConfig): Partial<IRu
 
     case NodeType.HEADING_4:
     case NodeType.PARAGRAPH:
-    case NodeType.ATTACHMENT:
     case NodeType.DATE:
     case NodeType.SIGNATURE:
     default:
@@ -224,5 +223,76 @@ export function getRunStyle(type: NodeType, config: DocumentConfig): Partial<IRu
         size: bodyFontSize,
         characterSpacing: charSpacing,
       }
+  }
+}
+
+/**
+ * 附件说明段落样式
+ *
+ * @param isMultiple 是否为多附件模式
+ * @param isFirst 是否为多附件的第一行（仅多附件模式有效）
+ * @param config 文档配置
+ */
+export function getAttachmentParagraphStyle(
+  isMultiple: boolean,
+  isFirst: boolean,
+  config: DocumentConfig
+): Partial<IParagraphOptions> {
+  const lineSpacingValue = ptToTwip(config.body.lineSpacing)
+  const charWidthTwips = calculateCharWidth(config)
+
+  if (!isMultiple) {
+    // 单附件：左空 5 字符（2 + 3），悬挂缩进 3 字符（用于换行对齐）
+    return {
+      alignment: AlignmentType.JUSTIFIED,
+      spacing: { line: lineSpacingValue, lineRule: LineRuleType.EXACT, before: lineSpacingValue },
+      indent: {
+        left: 5 * charWidthTwips,
+        hanging: 3 * charWidthTwips,
+      },
+    }
+  }
+
+  if (isFirst) {
+    // 多附件第一行：左空 5 字符（2 + 3），悬挂缩进 3 字符
+    // 首行从 2 字符位置开始（5 - 3 = 2），换行后从 5 字符位置开始
+    return {
+      alignment: AlignmentType.JUSTIFIED,
+      spacing: { line: lineSpacingValue, lineRule: LineRuleType.EXACT, before: lineSpacingValue },
+      indent: {
+        left: 5 * charWidthTwips,
+        hanging: 3 * charWidthTwips,
+      },
+    }
+  }
+
+  // 多附件后续行：左空 5 字符（2 + 3），首行和换行后都从 5 字符开始
+  return {
+    alignment: AlignmentType.JUSTIFIED,
+    spacing: { line: lineSpacingValue, lineRule: LineRuleType.EXACT },
+    indent: {
+      left: 5 * charWidthTwips,
+    },
+  }
+}
+
+/**
+ * 附件说明文本样式：使用纯中文字体
+ * 西文字符（数字、点号等）也使用中文字体
+ */
+export function getAttachmentRunStyle(config: DocumentConfig): Partial<IRunOptions> {
+  const bodyFontSize = config.body.fontSize * 2
+  const availableTwips = 11906 - cmToTwip(config.margins.left) - cmToTwip(config.margins.right)
+  const charSpacing = Math.floor(availableTwips / CHARS_PER_LINE - config.body.fontSize * 20)
+
+  return {
+    font: {
+      ascii: config.body.fontFamily,
+      eastAsia: config.body.fontFamily,
+      hAnsi: config.body.fontFamily,
+      cs: config.body.fontFamily,
+    },
+    size: bodyFontSize,
+    characterSpacing: charSpacing,
   }
 }
