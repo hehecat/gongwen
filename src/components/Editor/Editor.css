@@ -154,3 +154,81 @@
   transform: translateY(-1px);
   box-shadow: var(--shadow-sm);
 }
+
+.editor-btn--save {
+  background: linear-gradient(135deg, #2563eb, #1d4ed8);
+  color: white;
+  border: 1px solid #1d4ed8;
+}
+
+.editor-btn--save:hover:not(:disabled) {
+  background: linear-gradient(135deg, #1d4ed8, #1e40af);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
+}
+
+.editor-btn--history {
+  background: linear-gradient(135deg, #f8fafc, #f1f5f9);
+  color: var(--color-text-secondary);
+  border: 1px solid var(--color-border);
+  position: relative;
+}
+
+.editor-btn--history:hover:not(:disabled) {
+  background: linear-gradient(135deg, #f1f5f9, #e2e8f0);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-sm);
+}
+
+.editor-btn__badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  margin-left: 6px;
+  background: var(--color-primary);
+  color: white;
+  font-size: 11px;
+  font-weight: 600;
+  border-radius: 9px;
+}
+
+.editor-toast {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  display: flex;
+  align-items: center;
+  padding: 12px 24px;
+  background: linear-gradient(135deg, #059669, #047857);
+  color: white;
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgba(5, 150, 105, 0.35);
+  z-index: 100;
+  animation: editor-toast-in 0.3s ease-out;
+}
+
+@keyframes editor-toast-in {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+  }
+}
+
+.editor-toast__icon {
+  width: 20px;
+  height: 20px;
+  margin-right: 10px;
+}
+
+.editor-toast__text {
+  font-size: 14px;
+  font-weight: 500;
+}
