@@ -34,15 +34,15 @@
 .app-detection {
   width: 320px;
   flex-shrink: 0;
-  background: var(--color-bg-card);
-  border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-card);
+  background: transparent;
+  border-radius: 0;
+  box-shadow: none;
   overflow: hidden;
-  transition: box-shadow var(--transition-normal);
+  transition: none;
 }
 
 .app-detection:hover {
-  box-shadow: var(--shadow-card-hover);
+  box-shadow: none;
 }
 
 .app-preview {

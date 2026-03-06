@@ -4,7 +4,7 @@
   flex-direction: column;
   height: 100%;
   min-height: 0;
-  background: var(--color-bg-card);
+  background: transparent;
 }
 
 /* 标题栏 */
@@ -115,26 +115,26 @@
   border-radius: var(--radius-md);
   border-width: 1px;
   border-style: solid;
-  background: var(--color-bg-card);
+  background: rgba(17, 170, 102, 0.06);
   overflow: hidden;
   margin-left: 0;
   min-width: 0;
-  box-shadow: var(--shadow-sm);
+  box-shadow: none;
   transition: all var(--transition-fast);
   position: relative;
 }
 
 .detection-card:hover {
-  box-shadow: var(--shadow-md);
-  transform: translateX(2px);
+  box-shadow: none;
+  transform: none;
 }
 
 .detection-card--missing {
-  background: var(--color-bg-main);
+  background: rgba(153, 153, 153, 0.08);
 }
 
 .detection-card--warning {
-  background: #fffafa;
+  background: rgba(216, 30, 6, 0.06);
 }
 
 /* 卡片头部 */

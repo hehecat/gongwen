@@ -249,10 +249,6 @@ export function DetectionPanel({ ast }: DetectionPanelProps) {
 
   return (
     <div className="detection-panel">
-      <div className="detection-header">
-        <span className="detection-label">检测点</span>
-        <span className="detection-hint">实时解析公文结构</span>
-      </div>
       <div className="detection-content">
         {points.map(function (point) {
           return (
