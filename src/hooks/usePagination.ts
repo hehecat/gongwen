@@ -157,7 +157,8 @@ export function usePagination(
       for (const line of lines) {
         // 当前行底部超出当前页可用高度 → 推入下一页
         // line.top - pageStart > 0.5 防止页首行触发分页（死循环保护）
-        if (line.bottom - pageStart > currentAvailable && line.top - pageStart > 0.5) {
+        // + 1 容差：避免因浮点精度或段落实际高度微差导致过早分页
+        if (line.bottom - pageStart > currentAvailable + 1 && line.top - pageStart > 0.5) {
           pageStart = line.top
           breakOffsets.push(pageStart)
           currentAvailable = fullAvailable // 后续页恢复全量高度
