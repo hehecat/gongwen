@@ -1,6 +1,7 @@
 import { useState, useRef, useCallback } from 'react'
 import type { GongwenAST } from '../../types/ast'
 import { SettingsModal } from '../SettingsModal/SettingsModal'
+import { StandardModal } from '../StandardModal/StandardModal'
 import './Toolbar.css'
 
 interface ToolbarProps {
@@ -17,6 +18,7 @@ export function Toolbar({ ast, onExport, onClear, onImport, importing }: Toolbar
   const hasContent = ast.title !== null || ast.body.length > 0
   const nodeCount = (ast.title ? 1 : 0) + ast.body.length
   const [showSettings, setShowSettings] = useState(false)
+  const [showStandard, setShowStandard] = useState(false)
 
   // 隐藏的 file input 引用
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -36,7 +38,14 @@ export function Toolbar({ ast, onExport, onClear, onImport, importing }: Toolbar
     <div className="toolbar">
       <div className="toolbar-left">
         <h1 className="toolbar-title">公文排版工具</h1>
-        <span className="toolbar-badge">GB/T 9704</span>
+        <button
+          className="toolbar-badge toolbar-badge--clickable"
+          onClick={() => setShowStandard(true)}
+          title="查看党政机关公文格式规范"
+        >
+          <span className="toolbar-badge-icon">?</span>
+          <span>依据 《党政机关公文格式》（GB/T 9704-2012）</span>
+        </button>
       </div>
       <div className="toolbar-right">
         {hasContent && (
@@ -86,6 +95,7 @@ export function Toolbar({ ast, onExport, onClear, onImport, importing }: Toolbar
         </button>
       </div>
       {showSettings && <SettingsModal onClose={() => setShowSettings(false)} />}
+      {showStandard && <StandardModal onClose={() => setShowStandard(false)} />}
     </div>
   )
 }

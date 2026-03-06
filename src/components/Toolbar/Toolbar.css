@@ -31,6 +31,35 @@
   border-radius: 4px;
 }
 
+.toolbar-badge--clickable {
+  display: inline-flex;
+  align-items: center;
+  border: none;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s, box-shadow 0.15s;
+}
+
+.toolbar-badge--clickable:hover {
+  background: #e5e7eb;
+  color: #374151;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.toolbar-badge-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 14px;
+  height: 14px;
+  margin-right: 6px;
+  border-radius: 50%;
+  background: #3b82f6;
+  color: white;
+  font-size: 10px;
+  font-weight: 600;
+  font-style: normal;
+}
+
 .toolbar-right {
   display: flex;
   align-items: center;
