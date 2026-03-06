@@ -297,7 +297,7 @@
 /* 页脚: 页码区域 */
 .a4-footer {
   position: absolute;
-  bottom: 8.3%;
+  bottom: 4.2%;
   left: var(--margin-left, 13.33%);
   right: var(--margin-right, 12.38%);
   font-family: 'Times New Roman', var(--page-number-font, '宋体'), serif;
@@ -305,12 +305,16 @@
   color: var(--color-text-secondary);
 }
 
+/* 单页码: 居右空一字 (GB/T 9704) */
 .a4-footer-odd {
   text-align: right;
+  padding-right: 1em;
 }
 
+/* 双页码: 居左空一字 (GB/T 9704) */
 .a4-footer-even {
   text-align: left;
+  padding-left: 1em;
 }
 
 /* 首句加粗样式 */
