@@ -1,7 +1,7 @@
 .app {
   display: flex;
   flex-direction: column;
-  height: 100vh;
+  height: 83.33vh;
   overflow: hidden;
 }
 

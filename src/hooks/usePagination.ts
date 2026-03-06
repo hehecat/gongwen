@@ -47,11 +47,16 @@ export function usePagination(
         return
       }
 
+      // 获取当前页面 zoom 值（CSS zoom 属性会影响 getBoundingClientRect 返回值）
+      // getBoundingClientRect 返回缩放后的值，需要除以 zoom 得到未缩放的实际值
+      const zoom = parseFloat(getComputedStyle(document.documentElement).zoom) || 1
+
       // ① 同步度量容器宽度：使用 getBoundingClientRect 获取精确浮点宽度，
       //    避免 offsetWidth 整数取整导致度量容器与 A4 页面文本换行不一致。
+      //    注意：需要除以 zoom 得到未缩放的实际宽度。
       const a4Page = scrollContainer.querySelector('.a4-page') as HTMLElement | null
       if (a4Page) {
-        el.style.width = `${a4Page.getBoundingClientRect().width}px`
+        el.style.width = `${a4Page.getBoundingClientRect().width / zoom}px`
       } else {
         const cs = getComputedStyle(scrollContainer)
         const contentWidth = scrollContainer.clientWidth
@@ -61,16 +66,17 @@ export function usePagination(
 
       // ② 读取 .a4-content 内容区全量高度（= 页面高度 - 上下 padding）
       //    这是不含版头/版记时的最大可用空间。
+      //    注意：getBoundingClientRect 受 zoom 影响，需要除以 zoom 得到未缩放值。
       let fullAvailable: number
       const a4Content = a4Page?.querySelector('.a4-content') as HTMLElement | null
       if (a4Content) {
         const rect = a4Content.getBoundingClientRect()
         const contentCs = getComputedStyle(a4Content)
-        fullAvailable = rect.height
+        fullAvailable = rect.height / zoom
           - parseFloat(contentCs.paddingTop) - parseFloat(contentCs.paddingBottom)
       } else {
         // 首次渲染无 A4 页面时回退到 JS 公式
-        const pageWidth = el.getBoundingClientRect().width
+        const pageWidth = el.getBoundingClientRect().width / zoom
         const pageHeight = pageWidth * (297 / 210)
         const topPad = pageWidth * (config.margins.top * 10 / 210)
         const bottomPad = pageWidth * (config.margins.bottom * 10 / 210)

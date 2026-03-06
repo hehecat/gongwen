@@ -2,6 +2,10 @@
   box-sizing: border-box;
 }
 
+html {
+  zoom: 1.2;
+}
+
 :root {
   font-family: 'Noto Sans SC', 'Microsoft YaHei', system-ui, -apple-system, sans-serif;
   line-height: 1.5;
@@ -17,9 +21,9 @@
 body {
   margin: 0;
   min-width: 768px;
-  min-height: 100vh;
+  min-height: 83.33vh;
 }
 
 #root {
-  height: 100vh;
+  height: 83.33vh;
 }

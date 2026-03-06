@@ -19,8 +19,8 @@
   box-shadow: 0 25px 80px rgba(0, 0, 0, 0.2);
   width: 1100px;
   max-width: 95vw;
-  height: 85vh;
-  max-height: 85vh;
+  height: 80vh;
+  max-height: 80vh;
   display: flex;
   flex-direction: column;
   overflow: hidden;
