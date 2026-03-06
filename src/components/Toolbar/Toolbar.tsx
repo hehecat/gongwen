@@ -44,7 +44,7 @@ export function Toolbar({ ast, onExport, onClear, onImport, importing }: Toolbar
           title="查看党政机关公文格式规范"
         >
           <span className="toolbar-badge-icon">?</span>
-          <span>依据 《党政机关公文格式》（GB/T 9704-2012）</span>
+          <span>依据 《党政机关公文格式》（GB/T 9704-2012）和 《党政机关电子公文格式规范 第2部分：显现》（GB/T 33476.2-2016）</span>
         </button>
       </div>
       <div className="toolbar-right">

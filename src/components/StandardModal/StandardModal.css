@@ -70,6 +70,46 @@
   background: rgba(255, 255, 255, 0.2);
 }
 
+/* 页签切换 */
+.standard-tabs {
+  display: flex;
+  background: #f1f5f9;
+  border-bottom: 1px solid #e2e8f0;
+  flex-shrink: 0;
+}
+
+.standard-tab {
+  padding: 12px 24px;
+  border: none;
+  background: none;
+  font-size: 13px;
+  font-weight: 500;
+  color: #64748b;
+  cursor: pointer;
+  position: relative;
+  transition: color 0.15s, background 0.15s;
+}
+
+.standard-tab:hover {
+  color: #334155;
+  background: #e2e8f0;
+}
+
+.standard-tab--active {
+  color: #2563eb;
+  background: white;
+}
+
+.standard-tab--active::after {
+  content: '';
+  position: absolute;
+  bottom: -1px;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: #2563eb;
+}
+
 /* 主体区域 */
 .standard-body {
   flex: 1;
