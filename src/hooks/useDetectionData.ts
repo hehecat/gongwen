@@ -13,8 +13,6 @@ import {
   DateWarningType,
 } from '../types/detection'
 
-import { useDocumentConfig } from '../contexts/DocumentConfigContext'
-
 /** 日期警告阈值（天数） */
 var DATE_WARNING_THRESHOLD = 7
 
@@ -88,22 +86,6 @@ function parseHeadingNumber(content: string, level: number): number | null {
   }
   
   return null
-}
-
-/**
- * 获取序号的显示文本
- */
-function getNumberDisplay(num: number, level: number): string {
-  if (level === 1) {
-    return CHINESE_DIGITS.charAt(num - 1) + '、'
-  } else if (level === 2) {
-    return '（' + CHINESE_DIGITS.charAt(num - 1) + '）'
-  } else if (level === 3) {
-    return num + '.'
-  } else if (level === 4) {
-    return '（' + num + '）'
-  }
-  return ''
 }
 
 /**

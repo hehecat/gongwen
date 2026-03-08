@@ -72,14 +72,16 @@ describe('parseGongwen', () => {
   it('第一个非空行识别为公文标题', () => {
     const ast = parseGongwen('关于加强安全生产工作的通知')
     expect(ast.title).not.toBeNull()
-    expect(ast.title!.type).toBe(NodeType.DOCUMENT_TITLE)
-    expect(ast.title!.content).toBe('关于加强安全生产工作的通知')
-    expect(ast.title!.lineNumber).toBe(1)
+    expect(ast.title.length).toBe(1)
+    expect(ast.title[0].type).toBe(NodeType.DOCUMENT_TITLE)
+    expect(ast.title[0].content).toBe('关于加强安全生产工作的通知')
+    expect(ast.title[0].lineNumber).toBe(1)
   })
 
   it('跳过空行后识别标题', () => {
     const ast = parseGongwen('\n\n关于加强安全生产工作的通知')
-    expect(ast.title!.lineNumber).toBe(3)
+    expect(ast.title.length).toBe(1)
+    expect(ast.title[0].lineNumber).toBe(3)
   })
 
   it('完整公文解析', () => {
@@ -97,8 +99,9 @@ describe('parseGongwen', () => {
 
     const ast = parseGongwen(text)
 
-    expect(ast.title!.type).toBe(NodeType.DOCUMENT_TITLE)
-    expect(ast.title!.content).toBe('关于加强安全生产工作的通知')
+    expect(ast.title.length).toBe(1)
+    expect(ast.title[0].type).toBe(NodeType.DOCUMENT_TITLE)
+    expect(ast.title[0].content).toBe('关于加强安全生产工作的通知')
 
     expect(ast.body).toHaveLength(7)
     expect(ast.body[0].type).toBe(NodeType.HEADING_1)
@@ -114,7 +117,8 @@ describe('parseGongwen', () => {
     const text = '标题\n\n一、正文第一节\n内容段落'
     const ast = parseGongwen(text)
 
-    expect(ast.title!.lineNumber).toBe(1)
+    expect(ast.title.length).toBe(1)
+    expect(ast.title[0].lineNumber).toBe(1)
     expect(ast.body[0].lineNumber).toBe(3)
     expect(ast.body[1].lineNumber).toBe(4)
   })
@@ -129,7 +133,8 @@ describe('parseGongwen', () => {
 
     const ast = parseGongwen(text)
 
-    expect(ast.title!.type).toBe(NodeType.DOCUMENT_TITLE)
+    expect(ast.title.length).toBe(1)
+    expect(ast.title[0].type).toBe(NodeType.DOCUMENT_TITLE)
     expect(ast.body[0].type).toBe(NodeType.ADDRESSEE)
     expect(ast.body[0].content).toBe('各省、自治区、直辖市人民政府：')
     expect(ast.body[1].type).toBe(NodeType.HEADING_1)
@@ -161,8 +166,9 @@ describe('parseGongwen', () => {
 
     const ast = parseGongwen(text)
 
-    expect(ast.title!.type).toBe(NodeType.DOCUMENT_TITLE)
-    expect(ast.title!.content).toBe('关于做好2025年安全生产工作的通知')
+    expect(ast.title.length).toBe(1)
+    expect(ast.title[0].type).toBe(NodeType.DOCUMENT_TITLE)
+    expect(ast.title[0].content).toBe('关于做好2025年安全生产工作的通知')
 
     expect(ast.body).toHaveLength(5)
     expect(ast.body[0].type).toBe(NodeType.ADDRESSEE)

@@ -119,7 +119,7 @@ function TocItem({
           {section.id} {section.title}
         </span>
       </div>
-      {hasChildren && (
+      {hasChildren && section.children && (
         <div className="standard-toc-children">
           {section.children.map((child) => (
             <TocItem
@@ -208,7 +208,7 @@ export function StandardModal({ onClose }: StandardModalProps) {
     )
 
     sections.forEach((section) => {
-      if (section) {
+      if (section && observerRef.current) {
         observerRef.current.observe(section)
       }
     })

@@ -1,6 +1,6 @@
 import type { DocumentNode, GongwenAST, AttachmentNode, TableNode } from '../types/ast'
 import { NodeType } from '../types/ast'
-import { detectNodeType, HEADING_1_RE, ATTACHMENT_RE, extractAttachmentItemsFromLine, isTableRow, isTableSeparator, parseTableRow, getTableColumnCount } from './matchers'
+import { detectNodeType, HEADING_1_RE, ATTACHMENT_RE, extractAttachmentItemsFromLine, isTableRow, isTableSeparator, parseTableRow } from './matchers'
 
 /** 不应被识别为发文机关署名的结尾标点 */
 const SIGNATURE_EXCLUDE_ENDINGS = ['。', '：', ':', '；', ';', '！', '!', '？', '?', '，', ',']

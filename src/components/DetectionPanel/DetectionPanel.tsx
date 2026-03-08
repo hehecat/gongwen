@@ -4,9 +4,7 @@ import {
   type DetectionPoint, 
   type BodyStats,
   type HeadingLevelWarning,
-  type HeadingLevelIssue,
   type HeadingNumberWarning,
-  type HeadingNumberIssue,
 } from '../../types/detection'
 import { useDetectionData } from '../../hooks/useDetectionData'
 import type { GongwenAST } from '../../types/ast'
