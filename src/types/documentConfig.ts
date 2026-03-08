@@ -110,12 +110,28 @@ export type DeepPartial<T> = {
   [P in keyof T]?: T[P] extends object ? DeepPartial<T[P]> : T[P]
 }
 
+// ---- 多配置存储类型 ----
+
+/** 保存的配置项 */
+export interface SavedConfig {
+  id: string
+  name: string
+  config: DocumentConfig
+  createdAt: number
+}
+
+/** localStorage 存储结构 */
+export interface ConfigStorage {
+  activeConfigId: string | null
+  savedConfigs: SavedConfig[]
+}
+
 // ---- 默认值 (GB/T 9704 国标) ----
 
 export const DEFAULT_CONFIG: DocumentConfig = {
   margins: {
-    top: 3.46,
-    bottom: 3.26,
+    top: 3.458,
+    bottom: 3.258,
     left: 2.8,
     right: 2.6,
   },

@@ -1,0 +1,297 @@
+/* 检测面板容器 */
+.detection-panel {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+  background: transparent;
+}
+
+/* 标题栏 */
+.detection-header {
+  display: flex;
+  align-items: baseline;
+  padding: 12px 12px;
+  background: linear-gradient(to right, #f8fafc, #ffffff);
+  border-bottom: 1px solid var(--color-border);
+  flex-shrink: 0;
+}
+
+.detection-header > * + * {
+  margin-left: 12px;
+}
+
+.detection-label {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-text-primary);
+  position: relative;
+  padding-left: 12px;
+}
+
+.detection-label::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 3px;
+  height: 14px;
+  background: linear-gradient(to bottom, var(--color-success), var(--color-success-light));
+  border-radius: 2px;
+}
+
+.detection-hint {
+  font-size: 12px;
+  color: var(--color-text-muted);
+}
+
+/* 内容区域 */
+.detection-content {
+  flex: 1;
+  overflow-y: auto;
+  padding: 12px 10px 12px 6px;
+}
+
+/* 检测项容器（包含竖线和卡片） */
+.detection-item {
+  display: flex;
+  align-items: stretch;
+  position: relative;
+  margin-top: 12px;
+}
+
+.detection-item:first-child {
+  margin-top: 0;
+}
+
+/* 左侧竖线主干区域 */
+.detection-trunk {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 18px;
+  flex-shrink: 0;
+  position: relative;
+}
+
+/* 竖线（上方连接到横线） */
+.detection-trunk-line {
+  width: 4px;
+  height: 16px;
+  flex-shrink: 0;
+  border-radius: 2px;
+}
+
+/* 继续向下的竖线 - 延伸到覆盖下一个节点的 margin */
+.detection-trunk-line--continue {
+  width: 4px;
+  position: absolute;
+  top: 16px;
+  bottom: -16px;
+  border-radius: 2px;
+}
+
+/* 最后一个节点的竖线不延伸 */
+.detection-item:last-child .detection-trunk-line--continue {
+  bottom: auto;
+  height: 0;
+}
+
+/* 横线连接 */
+.detection-branch {
+  width: 12px;
+  height: 4px;
+  flex-shrink: 0;
+  position: absolute;
+  top: 16px;
+  left: 7px;
+  border-radius: 2px;
+}
+
+/* 检测点卡片 */
+.detection-card {
+  flex: 1;
+  border-radius: var(--radius-md);
+  border-width: 1px;
+  border-style: solid;
+  background: rgba(17, 170, 102, 0.06);
+  overflow: hidden;
+  margin-left: 0;
+  min-width: 0;
+  box-shadow: none;
+  transition: all var(--transition-fast);
+  position: relative;
+}
+
+.detection-card:hover {
+  box-shadow: none;
+  transform: none;
+}
+
+.detection-card--missing {
+  background: rgba(153, 153, 153, 0.08);
+}
+
+.detection-card--warning {
+  background: rgba(216, 30, 6, 0.06);
+}
+
+/* 卡片头部 */
+.detection-card-header {
+  display: flex;
+  align-items: center;
+  padding: 8px 12px;
+  border-bottom: 1px solid;
+}
+
+/* 状态图标 */
+.detection-icon {
+  flex-shrink: 0;
+  margin-right: 8px;
+}
+
+/* 卡片标签 */
+.detection-card-label {
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.3px;
+}
+
+/* 卡片内容 */
+.detection-card-content {
+  padding: 8px 12px;
+}
+
+.detection-card-text {
+  font-size: 14px;
+  color: var(--color-text-primary);
+  line-height: 1.6;
+  word-break: break-all;
+  font-weight: 500;
+}
+
+.detection-card-placeholder {
+  font-size: 13px;
+  color: var(--color-text-muted);
+  font-style: italic;
+}
+
+/* 正文统计信息 */
+.detection-body-stats {
+  display: flex;
+  flex-direction: column;
+}
+
+.detection-body-stats > * + * {
+  margin-top: 8px;
+}
+
+.detection-body-stats-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.detection-body-stats-label {
+  font-size: 12px;
+  color: var(--color-text-muted);
+}
+
+.detection-body-stats-value {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--color-text-primary);
+  margin: 0 4px;
+}
+
+.detection-body-stats-sep {
+  font-size: 12px;
+  color: var(--color-border-hover);
+  margin: 0 8px;
+}
+
+.detection-body-stats-heading {
+  font-size: 12px;
+  color: var(--color-text-secondary);
+  font-weight: 500;
+}
+
+.detection-card-warning {
+  display: flex;
+  align-items: flex-start;
+  padding: 8px 12px;
+  background: linear-gradient(to right, #fef2f2, #ffffff);
+  border-top: 1px solid #fecaca;
+}
+
+.detection-card-warning > * + * {
+  margin-left: 8px;
+}
+
+.detection-card-warning-text {
+  font-size: 12px;
+  color: var(--color-error);
+  line-height: 1.5;
+}
+
+/* 标题层级警告 */
+.detection-heading-warning {
+  margin-top: 10px;
+  padding: 10px 12px;
+  background: linear-gradient(to right, #fffbeb, #ffffff);
+  border-radius: var(--radius-sm);
+  border: 1px solid #fde68a;
+}
+
+.detection-heading-warning-title {
+  font-size: 12px;
+  font-weight: 600;
+  color: #92400e;
+  margin-bottom: 8px;
+}
+
+.detection-heading-warning-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.detection-heading-warning-list li {
+  font-size: 12px;
+  color: #78350f;
+  padding: 3px 0;
+}
+
+.detection-heading-warning-list li::before {
+  content: '';
+  display: inline-block;
+  width: 4px;
+  height: 4px;
+  background: var(--color-warning);
+  border-radius: 50%;
+  margin-right: 8px;
+  vertical-align: middle;
+}
+
+/* 规范提示 */
+.detection-standard-hint {
+  margin-top: 8px;
+  padding: 8px 10px;
+  background: linear-gradient(to right, var(--color-primary-bg), #ffffff);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--color-primary-border);
+}
+
+.detection-standard-hint-title {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--color-primary);
+  margin-bottom: 3px;
+}
+
+.detection-standard-hint-text {
+  font-size: 11px;
+  color: var(--color-text-secondary);
+  line-height: 1.5;
+}

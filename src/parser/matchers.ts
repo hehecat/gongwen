@@ -1,5 +1,5 @@
 import { NodeType } from '../types/ast'
-import type { AttachmentItem } from '../types/ast'
+import type { AttachmentItem, TableCell } from '../types/ast'
 
 /**
  * 正则匹配器：识别各级公文标题及特殊段落
@@ -23,6 +23,58 @@ export const ATTACHMENT_RE = /^附件[：:]/
 
 // 成文日期：纯日期行（严格匹配整行）
 const DATE_RE = /^\d{4}年\d{1,2}月\d{1,2}日$/
+
+// 表格行：以 | 开头和结尾
+const TABLE_ROW_RE = /^\|.*\|$/
+
+// 表格分隔行：|---|---| 或 |:---:|:---:| 格式
+// 支持中文冒号和英文冒号，支持左对齐(:---)、右对齐(---:)、居中对齐(:---:)
+// 每个单元格只包含连字符、冒号（中英文）和空格
+const TABLE_SEPARATOR_RE = /^\|(?:\s*[：:]?-+[：:]?\s*\|)+\s*$/
+
+/**
+ * 检测是否为表格分隔行（如 |---|---| 或 |:---:|:---:|）
+ * @param line 文本行
+ * @returns 是否为表格分隔行
+ */
+export function isTableSeparator(line: string): boolean {
+  const trimmed = line.trim()
+  // 必须以 | 开头和结尾，且每个单元格只包含连字符、冒号（中英文）和空格
+  return TABLE_SEPARATOR_RE.test(trimmed)
+}
+
+/**
+ * 检测是否为表格行（以 | 开头和结尾）
+ * @param line 文本行
+ * @returns 是否为表格行
+ */
+export function isTableRow(line: string): boolean {
+  const trimmed = line.trim()
+  return TABLE_ROW_RE.test(trimmed) && !isTableSeparator(trimmed)
+}
+
+/**
+ * 解析表格行为单元格数组
+ * @param line 表格行文本
+ * @returns 单元格数组
+ */
+export function parseTableRow(line: string): TableCell[] {
+  const trimmed = line.trim()
+  // 移除首尾的 |
+  const content = trimmed.slice(1, -1)
+  // 按 | 分割
+  const cells = content.split('|')
+  return cells.map((cell) => ({ content: cell.trim() }))
+}
+
+/**
+ * 计算表格列数
+ * @param line 表格行文本
+ * @returns 列数
+ */
+export function getTableColumnCount(line: string): number {
+  return parseTableRow(line).length
+}
 
 /**
  * 从单行文本中提取连续的附件项

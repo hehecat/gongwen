@@ -23,7 +23,7 @@ export interface PageSlice {
  * 同时监听 ResizeObserver，窗口缩放时自动重新分页。
  */
 export function usePagination(
-  title: DocumentNode | null,
+  title: DocumentNode[],
   body: DocumentNode[],
   measurerRef: RefObject<HTMLDivElement | null>
 ): PageSlice[] {
@@ -47,11 +47,16 @@ export function usePagination(
         return
       }
 
+      // 获取当前页面 zoom 值（CSS zoom 属性会影响 getBoundingClientRect 返回值）
+      // getBoundingClientRect 返回缩放后的值，需要除以 zoom 得到未缩放的实际值
+      const zoom = parseFloat(getComputedStyle(document.documentElement).zoom) || 1
+
       // ① 同步度量容器宽度：使用 getBoundingClientRect 获取精确浮点宽度，
       //    避免 offsetWidth 整数取整导致度量容器与 A4 页面文本换行不一致。
+      //    注意：需要除以 zoom 得到未缩放的实际宽度。
       const a4Page = scrollContainer.querySelector('.a4-page') as HTMLElement | null
       if (a4Page) {
-        el.style.width = `${a4Page.getBoundingClientRect().width}px`
+        el.style.width = `${a4Page.getBoundingClientRect().width / zoom}px`
       } else {
         const cs = getComputedStyle(scrollContainer)
         const contentWidth = scrollContainer.clientWidth
@@ -61,16 +66,17 @@ export function usePagination(
 
       // ② 读取 .a4-content 内容区全量高度（= 页面高度 - 上下 padding）
       //    这是不含版头/版记时的最大可用空间。
+      //    注意：getBoundingClientRect 受 zoom 影响，需要除以 zoom 得到未缩放值。
       let fullAvailable: number
-      const a4Content = a4Page?.querySelector('.a4-content') as HTMLElement | null
+      const a4Content = a4Page && a4Page.querySelector('.a4-content') as HTMLElement | null
       if (a4Content) {
         const rect = a4Content.getBoundingClientRect()
         const contentCs = getComputedStyle(a4Content)
-        fullAvailable = rect.height
+        fullAvailable = rect.height / zoom
           - parseFloat(contentCs.paddingTop) - parseFloat(contentCs.paddingBottom)
       } else {
         // 首次渲染无 A4 页面时回退到 JS 公式
-        const pageWidth = el.getBoundingClientRect().width
+        const pageWidth = el.getBoundingClientRect().width / zoom
         const pageHeight = pageWidth * (297 / 210)
         const topPad = pageWidth * (config.margins.top * 10 / 210)
         const bottomPad = pageWidth * (config.margins.bottom * 10 / 210)
@@ -78,19 +84,22 @@ export function usePagination(
       }
 
       // ③ 度量版头高度（首页渲染，含外边距；flex column 中 margin 不折叠）
+      //    注意：offsetHeight 受 zoom 影响（返回缩放后的值），需要除以 zoom 得到未缩放值。
       let headerHeight = 0
       const headerSection = scrollContainer.querySelector('.a4-header-section') as HTMLElement | null
       if (headerSection) {
         const hs = getComputedStyle(headerSection)
-        headerHeight = headerSection.offsetHeight
-          + parseFloat(hs.marginTop) + parseFloat(hs.marginBottom)
+        headerHeight = (headerSection.offsetHeight
+          + parseFloat(hs.marginTop) + parseFloat(hs.marginBottom)) / zoom
       }
 
       // ④ 度量版记高度（末页绝对定位于 .a4-page 底部，需预留空间防重叠）
+      //    注意：offsetHeight 受 zoom 影响（返回缩放后的值），需要除以 zoom 得到未缩放值。
+      //    版记在度量容器中渲染，优先从度量容器获取。
       let footerNoteHeight = 0
-      const footerNote = scrollContainer.querySelector('.a4-footer-note') as HTMLElement | null
+      const footerNote = el.querySelector('.a4-footer-note') as HTMLElement | null
       if (footerNote) {
-        footerNoteHeight = footerNote.offsetHeight
+        footerNoteHeight = footerNote.offsetHeight / zoom
       }
 
       // 首页可用高度 = 全量 - 版头占位
@@ -148,7 +157,8 @@ export function usePagination(
       for (const line of lines) {
         // 当前行底部超出当前页可用高度 → 推入下一页
         // line.top - pageStart > 0.5 防止页首行触发分页（死循环保护）
-        if (line.bottom - pageStart > currentAvailable && line.top - pageStart > 0.5) {
+        // + 1 容差：避免因浮点精度或段落实际高度微差导致过早分页
+        if (line.bottom - pageStart > currentAvailable + 1 && line.top - pageStart > 0.5) {
           pageStart = line.top
           breakOffsets.push(pageStart)
           currentAvailable = fullAvailable // 后续页恢复全量高度

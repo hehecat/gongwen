@@ -89,7 +89,7 @@ export function FontSelectField({
     setOpen(false)
     setFilter('')
     setActiveIdx(-1)
-    inputRef.current?.blur()
+    if (inputRef.current) inputRef.current.blur()
   }
 
   function handleInputChange(e: ChangeEvent<HTMLInputElement>) {
@@ -111,7 +111,7 @@ export function FontSelectField({
       setOpen(true)
       setFilter('')
       setActiveIdx(-1)
-      inputRef.current?.focus()
+      if (inputRef.current) inputRef.current.focus()
     }
   }
 

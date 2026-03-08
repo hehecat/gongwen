@@ -73,6 +73,11 @@ export function Preview({ ast }: PreviewProps) {
       '--h2-size': `${config.headings.h2.fontSize}px`,
       '--h3-font': config.advanced.h3.fontFamily,
       '--page-number-font': config.specialOptions.pageNumberFont,
+      // 表格配置
+      '--table-font': config.table.fontFamily,
+      '--table-size': `${config.table.fontSize}px`,
+      '--table-line-height': `${config.table.lineSpacing}px`,
+      '--table-bold-header': config.table.boldHeader ? 'bold' : 'normal',
     } as CSSProperties
   }, [config])
 
@@ -81,15 +86,22 @@ export function Preview({ ast }: PreviewProps) {
   return (
     <div className="preview-container">
       <div className="preview-header">
-        <span className="preview-label">预览</span>
+        <span className="preview-label">预览（浏览器样式仅供参考，请导出 Word 确认）</span>
         <span className="preview-hint">共 {pages.length} 页</span>
       </div>
       <div className="preview-scroll" style={cssVars}>
         {/* 隐藏度量容器：渲染全部节点用于高度测量（与 A4Page 使用相同的 CSS 类和渲染逻辑） */}
         <div ref={measurerRef} className="a4-measurer" aria-hidden="true">
           <div className="a4-measurer-content">
-            {ast.title && (
-              <p className={NODE_CLASS_MAP[ast.title.type]}>{ast.title.content}</p>
+            {/* 渲染多段标题 */}
+            {ast.title.length > 0 && ast.title.map((titleNode, titleIndex) => (
+              <p key={`title-${titleIndex}`} className={NODE_CLASS_MAP[titleNode.type]}>
+                {titleNode.content}
+              </p>
+            ))}
+            {/* 标题后添加一个固定行距的空行 */}
+            {ast.title.length > 0 && (
+              <p className="a4-empty-line">{'\u200B'}</p>
             )}
             {ast.body.flatMap((node, index) => {
               const elements: React.ReactNode[] = []
@@ -138,6 +150,22 @@ export function Preview({ ast }: PreviewProps) {
               return elements
             })}
           </div>
+          {/* 隐藏版记：用于度量版记高度，始终渲染以便在分页计算时获取高度 */}
+          {config.footerNote.enabled && (
+            <div className="a4-footer-note a4-footer-note--measurer">
+              <div className="a4-footer-note-line-top"></div>
+              {config.footerNote.cc && (
+                <div className="a4-footer-note-cc">抄送：{config.footerNote.cc}</div>
+              )}
+              {(config.footerNote.printer || config.footerNote.printDate) && (
+                <div className="a4-footer-note-printer">
+                  <span>{config.footerNote.printer}</span>
+                  <span>{config.footerNote.printDate}{config.footerNote.printDate && '印发'}</span>
+                </div>
+              )}
+              <div className="a4-footer-note-line-bottom"></div>
+            </div>
+          )}
         </div>
 
         {/* 渲染分页后的多个 A4 页面（每页渲染完整内容流，通过 offsetY 裁剪） */}

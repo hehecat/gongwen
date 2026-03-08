@@ -1,23 +1,61 @@
 .app {
   display: flex;
   flex-direction: column;
-  height: 100vh;
+  height: 83.33vh;
   overflow: hidden;
+  background: var(--color-bg-main);
 }
 
 .app-main {
   display: flex;
   flex: 1;
   min-height: 0;
+  padding: 12px;
+}
+
+.app-main > * + * {
+  margin-left: 12px;
 }
 
 .app-editor {
   flex: 1;
-  border-right: 1px solid #e5e7eb;
   min-width: 0;
+  background: var(--color-bg-card);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-card);
+  overflow: hidden;
+  transition: box-shadow var(--transition-normal);
+}
+
+.app-editor:hover {
+  box-shadow: var(--shadow-card-hover);
+}
+
+.app-detection {
+  width: 320px;
+  flex-shrink: 0;
+  background: transparent;
+  border-radius: 0;
+  box-shadow: none;
+  overflow: hidden;
+  transition: none;
+}
+
+.app-detection:hover {
+  box-shadow: none;
 }
 
 .app-preview {
-  flex: 1;
-  min-width: 0;
+  flex-shrink: 0;
+  min-width: 680px;
+  width: 680px;
+  background: var(--color-bg-card);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-card);
+  overflow: hidden;
+  transition: box-shadow var(--transition-normal);
+}
+
+.app-preview:hover {
+  box-shadow: var(--shadow-card-hover);
 }

@@ -3,17 +3,55 @@
   position: relative;
   width: 100%;
   max-width: 595px; /* A4 @ 72dpi */
-  aspect-ratio: 210 / 297;
   margin: 0 auto;
   background: white;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
+  box-shadow: 
+    0 4px 6px -1px rgba(0, 0, 0, 0.1),
+    0 2px 4px -1px rgba(0, 0, 0, 0.06),
+    0 0 0 1px rgba(0, 0, 0, 0.02);
   border-radius: 2px;
   overflow: hidden;
+  transition: box-shadow var(--transition-normal);
+}
+
+.a4-page:hover {
+  box-shadow: 
+    0 10px 15px -3px rgba(0, 0, 0, 0.1),
+    0 4px 6px -2px rgba(0, 0, 0, 0.05),
+    0 0 0 1px rgba(0, 0, 0, 0.03);
+}
+
+/* 使用 padding-bottom 模拟宽高比 (Chrome 78 兼容) */
+.a4-page::before {
+  content: '';
+  display: block;
+  padding-bottom: 141.43%; /* 297/210 = 1.4143 */
+}
+
+/* 子元素绝对定位填充容器 */
+.a4-page > .a4-content {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+}
+
+/* 版记：绝对定位到页面底部，使用百分比控制位置和宽度 */
+.a4-page > .a4-footer-note {
+  position: absolute;
+  /* bottom 使用 y 轴百分比（相对页面高度 297mm），末条线与版心下边缘重合 */
+  bottom: var(--margin-bottom-y, 11.78%);
+  left: var(--margin-left, 13.33%);
+  right: var(--margin-right, 12.38%);
+  font-family: var(--body-font);
+  font-size: 14px;
+  line-height: 28px;
 }
 
 /* 多页间距 */
 .a4-page + .a4-page {
-  margin-top: 16px;
+  margin-top: 20px;
 }
 
 .a4-content {
@@ -57,7 +95,6 @@
   text-align: center;
   line-height: var(--title-line-height, 29px);
   margin: 0;
-  margin-bottom: var(--body-line-height, 29px);
 }
 
 /* 一级标题段落: 基础样式（含首句拆分时的段落容器） */
@@ -143,20 +180,20 @@
 /* 空状态占位 */
 .a4-placeholder {
   text-align: center;
-  color: #d1d5db;
+  color: var(--color-text-muted);
   font-size: 14px;
   padding-top: 40%;
   margin: 0;
 }
 
-/* 主送机关: 顶格 仿宋，段前空一行 */
+/* 主送机关: 顶格 仿宋 */
 .a4-addressee {
   font-family: var(--body-font, 'FangSong_GB2312'), 'FangSong', 'STFangsong', serif;
   font-size: var(--body-size, 16px);
   text-indent: 0;
   text-align: justify;
   line-height: var(--body-line-height, 29px);
-  margin: var(--body-line-height, 29px) 0 0 0;
+  margin: 0;
 }
 
 /* 附件说明基础样式：左空二字，段前空一行 */
@@ -248,23 +285,36 @@
   position: relative;
 }
 
+/* 度量容器中的版记：正常流布局，用于度量高度 */
+.a4-footer-note--measurer {
+  position: relative;
+  bottom: auto;
+  left: auto;
+  right: auto;
+  margin-top: 20px;
+}
+
 /* 页脚: 页码区域 */
 .a4-footer {
   position: absolute;
-  bottom: 8.3%;
+  bottom: 4.2%;
   left: var(--margin-left, 13.33%);
   right: var(--margin-right, 12.38%);
   font-family: 'Times New Roman', var(--page-number-font, '宋体'), serif;
   font-size: 14px;
-  color: #374151;
+  color: var(--color-text-secondary);
 }
 
+/* 单页码: 居右空一字 (GB/T 9704) */
 .a4-footer-odd {
   text-align: right;
+  padding-right: 1em;
 }
 
+/* 双页码: 居左空一字 (GB/T 9704) */
 .a4-footer-even {
   text-align: left;
+  padding-left: 1em;
 }
 
 /* 首句加粗样式 */
@@ -319,18 +369,7 @@
   font-family: 'KaiTi_GB2312', 'KaiTi', 'STKaiti', serif;
 }
 
-/* ---- 版记（绝对定位，锚定最后一页版心底部） ---- */
-.a4-footer-note {
-  position: absolute;
-  /* bottom 使用 y 轴百分比（相对页面高度 297mm），末条线与版心下边缘重合 */
-  bottom: var(--margin-bottom-y, 11.78%);
-  left: var(--margin-left, 13.33%);
-  right: var(--margin-right, 12.38%);
-  font-family: var(--body-font);
-  font-size: 14px;
-  line-height: 28px;
-}
-
+/* ---- 版记子元素样式 ---- */
 .a4-footer-note-line-top {
   border-top: 1px solid #000;
 }
@@ -346,4 +385,34 @@
 .a4-footer-note-printer {
   display: flex;
   justify-content: space-between;
+}
+
+/* ---- 表格样式 ---- */
+.a4-table {
+  margin: var(--body-line-height, 29px) 0;
+}
+
+.a4-table-element {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: var(--table-font, 'FangSong_GB2312'), 'FangSong', 'STFangsong', serif;
+  font-size: var(--table-size, 12px);
+  line-height: var(--table-line-height, 22px);
+}
+
+.a4-table-element th,
+.a4-table-element td {
+  border: 1px solid #000;
+  padding: 4px 8px;
+  text-align: center;
+  vertical-align: middle;
+}
+
+.a4-table-element th {
+  font-weight: var(--table-bold-header, bold);
+  background-color: #f5f5f5;
+}
+
+.a4-table-element td {
+  font-weight: normal;
 }

@@ -114,21 +114,21 @@ export function getParagraphStyle(
           line: ptToTwip(config.title.lineSpacing),
           lineRule: LineRuleType.EXACT,
           before: 0,
-          after: ptToTwip(config.body.lineSpacing),
+          after: 0,
         },
       }
 
     case NodeType.ADDRESSEE:
       return {
         alignment: AlignmentType.JUSTIFIED,
-        spacing: { ...BASE_SPACING, before: lineSpacingValue },
+        spacing: BASE_SPACING,
         indent: { left: 0 },
       }
 
     case NodeType.ATTACHMENT:
       return {
         alignment: AlignmentType.JUSTIFIED,
-        spacing: { ...BASE_SPACING, before: lineSpacingValue },
+        spacing: BASE_SPACING,
         indent: { left: 2 * charWidthTwips },
       }
 

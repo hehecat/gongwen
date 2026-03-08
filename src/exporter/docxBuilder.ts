@@ -5,7 +5,7 @@ import {
   TableAnchorType, RelativeHorizontalPosition, RelativeVerticalPosition, OverlapType,
 } from 'docx'
 import type { IRunOptions, IBorderOptions } from 'docx'
-import type { GongwenAST, DocumentNode, AttachmentNode } from '../types/ast'
+import type { GongwenAST, DocumentNode, AttachmentNode, TableNode } from '../types/ast'
 import { NodeType } from '../types/ast'
 import type { DocumentConfig } from '../types/documentConfig'
 import { cmToTwip, ptToTwip } from '../types/documentConfig'
@@ -149,6 +149,94 @@ function attachmentToParagraphs(node: AttachmentNode, config: DocumentConfig): P
   }
 
   return paragraphs
+}
+
+// ---- 表格边框定义（公文标准黑色细线） ----
+
+const TABLE_CELL_BORDER: IBorderOptions = {
+  style: BorderStyle.SINGLE,
+  size: 4, // 0.5pt
+  color: '000000',
+}
+
+const TABLE_BORDERS = {
+  top: TABLE_CELL_BORDER,
+  bottom: TABLE_CELL_BORDER,
+  left: TABLE_CELL_BORDER,
+  right: TABLE_CELL_BORDER,
+  insideHorizontal: TABLE_CELL_BORDER,
+  insideVertical: TABLE_CELL_BORDER,
+}
+
+/**
+ * 将表格节点转换为 docx Table
+ * @param node 表格节点
+ * @param config 文档配置
+ * @returns docx Table 对象
+ */
+function tableNodeToDocxTable(node: TableNode, config: DocumentConfig): Table {
+  // 使用表格配置项
+  const tableFont = {
+    ascii: 'Times New Roman',
+    eastAsia: config.table.fontFamily,
+    hAnsi: 'Times New Roman',
+    cs: 'Times New Roman',
+  }
+  const tableFontSize = config.table.fontSize * 2
+  const tableLineSpacing = ptToTwip(config.table.lineSpacing)
+
+  // 构建表头行
+  const headerRow = new TableRow({
+    children: node.header.cells.map((cell) =>
+      new TableCell({
+        borders: TABLE_BORDERS,
+        children: [
+          new Paragraph({
+            alignment: AlignmentType.CENTER,
+            spacing: { line: tableLineSpacing, lineRule: LineRuleType.EXACT },
+            children: [
+              new TextRun({
+                text: cell.content,
+                font: tableFont,
+                size: tableFontSize,
+                bold: config.table.boldHeader,
+              }),
+            ],
+          }),
+        ],
+      })
+    ),
+  })
+
+  // 构建数据行
+  const dataRows = node.rows.map((row) =>
+    new TableRow({
+      children: row.cells.map((cell) =>
+        new TableCell({
+          borders: TABLE_BORDERS,
+          children: [
+            new Paragraph({
+              alignment: AlignmentType.CENTER,
+              spacing: { line: tableLineSpacing, lineRule: LineRuleType.EXACT },
+              children: [
+                new TextRun({
+                  text: cell.content,
+                  font: tableFont,
+                  size: tableFontSize,
+                }),
+              ],
+            }),
+          ],
+        })
+      ),
+    })
+  )
+
+  return new Table({
+    width: { size: 100, type: WidthType.PERCENTAGE },
+    borders: TABLE_BORDERS,
+    rows: [headerRow, ...dataRows],
+  })
 }
 
 /** 将单个 AST 节点转换为 docx Paragraph */
@@ -318,8 +406,27 @@ export function buildDocument(ast: GongwenAST, config: DocumentConfig): Document
     ? ptToTwip(config.body.lineSpacing * 2)
     : 0
 
-  if (ast.title) {
-    children.push(nodeToParagraph(ast.title, config, titleSpacingBefore))
+  // 渲染多段标题
+  if (ast.title.length > 0) {
+    // 第一个标题段应用 spacingBefore（版头后的空行）
+    children.push(nodeToParagraph(ast.title[0], config, titleSpacingBefore))
+    // 后续标题段正常渲染
+    for (let i = 1; i < ast.title.length; i++) {
+      children.push(nodeToParagraph(ast.title[i], config))
+    }
+    // 标题后添加一个固定行距的空行
+    const bodyLineSpacing = ptToTwip(config.body.lineSpacing)
+    const bodyFont = {
+      ascii: 'Times New Roman',
+      eastAsia: config.body.fontFamily,
+      hAnsi: config.body.fontFamily,
+      cs: 'Times New Roman',
+    }
+    const bodyFontSize = config.body.fontSize * 2
+    children.push(new Paragraph({
+      spacing: { line: bodyLineSpacing, lineRule: LineRuleType.EXACT, before: 0, after: 0 },
+      children: [new TextRun({ font: bodyFont, size: bodyFontSize, text: '' })],
+    }))
   }
 
   for (let i = 0; i < ast.body.length; i++) {
@@ -348,6 +455,12 @@ export function buildDocument(ast: GongwenAST, config: DocumentConfig): Document
     if (node.type === NodeType.ATTACHMENT) {
       const attachmentParagraphs = attachmentToParagraphs(node as AttachmentNode, config)
       children.push(...attachmentParagraphs)
+      continue
+    }
+    
+    // 表格特殊处理
+    if (node.type === NodeType.TABLE) {
+      children.push(tableNodeToDocxTable(node as TableNode, config))
       continue
     }
     

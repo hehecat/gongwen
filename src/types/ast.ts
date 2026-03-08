@@ -20,6 +20,8 @@ export enum NodeType {
   SIGNATURE = 'SIGNATURE',
   /** 成文日期（"XXXX年X月X日"） */
   DATE = 'DATE',
+  /** Markdown 表格 */
+  TABLE = 'TABLE',
 }
 
 /** 单个文档节点 */
@@ -47,8 +49,30 @@ export interface AttachmentNode extends DocumentNode {
   items: AttachmentItem[]
 }
 
+/** 表格单元格 */
+export interface TableCell {
+  content: string
+}
+
+/** 表格行 */
+export interface TableRowData {
+  cells: TableCell[]
+}
+
+/** 表格节点 */
+export interface TableNode extends DocumentNode {
+  type: NodeType.TABLE
+  /** 表头行 */
+  header: TableRowData
+  /** 数据行 */
+  rows: TableRowData[]
+  /** 列数 */
+  columnCount: number
+}
+
 /** 完整公文 AST */
 export interface GongwenAST {
-  title: DocumentNode | null
+  /** 公文标题数组（支持多段标题，每段一行） */
+  title: DocumentNode[]
   body: DocumentNode[]
 }

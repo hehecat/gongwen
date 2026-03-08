@@ -4,94 +4,163 @@
   justify-content: space-between;
   padding: 0 20px;
   height: 56px;
-  background: white;
-  border-bottom: 1px solid #e5e7eb;
+  background: linear-gradient(to bottom, #ffffff, #fafbfc);
+  border-bottom: 1px solid var(--color-border);
+  box-shadow: var(--shadow-sm);
   flex-shrink: 0;
 }
 
 .toolbar-left {
   display: flex;
   align-items: center;
-  gap: 10px;
+}
+
+.toolbar-left > * + * {
+  margin-left: 12px;
 }
 
 .toolbar-title {
-  font-size: 18px;
+  font-size: 20px;
   font-weight: 700;
-  color: #111827;
+  background: linear-gradient(135deg, var(--color-primary), var(--color-primary-light));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
   margin: 0;
+  letter-spacing: -0.02em;
 }
 
 .toolbar-badge {
   font-size: 11px;
   font-weight: 500;
-  color: #6b7280;
-  background: #f3f4f6;
-  padding: 2px 8px;
-  border-radius: 4px;
+  color: var(--color-text-secondary);
+  background: var(--color-bg-main);
+  padding: 4px 10px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--color-border);
+}
+
+.toolbar-badge--clickable {
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid var(--color-border);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.toolbar-badge--clickable:hover {
+  background: var(--color-bg-hover);
+  border-color: var(--color-primary-light);
+  color: var(--color-primary);
+  box-shadow: var(--shadow-sm);
+}
+
+.toolbar-badge-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  margin-right: 8px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--color-primary), var(--color-primary-light));
+  color: white;
+  font-size: 10px;
+  font-weight: 600;
+  font-style: normal;
 }
 
 .toolbar-right {
   display: flex;
   align-items: center;
-  gap: 12px;
+}
+
+.toolbar-right > * + * {
+  margin-left: 10px;
 }
 
 .toolbar-stats {
   font-size: 13px;
-  color: #6b7280;
+  color: var(--color-text-secondary);
+  padding: 4px 12px;
+  background: var(--color-bg-main);
+  border-radius: var(--radius-sm);
 }
 
 .toolbar-btn {
   padding: 8px 16px;
   border: none;
-  border-radius: 6px;
+  border-radius: var(--radius-md);
   font-size: 14px;
   font-weight: 500;
   cursor: pointer;
-  transition: background 0.15s, opacity 0.15s;
+  transition: all var(--transition-fast);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .toolbar-btn:disabled {
   opacity: 0.4;
   cursor: not-allowed;
+  transform: none !important;
+  box-shadow: none !important;
 }
 
 .toolbar-btn--settings {
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  background: #f3f4f6;
-  color: #374151;
+  background: var(--color-bg-main);
+  color: var(--color-text-secondary);
+  border: 1px solid var(--color-border);
 }
 
 .toolbar-btn--settings:hover:not(:disabled) {
-  background: #e5e7eb;
+  background: var(--color-bg-hover);
+  border-color: var(--color-border-hover);
+  color: var(--color-text-primary);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-sm);
+}
+
+.toolbar-btn--settings > * + * {
+  margin-left: 6px;
 }
 
 .toolbar-btn--import {
-  background: #eff6ff;
-  color: #2563eb;
+  background: linear-gradient(135deg, var(--color-primary-bg), var(--color-primary-bg-alt));
+  color: var(--color-primary);
+  border: 1px solid var(--color-primary-border);
 }
 
 .toolbar-btn--import:hover:not(:disabled) {
-  background: #dbeafe;
+  background: linear-gradient(135deg, var(--color-primary-bg-alt), var(--color-primary-border));
+  border-color: var(--color-primary-light);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-sm);
 }
 
 .toolbar-btn--clear {
-  background: #f3f4f6;
-  color: #374151;
+  background: var(--color-bg-main);
+  color: var(--color-text-secondary);
+  border: 1px solid var(--color-border);
 }
 
 .toolbar-btn--clear:hover:not(:disabled) {
-  background: #e5e7eb;
+  background: #fef2f2;
+  border-color: #fecaca;
+  color: var(--color-error);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-sm);
 }
 
 .toolbar-btn--export {
-  background: #2563eb;
+  background: linear-gradient(135deg, var(--color-primary), var(--color-primary-light));
   color: white;
+  border: none;
+  box-shadow: 0 2px 4px var(--color-primary-shadow);
 }
 
 .toolbar-btn--export:hover:not(:disabled) {
-  background: #1d4ed8;
+  background: linear-gradient(135deg, var(--color-primary-dark), var(--color-primary));
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px var(--color-primary-shadow);
 }

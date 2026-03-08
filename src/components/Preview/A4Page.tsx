@@ -1,6 +1,6 @@
 import React, { type CSSProperties } from 'react'
 import { NodeType } from '../../types/ast'
-import type { DocumentNode, AttachmentNode } from '../../types/ast'
+import type { DocumentNode, AttachmentNode, TableNode } from '../../types/ast'
 import type { HeaderConfig, FooterNoteConfig } from '../../types/documentConfig'
 import './A4Page.css'
 
@@ -16,6 +16,7 @@ export const NODE_CLASS_MAP: Record<NodeType, string> = {
   [NodeType.ATTACHMENT]: 'a4-attachment',
   [NodeType.SIGNATURE]: 'a4-signature',
   [NodeType.DATE]: 'a4-date',
+  [NodeType.TABLE]: 'a4-table',
 }
 
 /**
@@ -178,8 +179,37 @@ export function renderAttachment(node: AttachmentNode): React.ReactNode {
   return <>{elements}</>
 }
 
+/**
+ * 渲染 Markdown 表格
+ * @param node 表格节点
+ * @returns 表格 JSX 元素
+ */
+export function renderTable(node: TableNode): React.ReactNode {
+  return (
+    <table className="a4-table-element">
+      <thead>
+        <tr>
+          {node.header.cells.map((cell, index) => (
+            <th key={index}>{cell.content}</th>
+          ))}
+        </tr>
+      </thead>
+      <tbody>
+        {node.rows.map((row, rowIndex) => (
+          <tr key={rowIndex}>
+            {row.cells.map((cell, cellIndex) => (
+              <td key={cellIndex}>{cell.content}</td>
+            ))}
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  )
+}
+
 interface A4PageProps {
-  title: DocumentNode | null
+  /** 公文标题数组（支持多段标题） */
+  title: DocumentNode[]
   body: DocumentNode[]
   pageNumber: number
   totalPages: number
@@ -265,8 +295,15 @@ export function A4Page({
         )}
         <div className="a4-content-viewport" style={{ height: `${clipHeight}px` }}>
           <div style={{ transform: `translateY(-${offsetY}px)` }}>
-            {title && (
-              <p className={NODE_CLASS_MAP[title.type]}>{title.content}</p>
+            {/* 渲染多段标题 */}
+            {title.length > 0 && title.map((titleNode, titleIndex) => (
+              <p key={`title-${titleIndex}`} className={NODE_CLASS_MAP[titleNode.type]}>
+                {titleNode.content}
+              </p>
+            ))}
+            {/* 标题后添加一个固定行距的空行 */}
+            {title.length > 0 && (
+              <p className="a4-empty-line">{'\u200B'}</p>
             )}
             {body.flatMap((node, index) => {
               const elements: React.ReactNode[] = []
@@ -285,6 +322,13 @@ export function A4Page({
                 elements.push(
                   <React.Fragment key={node.lineNumber}>
                     {renderAttachment(node as AttachmentNode)}
+                  </React.Fragment>
+                )
+              } else if (node.type === NodeType.TABLE) {
+                // 表格特殊渲染
+                elements.push(
+                  <React.Fragment key={node.lineNumber}>
+                    {renderTable(node as TableNode)}
                   </React.Fragment>
                 )
               } else {
@@ -315,7 +359,7 @@ export function A4Page({
               
               return elements
             })}
-            {!title && body.length === 0 && (
+            {title.length === 0 && body.length === 0 && (
               <p className="a4-placeholder">预览区域</p>
             )}
           </div>

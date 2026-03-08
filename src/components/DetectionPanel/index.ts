@@ -1,0 +1,1 @@
+export { DetectionPanel } from './DetectionPanel'
