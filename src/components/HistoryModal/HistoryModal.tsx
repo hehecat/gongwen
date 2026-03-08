@@ -98,11 +98,11 @@ export function HistoryModal({ open, records, onClose, onRestore, onDelete, onCl
                     }}
                   >
                     <div className="history-item-main">
-                      <div className="history-item-title">
-                        {record.title}
+                      <div className="history-item-title">{record.title}</div>
+                      <div className="history-item-time">
+                        {formatTime(record.savedAt)}
                         <span className="history-item-chars">（共{countChars(record.content)}字）</span>
                       </div>
-                      <div className="history-item-time">{formatTime(record.savedAt)}</div>
                     </div>
                     <button
                       className="history-item-delete-btn"

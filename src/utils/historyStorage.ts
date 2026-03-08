@@ -4,19 +4,31 @@ const STORAGE_KEY = 'docx-editor-history'
 const MAX_RECORDS = 50
 
 /**
- * 从内容中提取标题（第一行非空行）
+ * 从内容中提取标题（多行标题会合并为一行）
+ * 多行标题是指开头的连续非空行，直到遇到空行或主送机关
  * @param content - 文本内容
  * @returns 提取的标题，最多30字符
  */
 function extractTitle(content: string): string {
-  const lines = content.split('\n')
-  for (const line of lines) {
-    const trimmed = line.trim()
-    if (trimmed) {
-      return trimmed.length > 30 ? trimmed.slice(0, 30) + '...' : trimmed
+  var lines = content.split('\n')
+  var titleLines: string[] = []
+  for (var i = 0; i < lines.length; i++) {
+    var trimmed = lines[i].trim()
+    if (!trimmed) {
+      break
     }
+    if (trimmed.endsWith(':') || trimmed.endsWith('：')) {
+      if (titleLines.length > 0) {
+        break
+      }
+    }
+    titleLines.push(trimmed)
   }
-  return '无标题'
+  if (titleLines.length === 0) {
+    return '无标题'
+  }
+  var fullTitle = titleLines.join('').replace(/[\r\n]/g, '')
+  return fullTitle.length > 30 ? fullTitle.slice(0, 30) + '...' : fullTitle
 }
 
 /**
