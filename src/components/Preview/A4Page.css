@@ -51,7 +51,7 @@
 
 /* 公文标题: 方正小标宋_GBK 22pt 居中, 固定行距 */
 .a4-title {
-  font-family: var(--title-font, 'FZXiaoBiaoSong-B05S'), 'STSong', 'SimSun', serif;
+  font-family: var(--body-ascii-font, 'Times New Roman'), var(--title-font), 'FZXiaoBiaoSong-B05S','方正小标宋_GBK', 'STSong', 'SimSun', serif;
   font-size: var(--title-size, 22px);
   font-weight: bold;
   text-align: center;
@@ -72,7 +72,7 @@
 
 /* 一级小标题 inline: 黑体 */
 .a4-h1-inline {
-  font-family: var(--h1-font, 'SimHei'), 'Heiti SC', sans-serif;
+  font-family: var(--h1-ascii-font, 'Times New Roman'), var(--h1-font), 'SimHei', 'Heiti SC', 'STHeiti', '黑体', sans-serif;
 }
 
 /* 二级标题段落: 楷体_GB2312 基础样式（含首句拆分时的段落容器） */
@@ -88,30 +88,30 @@
 
 /* 二级小标题 inline: 楷体 */
 .a4-h2-inline {
-  font-family: var(--h2-font, 'KaiTi_GB2312'), 'KaiTi', 'STKaiti', serif;
+  font-family: var(--h2-ascii-font, 'Times New Roman'), var(--h2-font), 'KaiTi_GB2312', 'KaiTi', 'STKaiti', '楷体_GB2312', serif;
   font-style: normal;
 }
 
 /* 标题后续正文 inline: 仿宋，显式重置 bold 防止继承 */
 .a4-paragraph-inline {
-  font-family: var(--body-font, 'FangSong_GB2312'), 'FangSong', 'STFangsong', serif;
+  font-family: var(--body-ascii-font, 'Times New Roman'), var(--body-font), 'FangSong_GB2312', 'FangSong', 'STFangsong', '仿宋_GB2312', serif;
   font-weight: normal;
 }
 
 /* 三级标题 inline: 仿宋加粗（首句用） */
 .a4-h3-inline {
-  font-family: var(--h3-font, 'FangSong_GB2312'), 'FangSong', 'STFangsong', serif;
+  font-family: var(--h3-ascii-font, 'Times New Roman'), var(--h3-font), 'FangSong_GB2312', 'FangSong', 'STFangsong', '仿宋_GB2312', serif;
   font-weight: bold;
 }
 
 /* 四级标题 inline: 仿宋（首句用，与正文同字体但不缩进） */
 .a4-h4-inline {
-  font-family: var(--body-font, 'FangSong_GB2312'), 'FangSong', 'STFangsong', serif;
+  font-family: var(--body-ascii-font, 'Times New Roman'), var(--body-font), 'FangSong_GB2312', 'FangSong', 'STFangsong', '仿宋_GB2312', serif;
 }
 
 /* 三级标题: 段落容器（不设 bold，由 inline 控制首句加粗） */
 .a4-h3 {
-  font-family: var(--h3-font, 'FangSong_GB2312'), 'FangSong', 'STFangsong', serif;
+  font-family: var(--h3-ascii-font, 'Times New Roman'), var(--h3-font), 'FangSong_GB2312', 'FangSong', 'STFangsong', '仿宋_GB2312', serif;
   font-size: var(--body-size, 16px);
   font-weight: normal;
   text-indent: var(--body-indent, 2em);
@@ -121,7 +121,7 @@
 
 /* 四级标题: 仿宋 */
 .a4-h4 {
-  font-family: var(--body-font, 'FangSong_GB2312'), 'FangSong', 'STFangsong', serif;
+  font-family: var(--body-ascii-font, 'Times New Roman'), var(--body-font), 'FangSong_GB2312', 'FangSong', 'STFangsong', '仿宋_GB2312', serif;
   font-size: var(--body-size, 16px);
   font-weight: normal;
   text-indent: var(--body-indent, 2em);
@@ -131,7 +131,7 @@
 
 /* 正文: 仿宋 两端对齐 首行缩进 */
 .a4-paragraph {
-  font-family: var(--body-font, 'FangSong_GB2312'), 'FangSong', 'STFangsong', serif;
+  font-family: var(--body-ascii-font, 'Times New Roman'), var(--body-font), 'FangSong_GB2312', 'FangSong', 'STFangsong', '仿宋_GB2312', serif;
   font-size: var(--body-size, 16px);
   font-weight: normal;
   text-indent: var(--body-indent, 2em);
@@ -151,7 +151,7 @@
 
 /* 主送机关: 顶格 仿宋，段前空一行 */
 .a4-addressee {
-  font-family: var(--body-font, 'FangSong_GB2312'), 'FangSong', 'STFangsong', serif;
+  font-family: var(--addressee-ascii-font, 'Times New Roman'), var(--body-font), 'FangSong_GB2312', 'FangSong', 'STFangsong', '仿宋_GB2312', serif;
   font-size: var(--body-size, 16px);
   text-indent: 0;
   text-align: justify;
@@ -161,7 +161,7 @@
 
 /* 附件说明基础样式：左空二字，段前空一行 */
 .a4-attachment {
-  font-family: var(--body-font, 'FangSong_GB2312'), 'FangSong', 'STFangsong', serif;
+  font-family: var(--body-ascii-font, 'Times New Roman'), var(--body-font), 'FangSong_GB2312', 'FangSong', 'STFangsong', '仿宋_GB2312', serif;
   font-size: var(--body-size, 16px);
   text-indent: 0;
   padding-left: var(--body-indent, 2em);
@@ -184,7 +184,7 @@
 
 /* 多附件项：从第二个附件开始，每项单独一行 */
 .a4-attachment-item {
-  font-family: var(--body-font, 'FangSong_GB2312'), 'FangSong', 'STFangsong', serif;
+  font-family: var(--body-ascii-font, 'Times New Roman'), var(--body-font), 'FangSong_GB2312', 'FangSong', 'STFangsong', '仿宋_GB2312', serif;
   font-size: var(--body-size, 16px);
   text-align: justify;
   line-height: var(--body-line-height, 29px);
@@ -203,7 +203,7 @@
  * GB/T 9704: 7.3.5.1 加盖印章右空四字，7.3.5.2 不加盖印章右空二字
  */
 .a4-date {
-  font-family: var(--body-font, 'FangSong_GB2312'), 'FangSong', 'STFangsong', serif;
+  font-family: var(--body-ascii-font, 'Times New Roman'), var(--body-font), 'FangSong_GB2312', 'FangSong', 'STFangsong', '仿宋_GB2312', serif;
   font-size: var(--body-size, 16px);
   text-indent: 0;
   text-align: right;
@@ -217,7 +217,7 @@
  * 公式：基础右空字数 + (成文日期宽度 - 署名宽度) / 2
  */
 .a4-signature {
-  font-family: var(--body-font, 'FangSong_GB2312'), 'FangSong', 'STFangsong', serif;
+  font-family: var(--body-ascii-font, 'Times New Roman'), var(--body-font), 'FangSong_GB2312', 'FangSong', 'STFangsong', '仿宋_GB2312', serif;
   font-size: var(--body-size, 16px);
   text-indent: 0;
   text-align: right;
@@ -279,7 +279,7 @@
 }
 
 .a4-header-org {
-  font-family: '方正小标宋_GBK', 'STSong', serif;
+  font-family: var(--body-ascii-font, 'Times New Roman'), 'FZXiaoBiaoSong-B05S','方正小标宋_GBK', 'STSong', serif;
   font-size: 30px;
   color: #e00000;
   text-align: center;
@@ -300,7 +300,7 @@
   padding: 0 1em;
   /* 发文机关标志下空二行 */
   margin-top: calc(var(--body-line-height, 29px) * 2);
-  font-family: var(--body-font);
+  font-family: var(--addressee-ascii-font, 'Times New Roman'), var(--body-font), 'FangSong_GB2312', 'FangSong', 'STFangsong', serif;
   font-size: var(--body-size);
   line-height: var(--body-line-height);
   letter-spacing: 0;
@@ -312,11 +312,11 @@
 
 /* 签发人字体：标签仿宋，姓名楷体 */
 .a4-header-signer-label {
-  font-family: var(--body-font, 'FangSong_GB2312'), 'FangSong', 'STFangsong', serif;
+  font-family: var(--addressee-ascii-font, 'Times New Roman'), var(--body-font), 'FangSong_GB2312', 'FangSong', 'STFangsong', '仿宋_GB2312', serif;
 }
 
 .a4-header-signer-name {
-  font-family: 'KaiTi_GB2312', 'KaiTi', 'STKaiti', serif;
+  font-family: var(--addressee-ascii-font, 'Times New Roman'), var(--body-font), 'KaiTi_GB2312', 'KaiTi', 'STKaiti', '楷体_GB2312', serif;
 }
 
 /* ---- 版记（绝对定位，锚定最后一页版心底部） ---- */
@@ -326,7 +326,7 @@
   bottom: var(--margin-bottom-y, 11.78%);
   left: var(--margin-left, 13.33%);
   right: var(--margin-right, 12.38%);
-  font-family: var(--body-font);
+  font-family: var(--body-ascii-font, 'Times New Roman'), var(--body-font), 'FangSong_GB2312', 'FangSong', 'STFangsong', serif;
   font-size: 14px;
   line-height: 28px;
 }

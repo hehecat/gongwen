@@ -69,9 +69,14 @@ export function Preview({ ast }: PreviewProps) {
       '--char-spacing': `${charSpacingPx.toFixed(4)}px`,
       '--h1-font': config.headings.h1.fontFamily,
       '--h1-size': `${config.headings.h1.fontSize}px`,
+      '--h1-ascii-font': config.advanced.h1.asciiFontFamily || 'Times New Roman',
       '--h2-font': config.headings.h2.fontFamily,
       '--h2-size': `${config.headings.h2.fontSize}px`,
+      '--h2-ascii-font': config.advanced.h2.asciiFontFamily || 'Times New Roman',
       '--h3-font': config.advanced.h3.fontFamily,
+      '--h3-ascii-font': config.advanced.h3.asciiFontFamily || 'Times New Roman',
+      '--addressee-ascii-font': config.advanced.addressee.asciiFontFamily || 'Times New Roman',
+      '--body-ascii-font': 'Times New Roman',
       '--page-number-font': config.specialOptions.pageNumberFont,
     } as CSSProperties
   }, [config])
