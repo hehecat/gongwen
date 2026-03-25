@@ -116,8 +116,8 @@ export type DeepPartial<T> = {
 
 export const DEFAULT_CONFIG: DocumentConfig = {
   margins: {
-    top: 3.46,
-    bottom: 3.26,
+    top: 3.7,
+    bottom: 3.5,
     left: 2.8,
     right: 2.6,
   },
