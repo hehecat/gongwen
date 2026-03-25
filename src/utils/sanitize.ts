@@ -17,6 +17,10 @@ const PUNCTUATION_REPLACEMENTS = new Map<string, string>([
   ['!', '！'],
   ['(', '（'],
   [')', '）'],
+  [')', '）'],
+  [')', '）'],
+  ['"', '“'],
+  ['"', '”'],
 ])
 
 export interface SanitizeResult {
