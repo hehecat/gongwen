@@ -61,18 +61,6 @@ export function FontSelectField({
     ...filteredCustom.map((f) => ({ value: f, label: f, isCustom: true })),
   ]
 
-  // 点击外部关闭
-  useEffect(() => {
-    if (!open) return
-    const handleClickOutside = (e: MouseEvent) => {
-      if (wrapRef.current && !wrapRef.current.contains(e.target as Node)) {
-        commitAndClose()
-      }
-    }
-    document.addEventListener('mousedown', handleClickOutside)
-    return () => document.removeEventListener('mousedown', handleClickOutside)
-  })
-
   function commitAndClose() {
     const trimmed = filter.trim()
     if (trimmed && !builtinValues.has(trimmed) && trimmed !== value) {
@@ -91,6 +79,18 @@ export function FontSelectField({
     setActiveIdx(-1)
     inputRef.current?.blur()
   }
+
+  // 点击外部关闭
+  useEffect(() => {
+    if (!open) return
+    const handleClickOutside = (e: MouseEvent) => {
+      if (wrapRef.current && !wrapRef.current.contains(e.target as Node)) {
+        commitAndClose()
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  })
 
   function handleInputChange(e: ChangeEvent<HTMLInputElement>) {
     setFilter(e.target.value)

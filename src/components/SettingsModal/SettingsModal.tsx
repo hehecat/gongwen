@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, type ChangeEvent, type KeyboardEvent } from 'react'
-import { useDocumentConfig } from '../../contexts/DocumentConfigContext'
+import { useDocumentConfig } from '../../contexts/useDocumentConfig'
 import { useCustomFonts } from '../../hooks/useCustomFonts'
 import {
   FONT_OPTIONS,
@@ -114,26 +114,6 @@ function NumberInputField({
     : options
   const noResults = filterText.length > 0 && filteredOptions.length === 0
 
-  useEffect(() => {
-    if (!open) setDraft(String(value))
-  }, [value, open])
-
-  useEffect(() => {
-    if (!open) return
-    setActiveIdx(-1)
-  }, [filterText, open])
-
-  useEffect(() => {
-    if (!open) return
-    const handleClickOutside = (e: MouseEvent) => {
-      if (wrapRef.current && !wrapRef.current.contains(e.target as Node)) {
-        commitAndClose()
-      }
-    }
-    document.addEventListener('mousedown', handleClickOutside)
-    return () => document.removeEventListener('mousedown', handleClickOutside)
-  })
-
   function parseNumber(raw: string): number | null {
     const trimmed = raw.trim()
     if (!trimmed) return null
@@ -166,6 +146,17 @@ function NumberInputField({
     inputRef.current?.blur()
   }
 
+  useEffect(() => {
+    if (!open) return
+    const handleClickOutside = (e: MouseEvent) => {
+      if (wrapRef.current && !wrapRef.current.contains(e.target as Node)) {
+        commitAndClose()
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  })
+
   function handleWrapMouseDown() {
     mouseDownOnWrapRef.current = true
   }
@@ -174,6 +165,7 @@ function NumberInputField({
     if (open) {
       commitAndClose()
     } else {
+      setDraft(String(value))
       setOpen(true)
       setActiveIdx(-1)
       inputRef.current?.focus()
@@ -186,6 +178,7 @@ function NumberInputField({
       return
     }
     if (!open) {
+      setDraft(String(value))
       setOpen(true)
       setActiveIdx(-1)
     }
@@ -247,6 +240,7 @@ function NumberInputField({
               onChange={(e: ChangeEvent<HTMLInputElement>) => {
                 const next = e.target.value
                 setDraft(next)
+                setActiveIdx(-1)
                 if (!open) setOpen(true)
               }}
               onFocus={handleFocus}

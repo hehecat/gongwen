@@ -1,11 +1,10 @@
 import {
-  createContext,
-  useContext,
   useReducer,
   useEffect,
   type ReactNode,
 } from 'react'
 import { DEFAULT_CONFIG, type DocumentConfig, type DeepPartial } from '../types/documentConfig'
+import { DocumentConfigContext } from './documentConfigContext'
 
 const STORAGE_KEY = 'docx-document-config'
 
@@ -66,16 +65,6 @@ function loadConfig(): DocumentConfig {
   return DEFAULT_CONFIG
 }
 
-// ---- Context ----
-
-interface DocumentConfigContextValue {
-  config: DocumentConfig
-  updateConfig: (patch: DeepPartial<DocumentConfig>) => void
-  resetConfig: () => void
-}
-
-const DocumentConfigContext = createContext<DocumentConfigContextValue | null>(null)
-
 // ---- Provider ----
 
 export function DocumentConfigProvider({ children }: { children: ReactNode }) {
@@ -99,14 +88,4 @@ export function DocumentConfigProvider({ children }: { children: ReactNode }) {
       {children}
     </DocumentConfigContext.Provider>
   )
-}
-
-// ---- Hook ----
-
-export function useDocumentConfig(): DocumentConfigContextValue {
-  const ctx = useContext(DocumentConfigContext)
-  if (!ctx) {
-    throw new Error('useDocumentConfig must be used within DocumentConfigProvider')
-  }
-  return ctx
 }

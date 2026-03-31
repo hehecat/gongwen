@@ -1,10 +1,20 @@
 import React, { useRef, useMemo, type CSSProperties } from 'react'
 import { NodeType } from '../../types/ast'
 import type { GongwenAST, DocumentNode, AttachmentNode } from '../../types/ast'
-import { useDocumentConfig } from '../../contexts/DocumentConfigContext'
+import { useDocumentConfig } from '../../contexts/useDocumentConfig'
 import { cmToPagePercent, CHARS_PER_LINE } from '../../types/documentConfig'
 import { usePagination } from '../../hooks/usePagination'
-import { A4Page, NODE_CLASS_MAP, renderHeading1, renderHeading2, renderHeading3, renderHeading4, renderBoldFirstSentence, renderAttachment, calculateSignatureIndentEm } from './A4Page'
+import { A4Page } from './A4Page'
+import {
+  NODE_CLASS_MAP,
+  calculateSignatureIndentEm,
+  renderAttachment,
+  renderBoldFirstSentence,
+  renderHeading1,
+  renderHeading2,
+  renderHeading3,
+  renderHeading4,
+} from './previewRenderers'
 import './A4Page.css'
 import './Preview.css'
 
@@ -147,7 +157,6 @@ export function Preview({ ast }: PreviewProps) {
             title={ast.title}
             body={ast.body}
             pageNumber={index + 1}
-            totalPages={pages.length}
             offsetY={slice.offsetY}
             clipHeight={slice.clipHeight}
             showPageNumber={config.specialOptions.showPageNumber}

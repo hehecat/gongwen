@@ -2,187 +2,22 @@ import React, { type CSSProperties } from 'react'
 import { NodeType } from '../../types/ast'
 import type { DocumentNode, AttachmentNode } from '../../types/ast'
 import type { HeaderConfig, FooterNoteConfig } from '../../types/documentConfig'
+import {
+  NODE_CLASS_MAP,
+  calculateSignatureIndentEm,
+  renderAttachment,
+  renderBoldFirstSentence,
+  renderHeading1,
+  renderHeading2,
+  renderHeading3,
+  renderHeading4,
+} from './previewRenderers'
 import './A4Page.css'
-
-/** 节点类型 → CSS 类名映射 */
-export const NODE_CLASS_MAP: Record<NodeType, string> = {
-  [NodeType.DOCUMENT_TITLE]: 'a4-title',
-  [NodeType.HEADING_1]: 'a4-h1',
-  [NodeType.HEADING_2]: 'a4-h2',
-  [NodeType.HEADING_3]: 'a4-h3',
-  [NodeType.HEADING_4]: 'a4-h4',
-  [NodeType.PARAGRAPH]: 'a4-paragraph',
-  [NodeType.ADDRESSEE]: 'a4-addressee',
-  [NodeType.ATTACHMENT]: 'a4-attachment',
-  [NodeType.SIGNATURE]: 'a4-signature',
-  [NodeType.DATE]: 'a4-date',
-}
-
-/**
- * 计算文本的实际宽度（以汉字宽度为单位）
- * - 中文字符（含年月日）：宽度 = 1 个汉字宽度
- * - 阿拉伯数字、英文字母：宽度约为汉字的 0.69 倍
- * - 其他 ASCII 字符：宽度约为汉字的 0.69 倍
- */
-function calculateTextWidthEm(text: string): number {
-  let width = 0
-  for (const char of text) {
-    if (/[\u4e00-\u9fff\u3400-\u4dbf]/.test(char)) {
-      width += 1
-    } else {
-      width += 0.69
-    }
-  }
-  return width
-}
-
-/**
- * 计算发文机关署名的右缩进值（em 单位）
- * 公式：基础右空字数 + (成文日期宽度 - 署名宽度) / 2
- * - 有印章（hasStamp = true）：基础右空四字
- * - 无印章（hasStamp = false）：基础右空二字
- * 注意：居中偏移可能为负数（署名比日期长时），只需保证最终右缩进 >= 0
- */
-export function calculateSignatureIndentEm(
-  signatureContent: string,
-  dateContent: string,
-  hasStamp: boolean
-): number {
-  const baseIndent = hasStamp ? 4 : 2
-  const signatureWidth = calculateTextWidthEm(signatureContent)
-  const dateWidth = calculateTextWidthEm(dateContent)
-  const centerOffset = (dateWidth - signatureWidth) / 2
-  return Math.max(0, baseIndent + centerOffset)
-}
-
-/**
- * 渲染一级标题：首句（到第一个"。"）用黑体，其余用仿宋正文样式
- */
-export function renderHeading1(content: string) {
-  const idx = content.indexOf('。')
-  if (idx === -1 || idx === content.length - 1) {
-    return <span className="a4-h1-inline">{content}</span>
-  }
-  return (
-    <>
-      <span className="a4-h1-inline">{content.slice(0, idx + 1)}</span>
-      <span className="a4-paragraph-inline">{content.slice(idx + 1)}</span>
-    </>
-  )
-}
-
-/**
- * 渲染二级标题：首句（到第一个"。"）用楷体，其余用仿宋正文样式
- */
-export function renderHeading2(content: string) {
-  const idx = content.indexOf('。')
-  if (idx === -1 || idx === content.length - 1) {
-    return <span className="a4-h2-inline">{content}</span>
-  }
-  return (
-    <>
-      <span className="a4-h2-inline">{content.slice(0, idx + 1)}</span>
-      <span className="a4-paragraph-inline">{content.slice(idx + 1)}</span>
-    </>
-  )
-}
-
-/**
- * 渲染三级标题：首句（到第一个"。"）用仿宋加粗，其余用仿宋正文样式
- */
-export function renderHeading3(content: string) {
-  const idx = content.indexOf('。')
-  if (idx === -1 || idx === content.length - 1) {
-    return <span className="a4-h3-inline">{content}</span>
-  }
-  return (
-    <>
-      <span className="a4-h3-inline">{content.slice(0, idx + 1)}</span>
-      <span className="a4-paragraph-inline">{content.slice(idx + 1)}</span>
-    </>
-  )
-}
-
-/**
- * 渲染四级标题：首句（到第一个"。"）用仿宋，其余用仿宋正文样式
- * 四级标题本身与正文同字体，但保持拆分逻辑一致性
- */
-export function renderHeading4(content: string) {
-  const idx = content.indexOf('。')
-  if (idx === -1 || idx === content.length - 1) {
-    return <span className="a4-h4-inline">{content}</span>
-  }
-  return (
-    <>
-      <span className="a4-h4-inline">{content.slice(0, idx + 1)}</span>
-      <span className="a4-paragraph-inline">{content.slice(idx + 1)}</span>
-    </>
-  )
-}
-
-/**
- * 渲染正文首句加粗：首句（到第一个"。"）加粗，其余正常
- */
-export function renderBoldFirstSentence(content: string) {
-  const idx = content.indexOf('。')
-  if (idx === -1 || idx === content.length - 1) {
-    return <span className="a4-bold-first">{content}</span>
-  }
-  return (
-    <>
-      <span className="a4-bold-first">{content.slice(0, idx + 1)}</span>
-      <span>{content.slice(idx + 1)}</span>
-    </>
-  )
-}
-
-/**
- * 渲染附件说明
- *
- * 单附件模式：附件：xxx
- * 多附件模式：附件：1.xxx
- *                   2.xxx
- *                   3.xxx
- */
-export function renderAttachment(node: AttachmentNode): React.ReactNode {
-  if (!node.isMultiple) {
-    // 单附件模式
-    return (
-      <p className="a4-attachment a4-attachment--single">
-        附件：{node.items[0].name}
-      </p>
-    )
-  }
-
-  // 多附件模式
-  const elements: React.ReactNode[] = []
-
-  // 第一个附件紧跟在 "附件：" 后
-  const firstItem = node.items[0]
-  elements.push(
-    <p key="first" className="a4-attachment a4-attachment--multi-first">
-      附件：{firstItem.index}.{firstItem.name}
-    </p>
-  )
-
-  // 从第二个附件开始，每项单独一行
-  for (let i = 1; i < node.items.length; i++) {
-    const item = node.items[i]
-    elements.push(
-      <p key={i} className="a4-attachment-item a4-attachment-item--multi">
-        {item.index}.{item.name}
-      </p>
-    )
-  }
-
-  return <>{elements}</>
-}
 
 interface A4PageProps {
   title: DocumentNode | null
   body: DocumentNode[]
   pageNumber: number
-  totalPages: number
   /** 内容流偏移量(px)，用于视窗裁剪定位 */
   offsetY: number
   /** 该页应显示的内容高度(px)，精确到行边界 */
@@ -211,7 +46,6 @@ export function A4Page({
   title,
   body,
   pageNumber,
-  totalPages: _totalPages,
   offsetY,
   clipHeight,
   showPageNumber,

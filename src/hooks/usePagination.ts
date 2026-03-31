@@ -1,6 +1,6 @@
 import { useLayoutEffect, useState, type RefObject } from 'react'
 import type { DocumentNode } from '../types/ast'
-import { useDocumentConfig } from '../contexts/DocumentConfigContext'
+import { useDocumentConfig } from '../contexts/useDocumentConfig'
 
 /** 单页裁剪信息 */
 export interface PageSlice {
