@@ -1,50 +1,15 @@
-import React, { useRef, useMemo, type CSSProperties } from 'react'
-import { NodeType } from '../../types/ast'
-import type { GongwenAST, DocumentNode, AttachmentNode } from '../../types/ast'
+import { useRef, useMemo, type CSSProperties } from 'react'
+import type { GongwenAST } from '../../types/ast'
 import { useDocumentConfig } from '../../contexts/useDocumentConfig'
 import { cmToPagePercent, CHARS_PER_LINE } from '../../types/documentConfig'
 import { usePagination } from '../../hooks/usePagination'
 import { A4Page } from './A4Page'
-import {
-  NODE_CLASS_MAP,
-  calculateSignatureIndentEm,
-  renderAttachment,
-  renderBoldFirstSentence,
-  renderHeading1,
-  renderHeading2,
-  renderHeading3,
-  renderHeading4,
-} from './previewRenderers'
+import { DocumentFlow } from './DocumentFlow'
 import './A4Page.css'
 import './Preview.css'
 
 interface PreviewProps {
   ast: GongwenAST
-}
-
-/**
- * 计算节点的动态样式（用于 measurer）
- * - SIGNATURE: 以成文日期为基准居中
- * - DATE: 根据 hasStamp 右空四字或二字
- */
-function getNodeStyle(
-  node: DocumentNode,
-  index: number,
-  body: DocumentNode[],
-  hasStamp: boolean
-): CSSProperties | undefined {
-  if (node.type === NodeType.SIGNATURE) {
-    const nextNode = body[index + 1]
-    if (nextNode && nextNode.type === NodeType.DATE) {
-      const indent = calculateSignatureIndentEm(node.content, nextNode.content, hasStamp)
-      return { paddingRight: `${indent}em` }
-    }
-    return { paddingRight: `${hasStamp ? 4 : 2}em` }
-  }
-  if (node.type === NodeType.DATE) {
-    return { paddingRight: `${hasStamp ? 4 : 2}em` }
-  }
-  return undefined
 }
 
 export function Preview({ ast }: PreviewProps) {
@@ -98,55 +63,12 @@ export function Preview({ ast }: PreviewProps) {
         {/* 隐藏度量容器：渲染全部节点用于高度测量（与 A4Page 使用相同的 CSS 类和渲染逻辑） */}
         <div ref={measurerRef} className="a4-measurer" aria-hidden="true">
           <div className="a4-measurer-content">
-            {ast.title && (
-              <p className={NODE_CLASS_MAP[ast.title.type]}>{ast.title.content}</p>
-            )}
-            {ast.body.flatMap((node, index) => {
-              const elements: React.ReactNode[] = []
-              
-              // 发文机关署名前插入 2 个空行
-              if (node.type === NodeType.SIGNATURE) {
-                for (let j = 0; j < 2; j++) {
-                  elements.push(
-                    <p key={`empty-${node.lineNumber}-${j}`} className="a4-empty-line">{'\u200B'}</p>
-                  )
-                }
-              }
-              
-              if (node.type === NodeType.ATTACHMENT) {
-                elements.push(
-                  <React.Fragment key={node.lineNumber}>
-                    {renderAttachment(node as AttachmentNode)}
-                  </React.Fragment>
-                )
-              } else {
-                elements.push(
-                  <p
-                    key={node.lineNumber}
-                    className={
-                      node.type === NodeType.HEADING_1 ? 'a4-h1'
-                      : node.type === NodeType.HEADING_2 ? 'a4-h2'
-                      : NODE_CLASS_MAP[node.type]
-                    }
-                    style={getNodeStyle(node, index, ast.body, config.specialOptions.hasStamp)}
-                  >
-                    {node.type === NodeType.HEADING_1
-                      ? renderHeading1(node.content)
-                      : node.type === NodeType.HEADING_2
-                        ? renderHeading2(node.content)
-                        : node.type === NodeType.HEADING_3
-                          ? renderHeading3(node.content)
-                          : node.type === NodeType.HEADING_4
-                            ? renderHeading4(node.content)
-                            : (boldFirst && node.type === NodeType.PARAGRAPH)
-                              ? renderBoldFirstSentence(node.content)
-                              : node.content}
-                  </p>
-                )
-              }
-              
-              return elements
-            })}
+            <DocumentFlow
+              title={ast.title}
+              body={ast.body}
+              boldFirstSentence={boldFirst}
+              hasStamp={config.specialOptions.hasStamp}
+            />
           </div>
         </div>
 

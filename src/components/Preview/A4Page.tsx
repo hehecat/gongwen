@@ -1,17 +1,6 @@
-import React, { type CSSProperties } from 'react'
-import { NodeType } from '../../types/ast'
-import type { DocumentNode, AttachmentNode } from '../../types/ast'
+import type { DocumentNode } from '../../types/ast'
 import type { HeaderConfig, FooterNoteConfig } from '../../types/documentConfig'
-import {
-  NODE_CLASS_MAP,
-  calculateSignatureIndentEm,
-  renderAttachment,
-  renderBoldFirstSentence,
-  renderHeading1,
-  renderHeading2,
-  renderHeading3,
-  renderHeading4,
-} from './previewRenderers'
+import { DocumentFlow } from './DocumentFlow'
 import './A4Page.css'
 
 interface A4PageProps {
@@ -56,28 +45,6 @@ export function A4Page({
   isLastPage,
   hasStamp,
 }: A4PageProps) {
-  /**
-   * 计算节点的动态样式
-   * - SIGNATURE: 以成文日期为基准居中
-   * - DATE: 根据 hasStamp 右空四字或二字
-   */
-  function getNodeStyle(node: DocumentNode, index: number): CSSProperties | undefined {
-    if (node.type === NodeType.SIGNATURE) {
-      // 查找下一个节点是否为 DATE
-      const nextNode = body[index + 1]
-      if (nextNode && nextNode.type === NodeType.DATE) {
-        const indent = calculateSignatureIndentEm(node.content, nextNode.content, hasStamp)
-        return { paddingRight: `${indent}em` }
-      }
-      // 降级处理：使用基础右空字数
-      return { paddingRight: `${hasStamp ? 4 : 2}em` }
-    }
-    if (node.type === NodeType.DATE) {
-      return { paddingRight: `${hasStamp ? 4 : 2}em` }
-    }
-    return undefined
-  }
-
   return (
     <div className="a4-page">
       <div className="a4-content">
@@ -99,59 +66,13 @@ export function A4Page({
         )}
         <div className="a4-content-viewport" style={{ height: `${clipHeight}px` }}>
           <div style={{ transform: `translateY(-${offsetY}px)` }}>
-            {title && (
-              <p className={NODE_CLASS_MAP[title.type]}>{title.content}</p>
-            )}
-            {body.flatMap((node, index) => {
-              const elements: React.ReactNode[] = []
-              
-              // 发文机关署名前插入 2 个空行
-              if (node.type === NodeType.SIGNATURE) {
-                for (let j = 0; j < 2; j++) {
-                  elements.push(
-                    <p key={`empty-${node.lineNumber}-${j}`} className="a4-empty-line">{'\u200B'}</p>
-                  )
-                }
-              }
-              
-              // 附件说明特殊渲染
-              if (node.type === NodeType.ATTACHMENT) {
-                elements.push(
-                  <React.Fragment key={node.lineNumber}>
-                    {renderAttachment(node as AttachmentNode)}
-                  </React.Fragment>
-                )
-              } else {
-                elements.push(
-                  <p
-                    key={node.lineNumber}
-                    className={
-                      node.type === NodeType.HEADING_1 ? 'a4-h1'
-                      : node.type === NodeType.HEADING_2 ? 'a4-h2'
-                      : NODE_CLASS_MAP[node.type]
-                    }
-                    style={getNodeStyle(node, index)}
-                  >
-                    {node.type === NodeType.HEADING_1
-                      ? renderHeading1(node.content)
-                      : node.type === NodeType.HEADING_2
-                        ? renderHeading2(node.content)
-                        : node.type === NodeType.HEADING_3
-                          ? renderHeading3(node.content)
-                          : node.type === NodeType.HEADING_4
-                            ? renderHeading4(node.content)
-                            : (boldFirstSentence && node.type === NodeType.PARAGRAPH)
-                              ? renderBoldFirstSentence(node.content)
-                              : node.content}
-                  </p>
-                )
-              }
-              
-              return elements
-            })}
-            {!title && body.length === 0 && (
-              <p className="a4-placeholder">预览区域</p>
-            )}
+            <DocumentFlow
+              title={title}
+              body={body}
+              boldFirstSentence={boldFirstSentence}
+              hasStamp={hasStamp}
+              showPlaceholder
+            />
           </div>
         </div>
       </div>
