@@ -16,6 +16,7 @@ interface DocumentFlowProps {
   title: GongwenAST['title']
   body: GongwenAST['body']
   boldFirstSentence: boolean
+  boldHeading3: boolean
   hasStamp: boolean
   showPlaceholder?: boolean
 }
@@ -46,6 +47,7 @@ export const DocumentFlow = memo(function DocumentFlow({
   title,
   body,
   boldFirstSentence,
+  boldHeading3,
   hasStamp,
   showPlaceholder = false,
 }: DocumentFlowProps) {
@@ -87,7 +89,7 @@ export const DocumentFlow = memo(function DocumentFlow({
                 : node.type === NodeType.HEADING_2
                   ? renderHeading2(node.content)
                   : node.type === NodeType.HEADING_3
-                    ? renderHeading3(node.content)
+                    ? renderHeading3(node.content, boldHeading3)
                     : node.type === NodeType.HEADING_4
                       ? renderHeading4(node.content)
                       : (boldFirstSentence && node.type === NodeType.PARAGRAPH)

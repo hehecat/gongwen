@@ -220,7 +220,7 @@ export function getRunStyle(type: NodeType, config: DocumentConfig): Partial<IRu
       return {
         font: font(config.advanced.h3.fontFamily, config.advanced.h3.asciiFontFamily || config.advanced.h3.fontFamily),
         size: config.advanced.h3.fontSize * 2,
-        bold: true,
+        bold: config.specialOptions.boldHeading3,
         characterSpacing: charSpacing,
       }
 

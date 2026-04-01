@@ -59,6 +59,7 @@ export function Preview({ ast }: PreviewProps) {
     },
     specialOptions: {
       boldFirstSentence: deferredConfig.specialOptions.boldFirstSentence,
+      boldHeading3: deferredConfig.specialOptions.boldHeading3,
       hasStamp: deferredConfig.specialOptions.hasStamp,
     },
   }), [
@@ -87,6 +88,7 @@ export function Preview({ ast }: PreviewProps) {
     deferredConfig.headings.h2.fontSize,
     deferredConfig.advanced.h3.fontFamily,
     deferredConfig.specialOptions.boldFirstSentence,
+    deferredConfig.specialOptions.boldHeading3,
     deferredConfig.specialOptions.hasStamp,
   ])
   const pages = usePagination(ast.title, ast.body, measurerRef, paginationConfig)
@@ -126,6 +128,7 @@ export function Preview({ ast }: PreviewProps) {
   }, [deferredConfig])
 
   const boldFirst = deferredConfig.specialOptions.boldFirstSentence
+  const boldHeading3 = deferredConfig.specialOptions.boldHeading3
 
   return (
     <div className="preview-container">
@@ -141,6 +144,7 @@ export function Preview({ ast }: PreviewProps) {
               title={ast.title}
               body={ast.body}
               boldFirstSentence={boldFirst}
+              boldHeading3={boldHeading3}
               hasStamp={deferredConfig.specialOptions.hasStamp}
             />
           </div>
@@ -157,6 +161,7 @@ export function Preview({ ast }: PreviewProps) {
             clipHeight={slice.clipHeight}
             showPageNumber={deferredConfig.specialOptions.showPageNumber}
             boldFirstSentence={boldFirst}
+            boldHeading3={boldHeading3}
             headerConfig={deferredConfig.header}
             footerNoteConfig={deferredConfig.footerNote}
             isFirstPage={index === 0}

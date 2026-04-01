@@ -3,6 +3,7 @@ import {
   createCharacterFirstLineIndent,
   getAttachmentParagraphStyle,
   getParagraphStyle,
+  getRunStyle,
   shouldUseCharacterFirstLineIndent,
 } from '../styleFactory'
 import { NodeType } from '../../types/ast'
@@ -54,5 +55,25 @@ describe('getAttachmentParagraphStyle', () => {
     const style = getAttachmentParagraphStyle(false, false, DEFAULT_CONFIG, true)
 
     expect(style.spacing).not.toHaveProperty('before')
+  })
+})
+
+describe('getRunStyle', () => {
+  it('三级标题默认加粗', () => {
+    const style = getRunStyle(NodeType.HEADING_3, DEFAULT_CONFIG)
+
+    expect(style.bold).toBe(true)
+  })
+
+  it('可关闭三级标题加粗', () => {
+    const style = getRunStyle(NodeType.HEADING_3, {
+      ...DEFAULT_CONFIG,
+      specialOptions: {
+        ...DEFAULT_CONFIG.specialOptions,
+        boldHeading3: false,
+      },
+    })
+
+    expect(style.bold).toBe(false)
   })
 })

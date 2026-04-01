@@ -38,6 +38,7 @@ export interface BodyConfig {
 /** 特殊选项 */
 export interface SpecialOptionsConfig {
   boldFirstSentence: boolean
+  boldHeading3: boolean
   showPageNumber: boolean
   pageNumberFont: string
   /**
@@ -127,6 +128,7 @@ export const DEFAULT_CONFIG: DocumentConfig = {
   },
   specialOptions: {
     boldFirstSentence: false,
+    boldHeading3: true,
     showPageNumber: true,
     pageNumberFont: '宋体',
     hasStamp: false,

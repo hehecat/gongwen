@@ -52,6 +52,7 @@ export interface PaginationConfig {
   }
   specialOptions: {
     boldFirstSentence: boolean
+    boldHeading3: boolean
     hasStamp: boolean
   }
 }

@@ -544,6 +544,14 @@ export function SettingsModal({ onClose }: SettingsModalProps) {
 
               <div className="settings-special-card">
                 <CheckboxField
+                  label="三级小标题加粗"
+                  checked={config.specialOptions.boldHeading3}
+                  onChange={(v) => patch({ specialOptions: { boldHeading3: v } })}
+                />
+              </div>
+
+              <div className="settings-special-card">
+                <CheckboxField
                   label={(
                     <>
                       加盖印章

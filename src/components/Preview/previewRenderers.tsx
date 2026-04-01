@@ -65,14 +65,15 @@ export function renderHeading2(content: string) {
   )
 }
 
-export function renderHeading3(content: string) {
+export function renderHeading3(content: string, bold = true) {
+  const headingClassName = bold ? 'a4-h3-inline a4-h3-inline--bold' : 'a4-h3-inline'
   const idx = content.indexOf('。')
   if (idx === -1 || idx === content.length - 1) {
-    return <span className="a4-h3-inline">{content}</span>
+    return <span className={headingClassName}>{content}</span>
   }
   return (
     <>
-      <span className="a4-h3-inline">{content.slice(0, idx + 1)}</span>
+      <span className={headingClassName}>{content.slice(0, idx + 1)}</span>
       <span className="a4-paragraph-inline">{content.slice(idx + 1)}</span>
     </>
   )
