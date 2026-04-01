@@ -11,7 +11,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "docx": "^9.5.3",
+    "docx": "^9.6.1",
     "file-saver": "^2.0.5",
     "mammoth": "^1.11.0",
     "react": "^19.2.0",

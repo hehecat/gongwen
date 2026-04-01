@@ -20,12 +20,6 @@ export interface TitleConfig {
   lineSpacing: number // 磅 (固定行距)
 }
 
-/** 各级标题字体 */
-export interface HeadingsConfig {
-  h1: { fontFamily: string; fontSize: number }
-  h2: { fontFamily: string; fontSize: number }
-}
-
 /** 正文格式 */
 export interface BodyConfig {
   fontFamily: string
@@ -36,6 +30,8 @@ export interface BodyConfig {
 
 
 /** 特殊选项 */
+export type PageNumberStyle = 'mirrored' | 'center'
+
 export interface SpecialOptionsConfig {
   boldFirstSentence: boolean
   firstParagraphNoIndent: boolean
@@ -65,7 +61,6 @@ export interface AdvancedElementConfig {
 
 /** 高级设置 */
 export interface AdvancedConfig {
-  addressee: AdvancedElementConfig
   h1: AdvancedElementConfig
   h2: AdvancedElementConfig
   h3: AdvancedElementConfig
@@ -98,7 +93,6 @@ export interface FooterNoteConfig {
 export interface DocumentConfig {
   margins: MarginsConfig
   title: TitleConfig
-  headings: HeadingsConfig
   body: BodyConfig
   specialOptions: SpecialOptionsConfig
   textFixOptions: TextFixOptionsConfig
@@ -126,10 +120,6 @@ export const DEFAULT_CONFIG: DocumentConfig = {
     fontSize: 22,
     lineSpacing: 29.6,
   },
-  headings: {
-    h1: { fontFamily: '黑体', fontSize: 16 },
-    h2: { fontFamily: '楷体_GB2312', fontSize: 16 },
-  },
   body: {
     fontFamily: '仿宋_GB2312',
     fontSize: 16,
@@ -149,7 +139,6 @@ export const DEFAULT_CONFIG: DocumentConfig = {
     removeRedundantSpaces: true,
   },
   advanced: {
-    addressee: { fontFamily: '仿宋_GB2312', asciiFontFamily: 'Times New Roman', fontSize: 16 },
     h1: { fontFamily: '黑体', asciiFontFamily: 'Times New Roman', fontSize: 16 },
     h2: { fontFamily: '楷体_GB2312', asciiFontFamily: 'Times New Roman', fontSize: 16 },
     h3: { fontFamily: '仿宋_GB2312', asciiFontFamily: 'Times New Roman', fontSize: 16 },

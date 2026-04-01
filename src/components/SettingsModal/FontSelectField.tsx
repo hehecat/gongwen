@@ -1,4 +1,5 @@
-import { useState, useRef, useEffect, type ChangeEvent, type KeyboardEvent } from 'react'
+import { useState, type ChangeEvent, type MouseEvent } from 'react'
+import { useComboBox } from './useComboBox'
 
 interface FontOption {
   label: string
@@ -30,13 +31,7 @@ export function FontSelectField({
   onAddCustomFont,
   onRemoveCustomFont,
 }: FontSelectFieldProps) {
-  const wrapRef = useRef<HTMLDivElement>(null)
-  const inputRef = useRef<HTMLInputElement>(null)
-  const [open, setOpen] = useState(false)
   const [filter, setFilter] = useState('')
-  const [activeIdx, setActiveIdx] = useState(-1)
-  // 区分「键盘/输入触发」和「鼠标点击触发」，避免 focus+click 冲突
-  const mouseDownOnWrapRef = useRef(false)
 
   // 内置选项 value 集合
   const builtinValues = new Set(options.map((o) => o.value))
@@ -61,36 +56,41 @@ export function FontSelectField({
     ...filteredCustom.map((f) => ({ value: f, label: f, isCustom: true })),
   ]
 
-  // 点击外部关闭
-  useEffect(() => {
-    if (!open) return
-    const handleClickOutside = (e: MouseEvent) => {
-      if (wrapRef.current && !wrapRef.current.contains(e.target as Node)) {
-        commitAndClose()
-      }
-    }
-    document.addEventListener('mousedown', handleClickOutside)
-    return () => document.removeEventListener('mousedown', handleClickOutside)
-  })
-
-  function commitAndClose() {
+  function commitFilter() {
     const trimmed = filter.trim()
     if (trimmed && !builtinValues.has(trimmed) && trimmed !== value) {
       onAddCustomFont(trimmed)
       onChange(trimmed)
     }
-    setOpen(false)
     setFilter('')
-    setActiveIdx(-1)
   }
 
   function handleSelect(val: string) {
     onChange(val)
-    setOpen(false)
     setFilter('')
-    setActiveIdx(-1)
+    closeDropdown()
     inputRef.current?.blur()
   }
+
+  const {
+    activeIdx,
+    closeDropdown,
+    handleFocus,
+    handleKeyDown,
+    handleWrapClick,
+    handleWrapMouseDown,
+    inputRef,
+    open,
+    setActiveIdx,
+    setOpen,
+    wrapRef,
+  } = useComboBox({
+    itemCount: flatItems.length,
+    onOpen: () => setFilter(''),
+    onCommit: commitFilter,
+    onSelect: (index) => handleSelect(flatItems[index].value),
+    onEscape: () => setFilter(''),
+  })
 
   function handleInputChange(e: ChangeEvent<HTMLInputElement>) {
     setFilter(e.target.value)
@@ -98,73 +98,7 @@ export function FontSelectField({
     if (!open) setOpen(true)
   }
 
-  // mousedown 在 wrap 上记录标记，用于 onFocus 判断来源
-  function handleWrapMouseDown() {
-    mouseDownOnWrapRef.current = true
-  }
-
-  // 点击箭头或输入框区域：toggle
-  function handleWrapClick() {
-    if (open) {
-      commitAndClose()
-    } else {
-      setOpen(true)
-      setFilter('')
-      setActiveIdx(-1)
-      inputRef.current?.focus()
-    }
-  }
-
-  // onFocus 只在非鼠标点击（如 Tab 键）时打开
-  function handleFocus() {
-    if (mouseDownOnWrapRef.current) {
-      mouseDownOnWrapRef.current = false
-      return // 鼠标点击触发的 focus，由 handleWrapClick 处理
-    }
-    // Tab 键聚焦时打开
-    if (!open) {
-      setOpen(true)
-      setFilter('')
-      setActiveIdx(-1)
-    }
-  }
-
-  function handleKeyDown(e: KeyboardEvent<HTMLInputElement>) {
-    if (!open) {
-      if (e.key === 'ArrowDown' || e.key === 'Enter') {
-        e.preventDefault()
-        setOpen(true)
-      }
-      return
-    }
-
-    switch (e.key) {
-      case 'ArrowDown':
-        e.preventDefault()
-        setActiveIdx((prev) => (prev < flatItems.length - 1 ? prev + 1 : 0))
-        break
-      case 'ArrowUp':
-        e.preventDefault()
-        setActiveIdx((prev) => (prev > 0 ? prev - 1 : flatItems.length - 1))
-        break
-      case 'Enter':
-        e.preventDefault()
-        if (activeIdx >= 0 && activeIdx < flatItems.length) {
-          handleSelect(flatItems[activeIdx].value)
-        } else {
-          commitAndClose()
-        }
-        break
-      case 'Escape':
-        e.preventDefault()
-        setOpen(false)
-        setFilter('')
-        setActiveIdx(-1)
-        break
-    }
-  }
-
-  function handleRemoveCustom(e: React.MouseEvent, fontName: string) {
+  function handleRemoveCustom(e: MouseEvent<HTMLButtonElement>, fontName: string) {
     e.stopPropagation()
     onRemoveCustomFont(fontName)
   }
@@ -179,81 +113,84 @@ export function FontSelectField({
   return (
     <label className="settings-field" onClick={(e) => e.preventDefault()}>
       <span className="settings-field-label">{label}</span>
-      <div className="font-combo" ref={wrapRef}>
-        <div
-          className="font-combo-input-wrap"
-          onMouseDown={handleWrapMouseDown}
-          onClick={handleWrapClick}
-        >
-          <input
-            ref={inputRef}
-            className="settings-select font-combo-input"
-            type="text"
-            value={displayValue}
-            placeholder={value || '选择或输入字体'}
-            onChange={handleInputChange}
-            onFocus={handleFocus}
-            onKeyDown={handleKeyDown}
-            autoComplete="off"
-            spellCheck={false}
-          />
-          <span className={`font-combo-arrow ${open ? 'font-combo-arrow--open' : ''}`} />
-        </div>
+      <div className="settings-control-row">
+        <div className="font-combo settings-field-main" ref={wrapRef}>
+          <div
+            className="font-combo-input-wrap"
+            onMouseDown={handleWrapMouseDown}
+            onClick={handleWrapClick}
+          >
+            <input
+              ref={inputRef}
+              className="settings-select font-combo-input"
+              type="text"
+              value={displayValue}
+              placeholder={value || '选择或输入字体'}
+              onChange={handleInputChange}
+              onFocus={handleFocus}
+              onKeyDown={handleKeyDown}
+              autoComplete="off"
+              spellCheck={false}
+            />
+            <span className={`font-combo-arrow ${open ? 'font-combo-arrow--open' : ''}`} />
+          </div>
 
-        {open && (
-          <div className="font-combo-dropdown">
-            {/* 自定义字体区 */}
-            {hasCustomSection && (
-              <>
-                <div className="font-combo-group-title">自定义字体</div>
-                {filteredCustom.map((f) => {
-                  const idx = flatItems.findIndex((item) => item.isCustom && item.value === f)
+          {open && (
+            <div className="font-combo-dropdown">
+              {/* 自定义字体区 */}
+              {hasCustomSection && (
+                <>
+                  <div className="font-combo-group-title">自定义字体</div>
+                  {filteredCustom.map((f) => {
+                    const idx = flatItems.findIndex((item) => item.isCustom && item.value === f)
+                    return (
+                      <div
+                        key={`custom-${f}`}
+                        className={`font-combo-item ${value === f ? 'font-combo-item--selected' : ''} ${idx === activeIdx ? 'font-combo-item--active' : ''}`}
+                        onMouseDown={(e) => { e.preventDefault(); handleSelect(f) }}
+                        onMouseEnter={() => setActiveIdx(idx)}
+                      >
+                        <span className="font-combo-item-text">{f}</span>
+                        <button
+                          className="font-combo-item-remove"
+                          onMouseDown={(e) => { e.preventDefault(); e.stopPropagation(); handleRemoveCustom(e, f) }}
+                          title="删除"
+                        >
+                          ×
+                        </button>
+                      </div>
+                    )
+                  })}
+                  {hasBuiltinSection && <div className="font-combo-divider" />}
+                </>
+              )}
+
+              {/* 内置字体区 */}
+              {hasBuiltinSection &&
+                filteredBuiltin.map((opt) => {
+                  const idx = flatItems.findIndex((item) => !item.isCustom && item.value === opt.value)
                   return (
                     <div
-                      key={`custom-${f}`}
-                      className={`font-combo-item ${value === f ? 'font-combo-item--selected' : ''} ${idx === activeIdx ? 'font-combo-item--active' : ''}`}
-                      onMouseDown={(e) => { e.preventDefault(); handleSelect(f) }}
+                      key={`builtin-${opt.value}`}
+                      className={`font-combo-item ${value === opt.value ? 'font-combo-item--selected' : ''} ${idx === activeIdx ? 'font-combo-item--active' : ''}`}
+                      onMouseDown={(e) => { e.preventDefault(); handleSelect(opt.value) }}
                       onMouseEnter={() => setActiveIdx(idx)}
                     >
-                      <span className="font-combo-item-text">{f}</span>
-                      <button
-                        className="font-combo-item-remove"
-                        onMouseDown={(e) => { e.preventDefault(); e.stopPropagation(); handleRemoveCustom(e, f) }}
-                        title="删除"
-                      >
-                        ×
-                      </button>
+                      <span className="font-combo-item-text">{opt.label}</span>
                     </div>
                   )
                 })}
-                {hasBuiltinSection && <div className="font-combo-divider" />}
-              </>
-            )}
 
-            {/* 内置字体区 */}
-            {hasBuiltinSection &&
-              filteredBuiltin.map((opt) => {
-                const idx = flatItems.findIndex((item) => !item.isCustom && item.value === opt.value)
-                return (
-                  <div
-                    key={`builtin-${opt.value}`}
-                    className={`font-combo-item ${value === opt.value ? 'font-combo-item--selected' : ''} ${idx === activeIdx ? 'font-combo-item--active' : ''}`}
-                    onMouseDown={(e) => { e.preventDefault(); handleSelect(opt.value) }}
-                    onMouseEnter={() => setActiveIdx(idx)}
-                  >
-                    <span className="font-combo-item-text">{opt.label}</span>
-                  </div>
-                )
-              })}
-
-            {/* 输入新字体提示 */}
-            {noResults && (
-              <div className="font-combo-hint">
-                按 Enter 添加「{filter}」为自定义字体
-              </div>
-            )}
-          </div>
-        )}
+              {/* 输入新字体提示 */}
+              {noResults && (
+                <div className="font-combo-hint">
+                  按 Enter 添加「{filter}」为自定义字体
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+        <span className="settings-unit settings-unit--placeholder" aria-hidden="true" />
       </div>
     </label>
   )

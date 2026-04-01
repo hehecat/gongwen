@@ -3,7 +3,7 @@ import { Editor } from './components/Editor/Editor'
 import { Preview } from './components/Preview/Preview'
 import { Toolbar } from './components/Toolbar/Toolbar'
 import { useDocumentParser } from './hooks/useDocumentParser'
-import { useDocumentConfig } from './contexts/DocumentConfigContext'
+import { useDocumentConfig } from './contexts/useDocumentConfig'
 import { downloadDocx } from './exporter'
 import { parseGongwen } from './parser'
 import { autoFixDocumentText, sanitizeText } from './utils/sanitize'
@@ -79,12 +79,12 @@ function App() {
 
   const handleExport = useCallback(async () => {
     try {
-      await downloadDocx(ast, config)
+      await downloadDocx(ast, configRef.current)
     } catch (err) {
       console.error('导出失败:', err)
       alert('导出失败，请检查控制台日志')
     }
-  }, [ast, config])
+  }, [ast])
 
   const handleClear = useCallback(() => {
     setText('')

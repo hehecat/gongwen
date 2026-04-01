@@ -1,5 +1,6 @@
 import {
   AlignmentType,
+  BuilderElement,
   type IParagraphOptions,
   type IRunOptions,
   type IFontAttributesProperties,
@@ -35,6 +36,26 @@ function font(eastAsia: string, ascii = 'Times New Roman'): IFontAttributesPrope
  */
 function calculateFirstLineIndent(config: DocumentConfig): number {
   return calculateCharWidth(config) * config.body.firstLineIndent
+}
+
+export function shouldUseCharacterFirstLineIndent(type: NodeType): boolean {
+  return type === NodeType.HEADING_1
+    || type === NodeType.HEADING_2
+    || type === NodeType.HEADING_3
+    || type === NodeType.HEADING_4
+    || type === NodeType.PARAGRAPH
+}
+
+export function createCharacterFirstLineIndent(config: DocumentConfig): BuilderElement {
+  return new BuilderElement({
+    name: 'w:ind',
+    attributes: {
+      left: { key: 'w:left', value: 0 },
+      // OOXML uses 1/100 character as the unit for firstLineChars.
+      firstLineChars: { key: 'w:firstLineChars', value: config.body.firstLineIndent * 100 },
+      firstLine: { key: 'w:firstLine', value: calculateFirstLineIndent(config) },
+    },
+  })
 }
 
 /**
@@ -132,7 +153,7 @@ export function getParagraphStyle(
     case NodeType.ADDRESSEE:
       style = {
         alignment: AlignmentType.JUSTIFIED,
-        spacing: { ...BASE_SPACING, before: lineSpacingValue },
+        spacing: BASE_SPACING,
         indent: { left: 0 },
       }
       break
@@ -253,21 +274,12 @@ export function getRunStyle(type: NodeType, config: DocumentConfig): Partial<IRu
       return {
         font: font(config.advanced.h3.fontFamily, config.advanced.h3.asciiFontFamily || config.advanced.h3.fontFamily),
         size: config.advanced.h3.fontSize * 2,
-        bold: true,
-        characterSpacing: charSpacing,
-      }
-
-    case NodeType.ADDRESSEE:
-      return {
-        font: font(
-          config.advanced.addressee.fontFamily,
-          config.advanced.addressee.asciiFontFamily || config.advanced.addressee.fontFamily,
-        ),
-        size: config.advanced.addressee.fontSize * 2,
+        bold: config.specialOptions.boldHeading3,
         characterSpacing: charSpacing,
       }
 
     case NodeType.HEADING_4:
+    case NodeType.ADDRESSEE:
     case NodeType.PARAGRAPH:
     case NodeType.DATE:
     case NodeType.SIGNATURE:
@@ -337,16 +349,20 @@ export function buildRunStyleOverride(
 export function getAttachmentParagraphStyle(
   isMultiple: boolean,
   isFirst: boolean,
-  config: DocumentConfig
+  config: DocumentConfig,
+  omitSpacingBefore = false
 ): Partial<IParagraphOptions> {
   const lineSpacingValue = ptToTwip(config.body.lineSpacing)
   const charWidthTwips = calculateCharWidth(config)
+  const spacing = omitSpacingBefore
+    ? { line: lineSpacingValue, lineRule: LineRuleType.EXACT }
+    : { line: lineSpacingValue, lineRule: LineRuleType.EXACT, before: lineSpacingValue }
 
   if (!isMultiple) {
     // 单附件：左空 5 字符（2 + 3），悬挂缩进 3 字符（用于换行对齐）
     return {
       alignment: AlignmentType.JUSTIFIED,
-      spacing: { line: lineSpacingValue, lineRule: LineRuleType.EXACT, before: lineSpacingValue },
+      spacing,
       indent: {
         left: 5 * charWidthTwips,
         hanging: 3 * charWidthTwips,
@@ -359,7 +375,7 @@ export function getAttachmentParagraphStyle(
     // 首行从 2 字符位置开始（5 - 3 = 2），换行后从 5 字符位置开始
     return {
       alignment: AlignmentType.JUSTIFIED,
-      spacing: { line: lineSpacingValue, lineRule: LineRuleType.EXACT, before: lineSpacingValue },
+      spacing,
       indent: {
         left: 5 * charWidthTwips,
         hanging: 3 * charWidthTwips,

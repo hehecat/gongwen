@@ -85,10 +85,10 @@ export function Preview({ value, onChange }: PreviewProps) {
 
   const cssVars = useMemo((): CSSProperties => {
     const pageWidthPx = 595
-    const marginLeftPct = config.margins.left * 10 / 210
-    const marginRightPct = config.margins.right * 10 / 210
+    const marginLeftPct = deferredConfig.margins.left * 10 / 210
+    const marginRightPct = deferredConfig.margins.right * 10 / 210
     const availablePx = pageWidthPx * (1 - marginLeftPct - marginRightPct)
-    const charSpacingPx = availablePx / CHARS_PER_LINE - config.body.fontSize
+    const charSpacingPx = availablePx / CHARS_PER_LINE - deferredConfig.body.fontSize
 
     return {
       '--margin-top': `${cmToPagePercent(config.margins.top, 'x')}%`,
@@ -111,7 +111,7 @@ export function Preview({ value, onChange }: PreviewProps) {
       '--h3-font': config.advanced.h3.fontFamily,
       '--page-number-font': config.specialOptions.pageNumberFont,
     } as CSSProperties
-  }, [config])
+  }, [deferredConfig])
 
   useEffect(() => {
     const editor = editorRef.current

@@ -148,6 +148,18 @@ describe('parseGongwen', () => {
     expect(ast.body[1].type).toBe(NodeType.PARAGRAPH) // 第二个冒号行为普通段落
   })
 
+  it('标题后过长的冒号结尾行按正文处理，不误判为主送机关', () => {
+    const text = [
+      '关于进一步规范劳务派遣单位参加工伤保险有关工作的通知',
+      '',
+      '为进一步规范劳务派遣单位参加工伤保险工作，切实维护社会保险基金安全和劳动者合法权益，依据《中华人民共和国社会保险法》、《工伤保险条例》、《劳务派遣暂行规定》等相关规定，结合工作实际，现就有关问题通知如下：',
+    ].join('\n')
+
+    const ast = parseGongwen(text)
+
+    expect(ast.body[0].type).toBe(NodeType.PARAGRAPH)
+  })
+
   it('完整公文含主送机关、附件、日期的端到端解析', () => {
     const text = [
       '关于做好2025年安全生产工作的通知',

@@ -1,6 +1,5 @@
-import { useLayoutEffect, useState, type RefObject } from 'react'
+import { useEffect, useState, type RefObject } from 'react'
 import type { DocumentNode } from '../types/ast'
-import { useDocumentConfig } from '../contexts/DocumentConfigContext'
 
 /** 单页裁剪信息 */
 export interface PageSlice {
@@ -8,6 +7,72 @@ export interface PageSlice {
   offsetY: number
   /** 该页应显示的内容高度(px)，精确到行边界 */
   clipHeight: number
+}
+
+export interface PaginationConfig {
+  margins: {
+    top: number
+    bottom: number
+    left: number
+    right: number
+  }
+  header: {
+    enabled: boolean
+    orgName: string
+    docNumber: string
+    signer: string
+  }
+  footerNote: {
+    enabled: boolean
+    cc: string
+    printer: string
+    printDate: string
+  }
+  title: {
+    fontFamily: string
+    fontSize: number
+    lineSpacing: number
+  }
+  body: {
+    fontFamily: string
+    fontSize: number
+    lineSpacing: number
+    firstLineIndent: number
+  }
+  advanced: {
+    h1: {
+      fontFamily: string
+      fontSize: number
+    }
+    h2: {
+      fontFamily: string
+      fontSize: number
+    }
+    h3: {
+      fontFamily: string
+      fontSize: number
+    }
+  }
+  specialOptions: {
+    boldFirstSentence: boolean
+    boldHeading3: boolean
+    hasStamp: boolean
+  }
+}
+
+function arePagesEqual(prev: PageSlice[], next: PageSlice[]): boolean {
+  if (prev.length !== next.length) return false
+
+  for (let i = 0; i < prev.length; i++) {
+    if (
+      Math.abs(prev[i].offsetY - next[i].offsetY) > 0.5
+      || Math.abs(prev[i].clipHeight - next[i].clipHeight) > 0.5
+    ) {
+      return false
+    }
+  }
+
+  return true
 }
 
 /**
@@ -25,14 +90,15 @@ export interface PageSlice {
 export function usePagination(
   title: DocumentNode | null,
   body: DocumentNode[],
-  measurerRef: RefObject<HTMLDivElement | null>
+  measurerRef: RefObject<HTMLDivElement | null>,
+  config: PaginationConfig
 ): PageSlice[] {
-  const { config } = useDocumentConfig()
   const [pages, setPages] = useState<PageSlice[]>(() => [{ offsetY: 0, clipHeight: 0 }])
 
-  useLayoutEffect(() => {
+  useEffect(() => {
     const measurer = measurerRef.current
     if (!measurer) return
+    let frameId = 0
 
     function calculate() {
       const el = measurerRef.current
@@ -194,16 +260,26 @@ export function usePagination(
         }
       })
 
-      setPages(result)
+      setPages((prev) => (arePagesEqual(prev, result) ? prev : result))
     }
 
-    // 初始计算
-    calculate()
+    function scheduleCalculate() {
+      cancelAnimationFrame(frameId)
+      frameId = requestAnimationFrame(() => {
+        frameId = 0
+        calculate()
+      })
+    }
+
+    scheduleCalculate()
 
     // 监听尺寸变化（窗口缩放时重新分页）
-    const observer = new ResizeObserver(() => calculate())
+    const observer = new ResizeObserver(() => scheduleCalculate())
     observer.observe(measurer)
-    return () => observer.disconnect()
+    return () => {
+      cancelAnimationFrame(frameId)
+      observer.disconnect()
+    }
   }, [title, body, measurerRef, config])
 
   return pages

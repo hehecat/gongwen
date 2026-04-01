@@ -1,5 +1,5 @@
-import { useState, useEffect, useRef, type ChangeEvent, type KeyboardEvent } from 'react'
-import { useDocumentConfig } from '../../contexts/DocumentConfigContext'
+import { useState, type ChangeEvent, type ReactNode } from 'react'
+import { useDocumentConfig } from '../../contexts/useDocumentConfig'
 import { useCustomFonts } from '../../hooks/useCustomFonts'
 import {
   FONT_OPTIONS,
@@ -11,22 +11,31 @@ import {
   HEADER_MODE_OPTIONS,
   type DeepPartial,
   type DocumentConfig,
+  type PageNumberStyle,
 } from '../../types/documentConfig'
 import { FontSelectField } from './FontSelectField'
+import { useComboBox } from './useComboBox'
 import './SettingsModal.css'
 
 interface SettingsModalProps {
   onClose: () => void
 }
 
+const INDENT_SELECT_OPTIONS = INDENT_OPTIONS.map((opt) => ({
+  ...opt,
+  label: String(opt.value),
+}))
+
 /** 通用 select 组件 */
 function SelectField({
   label,
+  unit,
   value,
   options,
   onChange,
 }: {
   label: string
+  unit?: string
   value: string | number
   options: { label: string; value: string | number }[]
   onChange: (val: string) => void
@@ -34,17 +43,25 @@ function SelectField({
   return (
     <label className="settings-field">
       <span className="settings-field-label">{label}</span>
-      <select
-        className="settings-select"
-        value={value}
-        onChange={(e: ChangeEvent<HTMLSelectElement>) => onChange(e.target.value)}
-      >
-        {options.map((opt) => (
-          <option key={`${opt.value}`} value={opt.value}>
-            {opt.label}
-          </option>
-        ))}
-      </select>
+      <div className="settings-control-row">
+        <div className="settings-select-wrap settings-field-main">
+          <select
+            className="settings-select settings-select--custom"
+            value={value}
+            onChange={(e: ChangeEvent<HTMLSelectElement>) => onChange(e.target.value)}
+          >
+            {options.map((opt) => (
+              <option key={`${opt.value}`} value={opt.value}>
+                {opt.label}
+              </option>
+            ))}
+          </select>
+          <span className="font-combo-arrow" />
+        </div>
+        <span className={`settings-unit ${unit ? '' : 'settings-unit--placeholder'}`}>
+          {unit}
+        </span>
+      </div>
     </label>
   )
 }
@@ -105,36 +122,32 @@ function NumberInputField({
   onChange: (val: number) => void
 }) {
   const [draft, setDraft] = useState(String(value))
-  const [open, setOpen] = useState(false)
-  const [activeIdx, setActiveIdx] = useState(-1)
-  const wrapRef = useRef<HTMLDivElement>(null)
-  const inputRef = useRef<HTMLInputElement>(null)
-  const mouseDownOnWrapRef = useRef(false)
-  const filterText = open ? draft.trim() : ''
+  const filterText = draft.trim()
   const filteredOptions = filterText.length > 0
     ? options.filter((opt) => opt.label.includes(filterText) || String(opt.value).includes(filterText))
     : options
-  const noResults = filterText.length > 0 && filteredOptions.length === 0
-
-  useEffect(() => {
-    if (!open) setDraft(String(value))
-  }, [value, open])
-
-  useEffect(() => {
-    if (!open) return
-    setActiveIdx(-1)
-  }, [filterText, open])
-
-  useEffect(() => {
-    if (!open) return
-    const handleClickOutside = (e: MouseEvent) => {
-      if (wrapRef.current && !wrapRef.current.contains(e.target as Node)) {
-        commitAndClose()
-      }
-    }
-    document.addEventListener('mousedown', handleClickOutside)
-    return () => document.removeEventListener('mousedown', handleClickOutside)
+  const {
+    activeIdx,
+    closeDropdown,
+    handleFocus,
+    handleKeyDown,
+    handleWrapClick,
+    handleWrapMouseDown,
+    inputRef,
+    open,
+    setActiveIdx,
+    setOpen,
+    wrapRef,
+  } = useComboBox({
+    blurOnCommit: true,
+    blurOnEscape: true,
+    itemCount: filteredOptions.length,
+    onOpen: () => setDraft(String(value)),
+    onCommit: () => commit(),
+    onSelect: (index) => handleSelect(filteredOptions[index].value),
+    onEscape: () => setDraft(String(value)),
   })
+  const noResults = open && filterText.length > 0 && filteredOptions.length === 0
 
   function parseNumber(raw: string): number | null {
     const trimmed = raw.trim()
@@ -156,85 +169,21 @@ function NumberInputField({
 
   function commitAndClose() {
     commit()
-    setOpen(false)
-    setActiveIdx(-1)
+    closeDropdown()
   }
 
   function handleSelect(nextValue: number) {
     onChange(nextValue)
     setDraft(String(nextValue))
-    setOpen(false)
-    setActiveIdx(-1)
+    closeDropdown()
     inputRef.current?.blur()
-  }
-
-  function handleWrapMouseDown() {
-    mouseDownOnWrapRef.current = true
-  }
-
-  function handleWrapClick() {
-    if (open) {
-      commitAndClose()
-    } else {
-      setOpen(true)
-      setActiveIdx(-1)
-      inputRef.current?.focus()
-    }
-  }
-
-  function handleFocus() {
-    if (mouseDownOnWrapRef.current) {
-      mouseDownOnWrapRef.current = false
-      return
-    }
-    if (!open) {
-      setOpen(true)
-      setActiveIdx(-1)
-    }
-  }
-
-  function handleKeyDown(e: KeyboardEvent<HTMLInputElement>) {
-    if (!open) {
-      if (e.key === 'ArrowDown' || e.key === 'Enter') {
-        e.preventDefault()
-        setOpen(true)
-      }
-      return
-    }
-
-    switch (e.key) {
-      case 'ArrowDown':
-        e.preventDefault()
-        setActiveIdx((prev) => (prev < filteredOptions.length - 1 ? prev + 1 : 0))
-        break
-      case 'ArrowUp':
-        e.preventDefault()
-        setActiveIdx((prev) => (prev > 0 ? prev - 1 : filteredOptions.length - 1))
-        break
-      case 'Enter':
-        e.preventDefault()
-        if (open && activeIdx >= 0 && activeIdx < filteredOptions.length) {
-          handleSelect(filteredOptions[activeIdx].value)
-        } else {
-          commitAndClose()
-          inputRef.current?.blur()
-        }
-        break
-      case 'Escape':
-        e.preventDefault()
-        setDraft(String(value))
-        setOpen(false)
-        setActiveIdx(-1)
-        inputRef.current?.blur()
-        break
-    }
   }
 
   return (
     <label className="settings-field">
       <span className="settings-field-label">{label}</span>
-      <div className="settings-number-wrap">
-        <div className="font-combo" ref={wrapRef} style={{ flex: 1 }}>
+      <div className="settings-control-row">
+        <div className="font-combo settings-field-main" ref={wrapRef}>
           <div
             className="font-combo-input-wrap"
             onMouseDown={handleWrapMouseDown}
@@ -249,6 +198,7 @@ function NumberInputField({
               onChange={(e: ChangeEvent<HTMLInputElement>) => {
                 const next = e.target.value
                 setDraft(next)
+                setActiveIdx(-1)
                 if (!open) setOpen(true)
               }}
               onFocus={handleFocus}
@@ -266,7 +216,7 @@ function NumberInputField({
                   onMouseDown={(e) => { e.preventDefault(); handleSelect(opt.value) }}
                   onMouseEnter={() => setActiveIdx(idx)}
                 >
-                  <span className="font-combo-item-text">{opt.label}</span>
+                  <span className="font-combo-item-text">{opt.value}</span>
                 </div>
               ))}
               {noResults && (
@@ -277,7 +227,9 @@ function NumberInputField({
             </div>
           )}
         </div>
-        {unit && <span className="settings-unit">{unit}</span>}
+        <span className={`settings-unit ${unit ? '' : 'settings-unit--placeholder'}`}>
+          {unit}
+        </span>
       </div>
     </label>
   )
@@ -289,7 +241,7 @@ function CheckboxField({
   checked,
   onChange,
 }: {
-  label: string
+  label: ReactNode
   checked: boolean
   onChange: (val: boolean) => void
 }) {
@@ -405,7 +357,6 @@ export function SettingsModal({ onClose }: SettingsModalProps) {
 
         {/* 内容区 */}
         <div className="settings-body">
-          {/* 区块: 版头配置 */}
           <section className="settings-section">
             <h3 className="settings-section-title">版头</h3>
             <div className="settings-options">
@@ -445,41 +396,39 @@ export function SettingsModal({ onClose }: SettingsModalProps) {
                     </>
                   )}
                 </div>
-              )}
-            </div>
-          </section>
+              </div>
 
-          {/* 区块: 版记配置 */}
-          <section className="settings-section">
-            <h3 className="settings-section-title">版记</h3>
-            <div className="settings-options">
-              <CheckboxField
-                label="启用版记"
-                checked={config.footerNote.enabled}
-                onChange={(v) => patch({ footerNote: { enabled: v } })}
-              />
-              {config.footerNote.enabled && (
-                <div className="settings-grid settings-grid--3">
-                  <TextField
-                    label="抄送"
-                    value={config.footerNote.cc}
-                    placeholder="抄送机关"
-                    onChange={(v) => patch({ footerNote: { cc: v } })}
+              <div className="settings-panel">
+                <div className="settings-options">
+                  <CheckboxField
+                    label="启用版记"
+                    checked={config.footerNote.enabled}
+                    onChange={(v) => patch({ footerNote: { enabled: v } })}
                   />
-                  <TextField
-                    label="印发机关"
-                    value={config.footerNote.printer}
-                    placeholder="如：国务院办公厅"
-                    onChange={(v) => patch({ footerNote: { printer: v } })}
-                  />
-                  <TextField
-                    label="印发日期"
-                    value={config.footerNote.printDate}
-                    placeholder="如：2024年1月1日"
-                    onChange={(v) => patch({ footerNote: { printDate: v } })}
-                  />
+                  {config.footerNote.enabled && (
+                    <div className="settings-panel-fields">
+                      <TextField
+                        label="抄送"
+                        value={config.footerNote.cc}
+                        placeholder="抄送机关"
+                        onChange={(v) => patch({ footerNote: { cc: v } })}
+                      />
+                      <TextField
+                        label="印发机关"
+                        value={config.footerNote.printer}
+                        placeholder="如：国务院办公厅"
+                        onChange={(v) => patch({ footerNote: { printer: v } })}
+                      />
+                      <TextField
+                        label="印发日期"
+                        value={config.footerNote.printDate}
+                        placeholder="如：2024年1月1日"
+                        onChange={(v) => patch({ footerNote: { printDate: v } })}
+                      />
+                    </div>
+                  )}
                 </div>
-              )}
+              </div>
             </div>
           </section>
 
@@ -548,44 +497,7 @@ export function SettingsModal({ onClose }: SettingsModalProps) {
             </div>
           </section>
 
-          {/* 区块 3: 各级标题字体 */}
-          <section className="settings-section">
-            <h3 className="settings-section-title">各级标题</h3>
-            <div className="settings-grid settings-grid--2">
-              <FontSelectField
-                label="一级标题字体"
-                value={config.headings.h1.fontFamily}
-                {...fontFieldProps}
-                onChange={(v) => patch({ headings: { h1: { fontFamily: v } } })}
-              />
-              <NumberInputField
-                label="一级标题字号"
-                value={config.headings.h1.fontSize}
-                min={FONT_SIZE_MIN}
-                max={FONT_SIZE_MAX}
-                unit="pt"
-                options={FONT_SIZE_OPTIONS}
-                onChange={(v) => patch({ headings: { h1: { fontSize: v } } })}
-              />
-              <FontSelectField
-                label="二级标题字体"
-                value={config.headings.h2.fontFamily}
-                {...fontFieldProps}
-                onChange={(v) => patch({ headings: { h2: { fontFamily: v } } })}
-              />
-              <NumberInputField
-                label="二级标题字号"
-                value={config.headings.h2.fontSize}
-                min={FONT_SIZE_MIN}
-                max={FONT_SIZE_MAX}
-                unit="pt"
-                options={FONT_SIZE_OPTIONS}
-                onChange={(v) => patch({ headings: { h2: { fontSize: v } } })}
-              />
-            </div>
-          </section>
-
-          {/* 区块 4: 正文格式 */}
+          {/* 区块 3: 正文格式 */}
           <section className="settings-section">
             <h3 className="settings-section-title">正文格式</h3>
             <div className="settings-grid settings-grid--2">
@@ -616,11 +528,12 @@ export function SettingsModal({ onClose }: SettingsModalProps) {
               <SelectField
                 label="首行缩进"
                 value={config.body.firstLineIndent}
-                options={INDENT_OPTIONS}
+                unit="字符"
+                options={INDENT_SELECT_OPTIONS}
                 onChange={(v) => patch({ body: { firstLineIndent: Number(v) } })}
               />
             </div>
-            <p className="settings-hint">正文格式同时应用于三级标题、四级标题、附件说明和成文日期</p>
+            <p className="settings-hint">正文行距和首行缩进同时应用于三级标题、四级标题、附件说明和成文日期</p>
           </section>
 
           {/* 区块 5: 特殊选项 */}
@@ -683,16 +596,13 @@ export function SettingsModal({ onClose }: SettingsModalProps) {
               onClick={() => setShowAdvanced(!showAdvanced)}
             >
               <span>高级设置</span>
-              <span className={`settings-arrow ${showAdvanced ? 'settings-arrow--open' : ''}`}>
-                ▸
-              </span>
+              <span className={`settings-arrow ${showAdvanced ? 'settings-arrow--open' : ''}`} />
             </button>
             {showAdvanced && (
               <div className="settings-advanced">
-                <p className="settings-hint">按元素类型独立配置中文字体、英数字体和字号</p>
+                <p className="settings-hint">一级、二级、三级标题统一在此配置中文字体、英数字体和字号</p>
                 {(
                   [
-                    ['addressee', '主送机关'],
                     ['h1', '一级标题'],
                     ['h2', '二级标题'],
                     ['h3', '三级标题'],

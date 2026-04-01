@@ -1,13 +1,25 @@
 import {
-  createContext,
-  useContext,
   useReducer,
   useEffect,
   type ReactNode,
 } from 'react'
 import { DEFAULT_CONFIG, type DocumentConfig, type DeepPartial } from '../types/documentConfig'
+import { DocumentConfigContext } from './documentConfigContext'
 
 const STORAGE_KEY = 'docx-document-config'
+
+type LegacyDocumentConfig = DeepPartial<DocumentConfig> & {
+  headings?: {
+    h1?: {
+      fontFamily?: string
+      fontSize?: number
+    }
+    h2?: {
+      fontFamily?: string
+      fontSize?: number
+    }
+  }
+}
 
 // ---- 深合并工具 ----
 
@@ -52,12 +64,35 @@ function configReducer(state: DocumentConfig, action: Action): DocumentConfig {
   }
 }
 
+function migrateLegacyHeadingConfig(parsed: LegacyDocumentConfig): DeepPartial<DocumentConfig> {
+  if (!parsed.headings) return parsed
+
+  const { headings, advanced, ...rest } = parsed
+
+  return {
+    ...rest,
+    advanced: {
+      ...advanced,
+      h1: {
+        ...advanced?.h1,
+        fontFamily: advanced?.h1?.fontFamily ?? headings.h1?.fontFamily,
+        fontSize: advanced?.h1?.fontSize ?? headings.h1?.fontSize,
+      },
+      h2: {
+        ...advanced?.h2,
+        fontFamily: advanced?.h2?.fontFamily ?? headings.h2?.fontFamily,
+        fontSize: advanced?.h2?.fontSize ?? headings.h2?.fontSize,
+      },
+    },
+  }
+}
+
 /** 从 localStorage 读取配置，深合并到默认值（兼容旧版缺字段） */
 function loadConfig(): DocumentConfig {
   try {
     const raw = localStorage.getItem(STORAGE_KEY)
     if (raw) {
-      const parsed = JSON.parse(raw) as DeepPartial<DocumentConfig>
+      const parsed = migrateLegacyHeadingConfig(JSON.parse(raw) as LegacyDocumentConfig)
       return deepMerge(DEFAULT_CONFIG, parsed)
     }
   } catch {
@@ -65,16 +100,6 @@ function loadConfig(): DocumentConfig {
   }
   return DEFAULT_CONFIG
 }
-
-// ---- Context ----
-
-interface DocumentConfigContextValue {
-  config: DocumentConfig
-  updateConfig: (patch: DeepPartial<DocumentConfig>) => void
-  resetConfig: () => void
-}
-
-const DocumentConfigContext = createContext<DocumentConfigContextValue | null>(null)
 
 // ---- Provider ----
 
@@ -99,14 +124,4 @@ export function DocumentConfigProvider({ children }: { children: ReactNode }) {
       {children}
     </DocumentConfigContext.Provider>
   )
-}
-
-// ---- Hook ----
-
-export function useDocumentConfig(): DocumentConfigContextValue {
-  const ctx = useContext(DocumentConfigContext)
-  if (!ctx) {
-    throw new Error('useDocumentConfig must be used within DocumentConfigProvider')
-  }
-  return ctx
 }

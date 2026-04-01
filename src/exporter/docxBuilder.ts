@@ -7,7 +7,7 @@ import {
 import type { IRunOptions, IBorderOptions } from 'docx'
 import type { GongwenAST, DocumentNode, AttachmentNode } from '../types/ast'
 import { NodeType } from '../types/ast'
-import type { DocumentConfig } from '../types/documentConfig'
+import type { DocumentConfig, PageNumberStyle } from '../types/documentConfig'
 import { cmToTwip, ptToTwip } from '../types/documentConfig'
 import {
   getParagraphStyle,
@@ -119,13 +119,17 @@ function splitBoldFirstSentence(content: string, runStyle: Partial<IRunOptions>)
  *                   2.xxx
  *                   3.xxx
  */
-function attachmentToParagraphs(node: AttachmentNode, config: DocumentConfig): Paragraph[] {
+function attachmentToParagraphs(
+  node: AttachmentNode,
+  config: DocumentConfig,
+  omitSpacingBefore = false
+): Paragraph[] {
   const paragraphs: Paragraph[] = []
   const runStyle = getAttachmentRunStyle(config)
 
   if (!node.isMultiple) {
     // 单附件模式
-    const paragraphStyle = getAttachmentParagraphStyle(false, false, config)
+    const paragraphStyle = getAttachmentParagraphStyle(false, false, config, omitSpacingBefore)
     paragraphs.push(
       new Paragraph({
         ...paragraphStyle,
@@ -139,7 +143,12 @@ function attachmentToParagraphs(node: AttachmentNode, config: DocumentConfig): P
     // 多附件模式
     node.items.forEach((item, index) => {
       const isFirst = index === 0
-      const paragraphStyle = getAttachmentParagraphStyle(true, isFirst, config)
+      const paragraphStyle = getAttachmentParagraphStyle(
+        true,
+        isFirst,
+        config,
+        omitSpacingBefore && isFirst,
+      )
 
       if (isFirst) {
         // 第一个附件：附件：1.xxx
@@ -218,10 +227,7 @@ function nodeToParagraph(
     node.type === NodeType.HEADING_3 ||
     node.type === NodeType.HEADING_4
   ) {
-    return new Paragraph({
-      ...paragraphStyle,
-      children: splitHeadingSentence(node.content, runStyle, config),
-    })
+    return createParagraph(splitHeadingSentence(node.content, runStyle, config))
   }
 
   // 正文首句加粗（忽略标题下姓名和日期）
@@ -232,15 +238,12 @@ function nodeToParagraph(
     })
   }
 
-  return new Paragraph({
-    ...paragraphStyle,
-    children: [
-      new TextRun({
-        ...runStyle,
-        text: node.content,
-      }),
-    ],
-  })
+  return createParagraph([
+    new TextRun({
+      ...runStyle,
+      text: node.content,
+    }),
+  ])
 }
 
 /** 将完整 GongwenAST 转换为 docx Document */
@@ -404,7 +407,11 @@ export function buildDocument(ast: GongwenAST, config: DocumentConfig): Document
     
     // 附件说明特殊处理
     if (node.type === NodeType.ATTACHMENT) {
-      const attachmentParagraphs = attachmentToParagraphs(node as AttachmentNode, config)
+      const attachmentParagraphs = attachmentToParagraphs(
+        node as AttachmentNode,
+        config,
+        isFirstBodyNode,
+      )
       children.push(...attachmentParagraphs)
       continue
     }
@@ -562,6 +569,7 @@ export function buildDocument(ast: GongwenAST, config: DocumentConfig): Document
   const pageNumSize = 28 // 四号 14pt
   // 奇偶页各空一字（四号字 14pt = 280 twips）
   const pageNumIndent = ptToTwip(14)
+  const pageNumberOptions = getPageNumberParagraphOptions(config.specialOptions.pageNumberStyle, pageNumIndent)
 
   // 页脚配置：支持居中或双面打印奇右偶左
   let footers: { default: Footer; even?: Footer } | undefined

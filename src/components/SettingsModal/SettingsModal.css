@@ -130,6 +130,9 @@
   font-size: 13px;
   color: #111827;
   background: white;
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
   cursor: pointer;
   transition: border-color 0.15s;
 }
@@ -165,10 +168,16 @@
 }
 
 /* 数字输入 */
+.settings-control-row,
 .settings-number-wrap {
   display: flex;
   align-items: center;
   gap: 4px;
+}
+
+.settings-field-main {
+  flex: 1;
+  min-width: 0;
 }
 
 .settings-number {
@@ -192,6 +201,22 @@
   font-size: 12px;
   color: #9ca3af;
   flex-shrink: 0;
+  width: 3em;
+}
+
+.settings-unit--placeholder {
+  visibility: hidden;
+}
+
+.settings-select-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.settings-select--custom {
+  appearance: none;
+  padding-right: 24px;
 }
 
 /* Checkbox */
@@ -223,11 +248,61 @@
   max-width: 240px;
 }
 
+.settings-special-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.settings-special-card {
+  padding: 12px;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  background: #fafafa;
+}
+
+.settings-special-card--full {
+  grid-column: 1 / -1;
+}
+
+.settings-special-card-body {
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid #eceff3;
+}
+
+.settings-dual-panels {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.settings-panel {
+  padding: 12px;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  background: #fafafa;
+}
+
+.settings-panel-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
 /* 提示文字 */
 .settings-hint {
   font-size: 12px;
   color: #9ca3af;
   margin: 8px 0 0;
+}
+
+.settings-hint--tight {
+  margin-top: 6px;
+}
+
+.settings-hint--tight:first-child {
+  margin-top: 0;
 }
 
 /* 折叠按钮 */
@@ -251,12 +326,18 @@
 }
 
 .settings-arrow {
-  font-size: 12px;
+  width: 0;
+  height: 0;
+  border-left: 4px solid transparent;
+  border-right: 4px solid transparent;
+  border-top: 5px solid #6b7280;
+  flex-shrink: 0;
   transition: transform 0.2s;
+  transform: rotate(-90deg);
 }
 
 .settings-arrow--open {
-  transform: rotate(90deg);
+  transform: rotate(0deg);
 }
 
 /* 高级设置 */
@@ -355,6 +436,13 @@
 
 .settings-btn--download:hover {
   background: #dbeafe;
+}
+
+@media (max-width: 720px) {
+  .settings-special-grid,
+  .settings-dual-panels {
+    grid-template-columns: 1fr;
+  }
 }
 
 /* ---- FontSelectField (Combobox) ---- */

@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback } from 'react'
+import { memo, useState, useRef, useCallback } from 'react'
 import type { GongwenAST } from '../../types/ast'
 import { SettingsModal } from '../SettingsModal/SettingsModal'
 import './Toolbar.css'
@@ -94,4 +94,4 @@ export function Toolbar({
       {showSettings && <SettingsModal onClose={() => setShowSettings(false)} />}
     </div>
   )
-}
+})

@@ -6,7 +6,7 @@ export enum NodeType {
   HEADING_1 = 'HEADING_1',
   /** 二级标题：「（一）」楷体 */
   HEADING_2 = 'HEADING_2',
-  /** 三级标题：「1.」仿宋加粗 */
+  /** 三级标题：「1.」仿宋，是否加粗由设置决定 */
   HEADING_3 = 'HEADING_3',
   /** 四级标题：「（1）」仿宋 */
   HEADING_4 = 'HEADING_4',

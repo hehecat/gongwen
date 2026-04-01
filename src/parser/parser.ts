@@ -48,6 +48,16 @@ function hasSignatureOrgHint(text: string): boolean {
   return SIGNATURE_ORG_HINTS.some((hint) => text.includes(hint))
 }
 
+/** 主送机关通常是标题后的短行，长段落即使以冒号结尾也应视为正文 */
+const ADDRESSEE_MAX_LENGTH = 40
+
+function isPossibleAddressee(line: string): boolean {
+  if (!(line.endsWith('：') || line.endsWith(':'))) return false
+  if (line.length > ADDRESSEE_MAX_LENGTH) return false
+  if (HEADING_1_RE.test(line) || ATTACHMENT_RE.test(line)) return false
+  return true
+}
+
 /** 构造单附件节点（保留原始文本，避免信息丢失） */
 function buildSingleAttachmentNode(source: ParsedLineInput, contentAfterColon: string): AttachmentNode {
   return {
@@ -239,7 +249,7 @@ export function parseParsedLines(lines: ParsedLineInput[]): GongwenAST {
       continue
     }
 
-    // 主送机关检测（标题后第一个非空行 + 冒号结尾，但不是附件说明）
+    // 主送机关检测（标题后第一个非空行 + 冒号结尾 + 短行）
     if (!addresseeChecked) {
       addresseeChecked = true
       if (

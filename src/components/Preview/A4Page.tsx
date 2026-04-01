@@ -209,15 +209,18 @@ interface A4PageProps {
   title: DocumentNode | null
   body: DocumentNode[]
   pageNumber: number
-  totalPages: number
   /** 内容流偏移量(px)，用于视窗裁剪定位 */
   offsetY: number
   /** 该页应显示的内容高度(px)，精确到行边界 */
   clipHeight: number
   /** 是否显示页码 */
   showPageNumber: boolean
+  /** 页码样式 */
+  pageNumberStyle: PageNumberStyle
   /** 是否对正文首句加粗 */
   boldFirstSentence: boolean
+  /** 是否对三级标题加粗 */
+  boldHeading3: boolean
   /** 版头配置 */
   headerConfig: HeaderConfig
   /** 版记配置 */
@@ -236,15 +239,16 @@ interface A4PageProps {
   hasStamp: boolean
 }
 
-export function A4Page({
+export const A4Page = memo(function A4Page({
   title,
   body,
   pageNumber,
-  totalPages: _totalPages,
   offsetY,
   clipHeight,
   showPageNumber,
+  pageNumberStyle,
   boldFirstSentence,
+  boldHeading3,
   headerConfig,
   footerNoteConfig,
   isFirstPage,
@@ -391,4 +395,4 @@ export function A4Page({
       )}
     </div>
   )
-}
+})

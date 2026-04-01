@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef, type DragEvent } from 'react'
+import { memo, useState, useCallback, useRef, type DragEvent } from 'react'
 import './Editor.css'
 
 interface EditorProps {
@@ -103,4 +103,4 @@ export function Editor({
       )}
     </div>
   )
-}
+})
