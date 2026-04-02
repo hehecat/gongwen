@@ -23,6 +23,7 @@ export function Toolbar({
   const hasContent = ast.title !== null || ast.body.length > 0
   const nodeCount = (ast.title ? 1 : 0) + ast.body.length
   const [showSettings, setShowSettings] = useState(false)
+  const displayVersion = __APP_VERSION__.split('-')[0]
 
   // 隐藏的 file input 引用
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -42,7 +43,9 @@ export function Toolbar({
     <div className="toolbar">
       <div className="toolbar-left">
         <h1 className="toolbar-title">公文排版工具</h1>
-        <span className="toolbar-badge">GB/T 9704</span>
+        <div className="toolbar-meta" aria-label="版本信息">
+          <span className="toolbar-version">{displayVersion}</span>
+        </div>
       </div>
       <div className="toolbar-right">
         {hasContent && (

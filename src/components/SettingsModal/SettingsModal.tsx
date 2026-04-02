@@ -26,6 +26,13 @@ const INDENT_SELECT_OPTIONS = INDENT_OPTIONS.map((opt) => ({
   label: String(opt.value),
 }))
 
+const PROJECT_INFO = {
+  repoUrl: 'https://github.com/hehecat/gongwen',
+  releasesUrl: 'https://github.com/hehecat/gongwen/releases',
+  authorEmail: 'hehecat@outlook.com',
+  recentUpdates: __APP_RECENT_UPDATES__,
+}
+
 /** 通用 select 组件 */
 function SelectField({
   label,

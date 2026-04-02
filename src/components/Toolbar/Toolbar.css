@@ -22,13 +22,18 @@
   margin: 0;
 }
 
-.toolbar-badge {
-  font-size: 11px;
-  font-weight: 500;
-  color: #6b7280;
-  background: #f3f4f6;
-  padding: 2px 8px;
-  border-radius: 4px;
+.toolbar-meta {
+  display: flex;
+  align-items: center;
+  padding-top: 1px;
+  line-height: 1;
+}
+
+.toolbar-version {
+  font-size: 13px;
+  font-weight: 600;
+  color: #64748b;
+  letter-spacing: 0.01em;
 }
 
 .toolbar-right {

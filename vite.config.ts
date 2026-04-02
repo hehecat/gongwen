@@ -1,4 +1,6 @@
 /// <reference types="vitest/config" />
+import { execSync } from 'node:child_process'
+import { readFileSync } from 'node:fs'
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import { viteSingleFile } from 'vite-plugin-singlefile'
@@ -11,9 +13,70 @@ const isSingleFile = !!process.env.SINGLE_FILE
 // 单文件模式强制使用相对路径以支持离线双击打开
 const base = isSingleFile ? './' : process.env.GITHUB_ACTIONS ? '/gongwen/' : '/'
 
+function formatDate(date: Date): string {
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const day = String(date.getDate()).padStart(2, '0')
+  return `${year}.${month}.${day}`
+}
+
+function readPackageVersion(): string {
+  const packageJsonPath = new URL('./package.json', import.meta.url)
+  const packageInfo = JSON.parse(readFileSync(packageJsonPath, 'utf-8')) as { version?: string }
+  return packageInfo.version ?? '0.0.0'
+}
+
+function readGitShortSha(): string | null {
+  try {
+    return execSync('git rev-parse --short HEAD', { stdio: ['ignore', 'pipe', 'ignore'] })
+      .toString()
+      .trim()
+  } catch {
+    return null
+  }
+}
+
+function normalizeCommitSubject(subject: string): string {
+  return subject.replace(/^\w+(?:\([^)]*\))?!?:\s*/, '').trim()
+}
+
+function readRecentUpdates(limit = 5): string[] {
+  try {
+    const output = execSync(
+      `git log -n ${limit} --date=format:'%Y-%m-%d' --pretty=format:'%ad%x09%s'`,
+      { stdio: ['ignore', 'pipe', 'ignore'] },
+    )
+      .toString()
+      .trim()
+
+    if (!output) return []
+
+    return output
+      .split('\n')
+      .map((line) => {
+        const [date, subject = ''] = line.split('\t')
+        return `${date}: ${normalizeCommitSubject(subject)}`
+      })
+      .filter(Boolean)
+  } catch {
+    return []
+  }
+}
+
+const packageVersion = readPackageVersion()
+const gitShortSha = readGitShortSha()
+const releaseStyleVersion = gitShortSha ? `v${formatDate(new Date())}-${gitShortSha}` : packageVersion
+const recentUpdates = readRecentUpdates()
+// 与 release.yml 的 TAG 规则保持一致；支持用 APP_VERSION 显式覆盖
+const appVersion = process.env.APP_VERSION?.trim() || releaseStyleVersion
+
 // https://vite.dev/config/
 export default defineConfig({
   base,
+  define: {
+    __APP_VERSION__: JSON.stringify(appVersion),
+    __APP_RECENT_UPDATES__: JSON.stringify(recentUpdates),
+  },
   plugins: [
     react(),
     ...(isSingleFile
