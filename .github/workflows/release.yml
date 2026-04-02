@@ -13,6 +13,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - uses: actions/setup-node@v4
         with:
@@ -20,7 +22,6 @@ jobs:
           cache: npm
 
       - run: npm ci
-      - run: npm run build:single
 
       - name: Generate version tag
         id: version
@@ -28,6 +29,37 @@ jobs:
           TAG="v$(date +'%Y.%m.%d')-$(git rev-parse --short HEAD)"
           echo "tag=$TAG" >> "$GITHUB_OUTPUT"
           echo "date=$(date +'%Y-%m-%d')" >> "$GITHUB_OUTPUT"
+
+      - name: Generate release notes
+        id: notes
+        run: |
+          if git rev-parse HEAD^ >/dev/null 2>&1; then
+            PREVIOUS_TAG="$(git describe --tags --abbrev=0 HEAD^ 2>/dev/null || true)"
+          else
+            PREVIOUS_TAG=""
+          fi
+
+          if [ -n "$PREVIOUS_TAG" ]; then
+            CHANGES="$(git log "${PREVIOUS_TAG}..HEAD" --no-merges --date=format:'%Y-%m-%d' --pretty=format:'- `%h` %ad %s')"
+          else
+            CHANGES="$(git log -n 10 --no-merges --date=format:'%Y-%m-%d' --pretty=format:'- `%h` %ad %s')"
+          fi
+
+          if [ -z "$CHANGES" ]; then
+            CHANGES='- 无新增提交记录'
+          fi
+
+          echo "previous_tag=${PREVIOUS_TAG}" >> "$GITHUB_OUTPUT"
+          {
+            echo "changes<<EOF"
+            echo "$CHANGES"
+            echo "EOF"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Build single-file app
+        run: npm run build:single
+        env:
+          APP_VERSION: ${{ steps.version.outputs.tag }}
 
       - name: Rename artifact
         run: mv dist/index.html dist/gongwen.html
@@ -44,4 +76,8 @@ jobs:
 
             - 构建日期：${{ steps.version.outputs.date }}
             - 提交：${{ github.sha }}
+
+            ## 本次更新
+
+            ${{ steps.notes.outputs.changes }}
           files: dist/gongwen.html

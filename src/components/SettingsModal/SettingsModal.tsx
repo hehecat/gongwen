@@ -25,6 +25,13 @@ const INDENT_SELECT_OPTIONS = INDENT_OPTIONS.map((opt) => ({
   label: String(opt.value),
 }))
 
+const PROJECT_INFO = {
+  repoUrl: 'https://github.com/hehecat/gongwen',
+  releasesUrl: 'https://github.com/hehecat/gongwen/releases',
+  authorEmail: 'hehecat@outlook.com',
+  recentUpdates: __APP_RECENT_UPDATES__,
+}
+
 /** 通用 select 组件 */
 function SelectField({
   label,
@@ -286,6 +293,7 @@ export function SettingsModal({ onClose }: SettingsModalProps) {
   const { config, updateConfig, resetConfig } = useDocumentConfig()
   const { customFonts, addFont, removeFont } = useCustomFonts()
   const [showAdvanced, setShowAdvanced] = useState(false)
+  const [showProjectInfo, setShowProjectInfo] = useState(false)
 
   const patch = (p: DeepPartial<DocumentConfig>) => updateConfig(p)
   const FONT_SIZE_MIN = 8
@@ -618,14 +626,66 @@ export function SettingsModal({ onClose }: SettingsModalProps) {
 
         {/* 底部操作栏 */}
         <div className="settings-footer">
-          <a
-            className="settings-btn settings-btn--download"
-            href="https://github.com/hehecat/gongwen/releases/latest/download/gongwen.html"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            下载离线版
-          </a>
+          <div className="settings-footer-left">
+            <a
+              className="settings-btn settings-btn--download"
+              href="https://github.com/hehecat/gongwen/releases/latest/download/gongwen.html"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              下载离线版
+            </a>
+            <button
+              className="settings-btn settings-btn--info"
+              onClick={() => setShowProjectInfo((prev) => !prev)}
+              type="button"
+              aria-expanded={showProjectInfo}
+              aria-controls="settings-project-info"
+            >
+              项目信息
+            </button>
+            {showProjectInfo && (
+              <div className="settings-info-card" id="settings-project-info" role="dialog" aria-label="项目信息">
+                <div className="settings-info-item">
+                  <span className="settings-info-label">GitHub 地址</span>
+                  <a
+                    className="settings-info-link"
+                    href={PROJECT_INFO.repoUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    {PROJECT_INFO.repoUrl}
+                  </a>
+                </div>
+                <div className="settings-info-item">
+                  <span className="settings-info-label">更新版本说明</span>
+                  {PROJECT_INFO.recentUpdates.length > 0 ? (
+                    <ul className="settings-info-list">
+                      {PROJECT_INFO.recentUpdates.map((item) => (
+                        <li key={item}>{item}</li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <p className="settings-hint settings-hint--tight">当前构建未包含可用的提交记录。</p>
+                  )}
+                  <a
+                    className="settings-info-link"
+                    href={PROJECT_INFO.releasesUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    查看全部 Releases
+                  </a>
+                </div>
+                <div className="settings-info-item">
+                  <span className="settings-info-label">作者联系邮箱</span>
+                  <a className="settings-info-link" href={`mailto:${PROJECT_INFO.authorEmail}`}>
+                    {PROJECT_INFO.authorEmail}
+                  </a>
+                </div>
+              </div>
+            )}
+          </div>
           <div className="settings-footer-spacer" />
           <button className="settings-btn settings-btn--reset" onClick={resetConfig}>
             恢复默认
