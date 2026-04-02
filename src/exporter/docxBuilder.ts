@@ -10,12 +10,16 @@ import { NodeType } from '../types/ast'
 import type { DocumentConfig, PageNumberStyle } from '../types/documentConfig'
 import { cmToTwip, ptToTwip } from '../types/documentConfig'
 import {
-  createCharacterFirstLineIndent,
   getParagraphStyle,
   getRunStyle,
   getAttachmentParagraphStyle,
   getAttachmentRunStyle,
-  shouldUseCharacterFirstLineIndent,
+  getTitleDateRunStyle,
+  getTitleNameRunStyle,
+  isTitleDateLine,
+  isTitleNameLine,
+  buildRunStyleOverride,
+  hasRichStyleOverrides,
 } from './styleFactory'
 
 // ---- 无边框定义（用于版头表格） ----
@@ -43,47 +47,16 @@ const PAGE_NUM_DASH = '\u2014'
 /** 页码距版心下边缘 7mm (GB/T 9704)，通过 spacing.before 定位 */
 const PAGE_NUM_SPACING_BEFORE = cmToTwip(0.7) // 7mm = 0.7cm ≈ 397 twips
 
-type PageNumberAlignment = typeof AlignmentType.LEFT | typeof AlignmentType.RIGHT | typeof AlignmentType.CENTER
-
-interface PageNumberParagraphOptions {
-  alignment: PageNumberAlignment
-  indent: { left?: number; right?: number }
-}
-
-export function getPageNumberParagraphOptions(
-  pageNumberStyle: PageNumberStyle,
-  pageNumIndent: number,
-): {
-  evenAndOddHeaderAndFooters: boolean
-  defaultOptions: PageNumberParagraphOptions
-  evenOptions?: PageNumberParagraphOptions
-} {
-  if (pageNumberStyle === 'center') {
-    return {
-      evenAndOddHeaderAndFooters: false,
-      defaultOptions: {
-        alignment: AlignmentType.CENTER,
-        indent: {},
-      },
-    }
-  }
-
-  return {
-    evenAndOddHeaderAndFooters: true,
-    defaultOptions: {
-      alignment: AlignmentType.RIGHT,
-      indent: { right: pageNumIndent },
-    },
-    evenOptions: {
-      alignment: AlignmentType.LEFT,
-      indent: { left: pageNumIndent },
-    },
-  }
+function getHeaderOrgFontSize(text: string, config: DocumentConfig): number {
+  const length = Array.from(text.trim()).length
+  if (length <= 0) return 30
+  const availablePoints = (11906 - cmToTwip(config.margins.left) - cmToTwip(config.margins.right)) / 20
+  return Math.max(18, Math.min(30, Math.floor(availablePoints / length)))
 }
 
 /** 构建页码段落 */
 function pageNumberParagraph(
-  alignment: PageNumberAlignment,
+  alignment: typeof AlignmentType.LEFT | typeof AlignmentType.RIGHT | typeof AlignmentType.CENTER,
   indent: { left?: number; right?: number },
   pageNumFont: Record<string, string>,
   pageNumSize: number,
@@ -211,11 +184,26 @@ function nodeToParagraph(
   config: DocumentConfig,
   spacingBefore = 0,
   signatureContent?: string,
-  dateContent?: string
+  dateContent?: string,
+  isTitleDate = false,
+  isTitleName = false,
+  noIndent = false,
 ): Paragraph {
-  let paragraphStyle = getParagraphStyle(node.type, config, signatureContent, dateContent)
-  const runStyle = getRunStyle(node.type, config)
-  const useCharacterIndent = shouldUseCharacterFirstLineIndent(node.type)
+  let paragraphStyle = getParagraphStyle(
+    node.type,
+    config,
+    signatureContent,
+    dateContent,
+    isTitleDate,
+    isTitleName,
+    node.alignment,
+    noIndent || node.noIndent === true,
+  )
+  const runStyle = isTitleDate
+    ? getTitleDateRunStyle(config)
+    : isTitleName
+      ? getTitleNameRunStyle(config)
+      : getRunStyle(node.type, config)
 
   // 外部传入的额外 spacing.before（如版头后标题空二行）
   if (spacingBefore > 0) {
@@ -225,27 +213,11 @@ function nodeToParagraph(
     }
   }
 
-  const baseParagraphStyle = useCharacterIndent
-    ? { ...paragraphStyle, indent: undefined }
-    : paragraphStyle
-
-  function createParagraph(children: TextRun[]): Paragraph {
-    const paragraph = new Paragraph({
-      ...baseParagraphStyle,
-      children,
+  if (hasRichStyleOverrides(node.runs)) {
+    return new Paragraph({
+      ...paragraphStyle,
+      children: (node.runs ?? []).map((run) => new TextRun(buildRunStyleOverride(runStyle, run))),
     })
-
-    if (useCharacterIndent) {
-      (
-        paragraph as unknown as {
-          properties: {
-            push: (item: ReturnType<typeof createCharacterFirstLineIndent>) => void
-          }
-        }
-      ).properties.push(createCharacterFirstLineIndent(config))
-    }
-
-    return paragraph
   }
 
   // 一至四级标题：首句用标题样式，句号后切换为正文样式
@@ -258,9 +230,12 @@ function nodeToParagraph(
     return createParagraph(splitHeadingSentence(node.content, runStyle, config))
   }
 
-  // 正文首句加粗
-  if (node.type === NodeType.PARAGRAPH && config.specialOptions.boldFirstSentence) {
-    return createParagraph(splitBoldFirstSentence(node.content, runStyle))
+  // 正文首句加粗（忽略标题下姓名和日期）
+  if (node.type === NodeType.PARAGRAPH && config.specialOptions.boldFirstSentence && !isTitleName && !isTitleDate) {
+    return new Paragraph({
+      ...paragraphStyle,
+      children: splitBoldFirstSentence(node.content, runStyle),
+    })
   }
 
   return createParagraph([
@@ -274,6 +249,18 @@ function nodeToParagraph(
 /** 将完整 GongwenAST 转换为 docx Document */
 export function buildDocument(ast: GongwenAST, config: DocumentConfig): Document {
   const children: (Paragraph | Table)[] = []
+  const isLeadingNameDate = Boolean(
+    ast.title &&
+    ast.body.length >= 2 &&
+    isTitleNameLine(ast.body[0].content) &&
+    isTitleDateLine(ast.body[1].content),
+  )
+  const firstBodyParagraphIndex = ast.body.findIndex((node, index) => (
+    node.type === NodeType.PARAGRAPH &&
+    !(isLeadingNameDate && index === 0) &&
+    !(isLeadingNameDate && index === 1) &&
+    !(index === 0 && isTitleDateLine(node.content))
+  ))
 
   // ---- 版头段落 ----
   if (config.header.enabled && config.header.orgName) {
@@ -284,31 +271,33 @@ export function buildDocument(ast: GongwenAST, config: DocumentConfig): Document
       cs: 'Times New Roman',
     }
     const headerFontSize = config.body.fontSize * 2
+    const headerOrgFontSize = getHeaderOrgFontSize(config.header.orgName, config)
     // "空一字"缩进量 = 1 个字号宽度（使用数字 twips，在表格单元格内最可靠）
     const oneCharIndent = ptToTwip(config.body.fontSize)
 
-    // 1. 发文机关标志：红色居中大字
+    // 1. 发文机关标志：使用分散对齐确保在版心内铺满整行
     children.push(new Paragraph({
-      alignment: AlignmentType.CENTER,
+      alignment: AlignmentType.DISTRIBUTE,
       children: [new TextRun({
         text: config.header.orgName,
         font: { ascii: 'Times New Roman', eastAsia: '方正小标宋_GBK', hAnsi: 'Times New Roman', cs: 'Times New Roman' },
-        size: 60, // 30pt
+        size: headerOrgFontSize * 2,
         color: 'E00000',
       })],
     }))
 
     // 发文机关标志下空二行（三号字行高，确保行距精确）
     const bodyLineSpacing = ptToTwip(config.body.lineSpacing)
-    for (let i = 0; i < 2; i++) {
+    const headerGapLines = config.header.mode === 'formal' ? 2 : 0
+    for (let i = 0; i < headerGapLines; i++) {
       children.push(new Paragraph({
         spacing: { line: bodyLineSpacing, lineRule: LineRuleType.EXACT, before: 0, after: 0 },
         children: [new TextRun({ font: headerFont, size: headerFontSize, text: '' })],
       }))
     }
 
-    // 2. 发文字号 / 签发人（位于红线之上）
-    if (config.header.signer) {
+    // 2. 发文字号 / 签发人（正式文）
+    if (config.header.mode === 'formal' && config.header.signer) {
       // 有签发人：无边框表格 — 字号居左空一字，签发人居右空一字
       children.push(new Table({
         width: { size: 100, type: WidthType.PERCENTAGE },
@@ -355,7 +344,7 @@ export function buildDocument(ast: GongwenAST, config: DocumentConfig): Document
           }),
         ],
       }))
-    } else if (config.header.docNumber) {
+    } else if (config.header.mode === 'formal' && config.header.docNumber) {
       // 无签发人：发文字号居中
       children.push(new Paragraph({
         alignment: AlignmentType.CENTER,
@@ -369,11 +358,11 @@ export function buildDocument(ast: GongwenAST, config: DocumentConfig): Document
 
     // 3. 红色分隔线：单条红线（发文字号之下）
     children.push(new Paragraph({
-      spacing: { before: 80, after: 0 },
+      spacing: { before: 0, after: 0, line: ptToTwip(1), lineRule: LineRuleType.EXACT },
       border: {
         bottom: {
           style: BorderStyle.SINGLE,
-          size: 15, // ~1.9pt ≈ 标准红线粗细
+          size: 18, // 略加粗，导出效果更接近预览
           color: 'E00000',
           space: 1,
         },
@@ -384,7 +373,7 @@ export function buildDocument(ast: GongwenAST, config: DocumentConfig): Document
 
   // 版头启用时，标题需通过 spacing.before 空二行（56pt = 1120 twips）
   const titleSpacingBefore = (config.header.enabled && config.header.orgName)
-    ? ptToTwip(config.body.lineSpacing * 2)
+    ? ptToTwip(config.body.lineSpacing * (config.header.mode === 'formal' ? 2 : 1))
     : 0
 
   if (ast.title) {
@@ -393,7 +382,9 @@ export function buildDocument(ast: GongwenAST, config: DocumentConfig): Document
 
   for (let i = 0; i < ast.body.length; i++) {
     const node = ast.body[i]
-    const isFirstBodyNode = i === 0
+    const isTitleName = isLeadingNameDate && i === 0
+    const isTitleDate = (i === 0 && ast.title !== null && isTitleDateLine(node.content)) || (isLeadingNameDate && i === 1)
+    const shouldNoIndent = config.specialOptions.firstParagraphNoIndent && i === firstBodyParagraphIndex
     
     // 发文机关署名前插入 2 个空行
     if (node.type === NodeType.SIGNATURE) {
@@ -429,7 +420,7 @@ export function buildDocument(ast: GongwenAST, config: DocumentConfig): Document
     if (node.type === NodeType.SIGNATURE && i + 1 < ast.body.length && ast.body[i + 1].type === NodeType.DATE) {
       children.push(nodeToParagraph(node, config, 0, node.content, ast.body[i + 1].content))
     } else {
-      children.push(nodeToParagraph(node, config))
+      children.push(nodeToParagraph(node, config, 0, undefined, undefined, isTitleDate, isTitleName, shouldNoIndent))
     }
   }
 
@@ -580,39 +571,28 @@ export function buildDocument(ast: GongwenAST, config: DocumentConfig): Document
   const pageNumIndent = ptToTwip(14)
   const pageNumberOptions = getPageNumberParagraphOptions(config.specialOptions.pageNumberStyle, pageNumIndent)
 
-  // 页脚配置：默认国标单右双左，也支持全居中
-  const footers = config.specialOptions.showPageNumber
-    ? {
-        default: new Footer({
-          children: [
-            pageNumberParagraph(
-              pageNumberOptions.defaultOptions.alignment,
-              pageNumberOptions.defaultOptions.indent,
-              pageNumFont,
-              pageNumSize,
-            ),
-          ],
-        }),
-        ...(pageNumberOptions.evenOptions
-          ? {
-              even: new Footer({
-                children: [
-                  pageNumberParagraph(
-                    pageNumberOptions.evenOptions.alignment,
-                    pageNumberOptions.evenOptions.indent,
-                    pageNumFont,
-                    pageNumSize,
-                  ),
-                ],
-              }),
-            }
-          : {}),
-      }
-    : undefined
+  // 页脚配置：支持居中或双面打印奇右偶左
+  let footers: { default: Footer; even?: Footer } | undefined
+  if (config.specialOptions.showPageNumber) {
+    footers = config.specialOptions.pageNumberLayout === 'center'
+      ? {
+          default: new Footer({
+            children: [pageNumberParagraph(AlignmentType.CENTER, {}, pageNumFont, pageNumSize)],
+          }),
+        }
+      : {
+          default: new Footer({
+            children: [pageNumberParagraph(AlignmentType.RIGHT, { right: pageNumIndent }, pageNumFont, pageNumSize)],
+          }),
+          even: new Footer({
+            children: [pageNumberParagraph(AlignmentType.LEFT, { left: pageNumIndent }, pageNumFont, pageNumSize)],
+          }),
+        }
+  }
 
   return new Document({
-    // 国标样式启用奇偶页不同页脚；全居中时关闭
-    evenAndOddHeaderAndFooters: config.specialOptions.showPageNumber && pageNumberOptions.evenAndOddHeaderAndFooters,
+    // 双面打印布局才启用奇偶页不同页脚
+    evenAndOddHeaderAndFooters: config.specialOptions.showPageNumber && config.specialOptions.pageNumberLayout === 'mirrored',
     sections: [
       {
         properties: {

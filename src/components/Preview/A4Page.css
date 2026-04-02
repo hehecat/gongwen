@@ -57,7 +57,28 @@
   text-align: center;
   line-height: var(--title-line-height, 29px);
   margin: 0;
-  margin-bottom: var(--body-line-height, 29px);
+}
+
+.a4-title-date {
+  font-family: '楷体_GB2312', 'KaiTi', 'STKaiti', serif;
+  font-size: 16px;
+  font-weight: normal;
+  text-align: center;
+  line-height: var(--body-line-height, 29px);
+  margin: 0;
+  letter-spacing: var(--char-spacing, 0);
+  text-indent: 0;
+}
+
+.a4-title-secondary {
+  font-family: '楷体_GB2312', 'KaiTi', 'STKaiti', serif;
+  font-size: 16px;
+  font-weight: normal;
+  text-align: center;
+  line-height: var(--body-line-height, 29px);
+  margin: 0;
+  letter-spacing: var(--char-spacing, 0);
+  text-indent: 0;
 }
 
 /* 一级标题段落: 基础样式（含首句拆分时的段落容器） */
@@ -141,6 +162,14 @@
   text-align: justify;
   line-height: var(--body-line-height, 29px);
   margin: 0;
+}
+
+.a4-paragraph[data-no-indent='true'],
+.a4-h1[data-no-indent='true'],
+.a4-h2[data-no-indent='true'],
+.a4-h3[data-no-indent='true'],
+.a4-h4[data-no-indent='true'] {
+  text-indent: 0;
 }
 
 /* 空状态占位 */
@@ -293,17 +322,26 @@
 
 .a4-header-org {
   font-family: '方正小标宋_GBK', 'STSong', serif;
-  font-size: 30px;
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 0;
   color: #e00000;
-  text-align: center;
   line-height: 1.4;
-  letter-spacing: 0;
+  width: 100%;
+  box-sizing: border-box;
+  text-align: justify;
+  text-align-last: justify;
+}
+
+.a4-header-org-char {
+  flex: 0 0 auto;
 }
 
 /* 红色分隔线：单条红线，位于发文字号/签发人之下 */
 .a4-header-separator {
   border-bottom: 2px solid #e00000;
-  margin-top: 8px;
+  margin-top: 0;
 }
 
 /* 发文字号 / 签发人行 */

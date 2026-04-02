@@ -34,16 +34,22 @@ export type PageNumberStyle = 'mirrored' | 'center'
 
 export interface SpecialOptionsConfig {
   boldFirstSentence: boolean
-  boldHeading3: boolean
+  firstParagraphNoIndent: boolean
   showPageNumber: boolean
   pageNumberFont: string
-  pageNumberStyle: PageNumberStyle
+  pageNumberLayout: 'center' | 'mirrored'
   /**
    * 是否加盖印章
    * - true: 成文日期右空四字 (GB/T 9704 7.3.5.1 加盖印章的公文)
    * - false: 成文日期右空二字 (GB/T 9704 7.3.5.2 不加盖印章的公文)
    */
   hasStamp: boolean
+}
+
+/** 文本修复选项 */
+export interface TextFixOptionsConfig {
+  convertEnglishPunctuation: boolean
+  removeRedundantSpaces: boolean
 }
 
 /** 高级设置 — 单个元素配置 */
@@ -63,6 +69,7 @@ export interface AdvancedConfig {
 /** 版头配置 */
 export interface HeaderConfig {
   enabled: boolean
+  mode: 'formal' | 'note'
   /** 发文机关标志（红色大字居中） */
   orgName: string
   /** 发文字号，如"国办发〔2024〕1号" */
@@ -88,6 +95,7 @@ export interface DocumentConfig {
   title: TitleConfig
   body: BodyConfig
   specialOptions: SpecialOptionsConfig
+  textFixOptions: TextFixOptionsConfig
   advanced: AdvancedConfig
   header: HeaderConfig
   footerNote: FooterNoteConfig
@@ -102,8 +110,8 @@ export type DeepPartial<T> = {
 
 export const DEFAULT_CONFIG: DocumentConfig = {
   margins: {
-    top: 3.46,
-    bottom: 3.26,
+    top: 3.7,
+    bottom: 3.5,
     left: 2.8,
     right: 2.6,
   },
@@ -120,11 +128,15 @@ export const DEFAULT_CONFIG: DocumentConfig = {
   },
   specialOptions: {
     boldFirstSentence: false,
-    boldHeading3: true,
+    firstParagraphNoIndent: false,
     showPageNumber: true,
     pageNumberFont: '宋体',
-    pageNumberStyle: 'mirrored',
+    pageNumberLayout: 'mirrored',
     hasStamp: false,
+  },
+  textFixOptions: {
+    convertEnglishPunctuation: true,
+    removeRedundantSpaces: true,
   },
   advanced: {
     h1: { fontFamily: '黑体', asciiFontFamily: 'Times New Roman', fontSize: 16 },
@@ -133,6 +145,7 @@ export const DEFAULT_CONFIG: DocumentConfig = {
   },
   header: {
     enabled: false,
+    mode: 'formal',
     orgName: '',
     docNumber: '',
     signer: '',
@@ -197,9 +210,14 @@ export const INDENT_OPTIONS: { label: string; value: number }[] = [
   { label: '3字符', value: 3 },
 ]
 
-export const PAGE_NUMBER_STYLE_OPTIONS: { label: string; value: PageNumberStyle }[] = [
-  { label: '单右双左（国标）', value: 'mirrored' },
-  { label: '全居中', value: 'center' },
+export const PAGE_NUMBER_LAYOUT_OPTIONS: { label: string; value: 'center' | 'mirrored' }[] = [
+  { label: '居中', value: 'center' },
+  { label: '双面打印两侧', value: 'mirrored' },
+]
+
+export const HEADER_MODE_OPTIONS: { label: string; value: 'formal' | 'note' }[] = [
+  { label: '正式文', value: 'formal' },
+  { label: '便签', value: 'note' },
 ]
 
 // ---- 版式常量 (GB/T 9704) ----

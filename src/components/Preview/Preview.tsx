@@ -1,106 +1,89 @@
-import { useDeferredValue, useRef, useMemo, type CSSProperties } from 'react'
-import type { GongwenAST } from '../../types/ast'
-import { useDocumentConfig } from '../../contexts/useDocumentConfig'
-import { cmToPagePercent, CHARS_PER_LINE } from '../../types/documentConfig'
-import { usePagination } from '../../hooks/usePagination'
-import { A4Page } from './A4Page'
-import { DocumentFlow } from './DocumentFlow'
+import { useEffect, useMemo, useRef, useState, useCallback, type CSSProperties, type KeyboardEvent } from 'react'
+import { useDocumentConfig } from '../../contexts/DocumentConfigContext'
+import { CHARS_PER_LINE, FONT_OPTIONS, FONT_SIZE_OPTIONS, cmToPagePercent } from '../../types/documentConfig'
+import { normalizeEditorHtml } from '../../utils/richText'
 import './A4Page.css'
 import './Preview.css'
 
 interface PreviewProps {
-  ast: GongwenAST
+  value: string
+  onChange: (value: string) => void
 }
 
-export function Preview({ ast }: PreviewProps) {
-  const measurerRef = useRef<HTMLDivElement>(null)
-  const { config } = useDocumentConfig()
-  const deferredConfig = useDeferredValue(config)
-  const paginationConfig = useMemo(() => ({
-    margins: {
-      top: deferredConfig.margins.top,
-      bottom: deferredConfig.margins.bottom,
-      left: deferredConfig.margins.left,
-      right: deferredConfig.margins.right,
-    },
-    header: {
-      enabled: deferredConfig.header.enabled,
-      orgName: deferredConfig.header.orgName,
-      docNumber: deferredConfig.header.docNumber,
-      signer: deferredConfig.header.signer,
-    },
-    footerNote: {
-      enabled: deferredConfig.footerNote.enabled,
-      cc: deferredConfig.footerNote.cc,
-      printer: deferredConfig.footerNote.printer,
-      printDate: deferredConfig.footerNote.printDate,
-    },
-    title: {
-      fontFamily: deferredConfig.title.fontFamily,
-      fontSize: deferredConfig.title.fontSize,
-      lineSpacing: deferredConfig.title.lineSpacing,
-    },
-    body: {
-      fontFamily: deferredConfig.body.fontFamily,
-      fontSize: deferredConfig.body.fontSize,
-      lineSpacing: deferredConfig.body.lineSpacing,
-      firstLineIndent: deferredConfig.body.firstLineIndent,
-    },
-    advanced: {
-      h1: {
-        fontFamily: deferredConfig.advanced.h1.fontFamily,
-        fontSize: deferredConfig.advanced.h1.fontSize,
-      },
-      h2: {
-        fontFamily: deferredConfig.advanced.h2.fontFamily,
-        fontSize: deferredConfig.advanced.h2.fontSize,
-      },
-      h3: {
-        fontFamily: deferredConfig.advanced.h3.fontFamily,
-        fontSize: deferredConfig.advanced.h3.fontSize,
-      },
-    },
-    specialOptions: {
-      boldFirstSentence: deferredConfig.specialOptions.boldFirstSentence,
-      boldHeading3: deferredConfig.specialOptions.boldHeading3,
-      hasStamp: deferredConfig.specialOptions.hasStamp,
-    },
-  }), [
-    deferredConfig.margins.top,
-    deferredConfig.margins.bottom,
-    deferredConfig.margins.left,
-    deferredConfig.margins.right,
-    deferredConfig.header.enabled,
-    deferredConfig.header.orgName,
-    deferredConfig.header.docNumber,
-    deferredConfig.header.signer,
-    deferredConfig.footerNote.enabled,
-    deferredConfig.footerNote.cc,
-    deferredConfig.footerNote.printer,
-    deferredConfig.footerNote.printDate,
-    deferredConfig.title.fontFamily,
-    deferredConfig.title.fontSize,
-    deferredConfig.title.lineSpacing,
-    deferredConfig.body.fontFamily,
-    deferredConfig.body.fontSize,
-    deferredConfig.body.lineSpacing,
-    deferredConfig.body.firstLineIndent,
-    deferredConfig.advanced.h1.fontFamily,
-    deferredConfig.advanced.h1.fontSize,
-    deferredConfig.advanced.h2.fontFamily,
-    deferredConfig.advanced.h2.fontSize,
-    deferredConfig.advanced.h3.fontFamily,
-    deferredConfig.advanced.h3.fontSize,
-    deferredConfig.specialOptions.boldFirstSentence,
-    deferredConfig.specialOptions.boldHeading3,
-    deferredConfig.specialOptions.hasStamp,
-  ])
-  const pages = usePagination(ast.title, ast.body, measurerRef, paginationConfig)
+const FONT_FAMILY_OPTIONS = FONT_OPTIONS.map((option) => option.value)
+const FONT_SIZE_OPTIONS_CN = FONT_SIZE_OPTIONS.map((option) => ({
+  label: option.label,
+  value: option.value,
+}))
+const BLOCK_SELECTOR = 'p,div,h1,h2,h3,h4,h5,h6'
 
-  /** 将 config 转换为 CSS 自定义属性 */
+function exec(command: string, value?: string) {
+  document.execCommand('styleWithCSS', false, 'true')
+  document.execCommand(command, false, value)
+}
+
+function applyFontSize(size: number) {
+  const selection = window.getSelection()
+  if (!selection || selection.rangeCount === 0 || selection.isCollapsed) return
+
+  const range = selection.getRangeAt(0)
+  const span = document.createElement('span')
+  span.style.fontSize = `${size}pt`
+  try {
+    range.surroundContents(span)
+  } catch {
+    const fragment = range.extractContents()
+    span.appendChild(fragment)
+    range.insertNode(span)
+  }
+  selection.removeAllRanges()
+}
+
+function getHeaderOrgFontSize(orgName: string, leftMargin: number, rightMargin: number): number {
+  const length = Math.max(1, Array.from(orgName.trim()).length)
+  const availablePx = 595 * (1 - (leftMargin * 10 / 210) - (rightMargin * 10 / 210))
+  return Math.max(18, Math.min(30, Math.floor(availablePx / length)))
+}
+
+function getSelectedBlocks(root: HTMLElement): HTMLElement[] {
+  const selection = window.getSelection()
+  if (!selection || selection.rangeCount === 0) return []
+
+  const range = selection.getRangeAt(0)
+  const blocks = Array.from(root.querySelectorAll<HTMLElement>(BLOCK_SELECTOR))
+  const selected = blocks.filter((block) => {
+    try {
+      return range.intersectsNode(block)
+    } catch {
+      return false
+    }
+  })
+
+  if (selected.length > 0) return selected
+
+  const startNode = range.startContainer.nodeType === Node.ELEMENT_NODE
+    ? range.startContainer as HTMLElement
+    : range.startContainer.parentElement
+  const fallback = startNode?.closest<HTMLElement>(BLOCK_SELECTOR)
+  return fallback && root.contains(fallback) ? [fallback] : []
+}
+
+export function Preview({ value, onChange }: PreviewProps) {
+  const { config } = useDocumentConfig()
+  const editorRef = useRef<HTMLDivElement>(null)
+  const syncingRef = useRef(false)
+  const [currentFont, setCurrentFont] = useState(FONT_FAMILY_OPTIONS[0])
+  const [currentFontSize, setCurrentFontSize] = useState(FONT_SIZE_OPTIONS_CN[3]?.value ?? 16)
+  const headerOrgFontSize = useMemo(
+    () => getHeaderOrgFontSize(config.header.orgName, config.margins.left, config.margins.right),
+    [config.header.orgName, config.margins.left, config.margins.right],
+  )
+  const headerOrgChars = useMemo(
+    () => Array.from(config.header.orgName.trim()),
+    [config.header.orgName],
+  )
+
   const cssVars = useMemo((): CSSProperties => {
-    // 计算字符间距，使每行恰好容纳 28 字 (GB/T 9704)
-    // 预览以 72dpi 渲染，1pt = 1px，页面宽度 595px
     const pageWidthPx = 595
     const marginLeftPct = deferredConfig.margins.left * 10 / 210
     const marginRightPct = deferredConfig.margins.right * 10 / 210
@@ -108,73 +91,168 @@ export function Preview({ ast }: PreviewProps) {
     const charSpacingPx = availablePx / CHARS_PER_LINE - deferredConfig.body.fontSize
 
     return {
-      '--margin-top': `${cmToPagePercent(deferredConfig.margins.top, 'x')}%`,
-      '--margin-bottom': `${cmToPagePercent(deferredConfig.margins.bottom, 'x')}%`,
-      '--margin-left': `${cmToPagePercent(deferredConfig.margins.left, 'x')}%`,
-      '--margin-right': `${cmToPagePercent(deferredConfig.margins.right, 'x')}%`,
-      // 版记绝对定位使用 y 轴百分比（相对页面高度 297mm，而非宽度 210mm）
-      '--margin-bottom-y': `${cmToPagePercent(deferredConfig.margins.bottom, 'y')}%`,
-      '--title-font': deferredConfig.title.fontFamily,
-      '--title-size': `${deferredConfig.title.fontSize}px`,
-      '--title-line-height': `${deferredConfig.title.lineSpacing}px`,
-      '--body-font': deferredConfig.body.fontFamily,
-      '--body-size': `${deferredConfig.body.fontSize}px`,
-      '--body-line-height': `${deferredConfig.body.lineSpacing}px`,
-      '--body-indent': `${deferredConfig.body.firstLineIndent}em`,
+      '--margin-top': `${cmToPagePercent(config.margins.top, 'x')}%`,
+      '--margin-bottom': `${cmToPagePercent(config.margins.bottom, 'x')}%`,
+      '--margin-left': `${cmToPagePercent(config.margins.left, 'x')}%`,
+      '--margin-right': `${cmToPagePercent(config.margins.right, 'x')}%`,
+      '--margin-bottom-y': `${cmToPagePercent(config.margins.bottom, 'y')}%`,
+      '--title-font': config.title.fontFamily,
+      '--title-size': `${config.title.fontSize}pt`,
+      '--title-line-height': `${config.title.lineSpacing}pt`,
+      '--body-font': config.body.fontFamily,
+      '--body-size': `${config.body.fontSize}pt`,
+      '--body-line-height': `${config.body.lineSpacing}pt`,
+      '--body-indent': `${config.body.firstLineIndent}em`,
       '--char-spacing': `${charSpacingPx.toFixed(4)}px`,
-      '--h1-font': deferredConfig.advanced.h1.fontFamily,
-      '--h1-size': `${deferredConfig.advanced.h1.fontSize}px`,
-      '--h2-font': deferredConfig.advanced.h2.fontFamily,
-      '--h2-size': `${deferredConfig.advanced.h2.fontSize}px`,
-      '--h3-font': deferredConfig.advanced.h3.fontFamily,
-      '--h3-size': `${deferredConfig.advanced.h3.fontSize}px`,
-      '--page-number-font': deferredConfig.specialOptions.pageNumberFont,
+      '--h1-font': config.headings.h1.fontFamily,
+      '--h1-size': `${config.headings.h1.fontSize}pt`,
+      '--h2-font': config.headings.h2.fontFamily,
+      '--h2-size': `${config.headings.h2.fontSize}pt`,
+      '--h3-font': config.advanced.h3.fontFamily,
+      '--page-number-font': config.specialOptions.pageNumberFont,
     } as CSSProperties
   }, [deferredConfig])
 
-  const boldFirst = deferredConfig.specialOptions.boldFirstSentence
-  const boldHeading3 = deferredConfig.specialOptions.boldHeading3
+  useEffect(() => {
+    const editor = editorRef.current
+    if (!editor) return
+    const normalized = normalizeEditorHtml(value)
+    if (editor.innerHTML === normalized) return
+    syncingRef.current = true
+    editor.innerHTML = normalized
+    syncingRef.current = false
+  }, [value])
+
+  const emitChange = useCallback(() => {
+    const editor = editorRef.current
+    if (!editor || syncingRef.current) return
+    onChange(normalizeEditorHtml(editor.innerHTML))
+  }, [onChange])
+
+  const handleFontChange = useCallback((fontFamily: string) => {
+    setCurrentFont(fontFamily)
+    exec('fontName', fontFamily)
+    emitChange()
+  }, [emitChange])
+
+  const handleFontSizeChange = useCallback((fontSize: number) => {
+    setCurrentFontSize(fontSize)
+    applyFontSize(fontSize)
+    emitChange()
+  }, [emitChange])
+
+  const handleAlignmentChange = useCallback((alignment: 'left' | 'center' | 'right' | 'justify') => {
+    const editor = editorRef.current
+    if (!editor) return
+
+    const blocks = getSelectedBlocks(editor)
+    if (blocks.length === 0) return
+
+    for (const block of blocks) {
+      block.style.textAlign = alignment
+      if (alignment === 'justify') {
+        if (block.dataset.alignNoIndent === 'true') {
+          delete block.dataset.alignNoIndent
+          delete block.dataset.noIndent
+        }
+      } else {
+        block.dataset.noIndent = 'true'
+        block.dataset.alignNoIndent = 'true'
+      }
+    }
+
+    emitChange()
+  }, [emitChange])
+
+  const handleKeyDown = useCallback((e: KeyboardEvent<HTMLDivElement>) => {
+    if (e.key !== 'Backspace') return
+
+    const selection = window.getSelection()
+    if (!selection || !selection.isCollapsed || selection.rangeCount === 0) return
+
+    const range = selection.getRangeAt(0)
+    const block = (range.startContainer.nodeType === Node.ELEMENT_NODE
+      ? range.startContainer as HTMLElement
+      : range.startContainer.parentElement
+    )?.closest('p')
+
+    if (!block || block.dataset.noIndent === 'true') return
+
+    const blockRange = document.createRange()
+    blockRange.selectNodeContents(block)
+    blockRange.setEnd(range.startContainer, range.startOffset)
+    const textBeforeCaret = blockRange.toString()
+
+    if (textBeforeCaret.length === 0) {
+      block.dataset.noIndent = 'true'
+      emitChange()
+      e.preventDefault()
+    }
+  }, [emitChange])
 
   return (
     <div className="preview-container">
       <div className="preview-header">
-        <span className="preview-label">预览</span>
-        <span className="preview-hint">共 {pages.length} 页</span>
+        <div className="preview-header-main">
+          <span className="preview-label">排版</span>
+        </div>
+        <div className="preview-toolbar">
+          <select className="preview-select" value={currentFont} onChange={(e) => handleFontChange(e.target.value)}>
+            {FONT_FAMILY_OPTIONS.map((font) => (
+              <option key={font} value={font}>{font}</option>
+            ))}
+          </select>
+          <select className="preview-select preview-select--size" value={currentFontSize} onChange={(e) => handleFontSizeChange(Number(e.target.value))}>
+            {FONT_SIZE_OPTIONS_CN.map((option) => (
+              <option key={option.label} value={option.value}>{option.label}</option>
+            ))}
+          </select>
+          <button type="button" className="preview-tool-btn" onClick={() => { exec('bold'); emitChange() }}><strong>B</strong></button>
+          <button type="button" className="preview-tool-btn" onClick={() => { exec('italic'); emitChange() }}><em>I</em></button>
+          <button type="button" className="preview-tool-btn" onClick={() => { exec('underline'); emitChange() }}><u>U</u></button>
+          <button type="button" className="preview-tool-btn" onClick={() => handleAlignmentChange('left')}>左</button>
+          <button type="button" className="preview-tool-btn" onClick={() => handleAlignmentChange('center')}>中</button>
+          <button type="button" className="preview-tool-btn" onClick={() => handleAlignmentChange('right')}>右</button>
+          <button type="button" className="preview-tool-btn" onClick={() => handleAlignmentChange('justify')}>两端</button>
+        </div>
       </div>
       <div className="preview-scroll" style={cssVars}>
-        {/* 隐藏度量容器：渲染全部节点用于高度测量（与 A4Page 使用相同的 CSS 类和渲染逻辑） */}
-        <div ref={measurerRef} className="a4-measurer" aria-hidden="true">
-          <div className="a4-measurer-content">
-            <DocumentFlow
-              title={ast.title}
-              body={ast.body}
-              boldFirstSentence={boldFirst}
-              boldHeading3={boldHeading3}
-              hasStamp={deferredConfig.specialOptions.hasStamp}
+        <div className="preview-page-shell">
+          <div className="preview-page-content a4-content">
+            {config.header.enabled && config.header.orgName && (
+              <div className={`preview-header-section ${config.header.mode === 'note' ? 'preview-header-section--note' : ''}`}>
+                <div className="a4-header-org" style={{ fontSize: `${headerOrgFontSize}pt` }}>
+                  {headerOrgChars.map((char, index) => (
+                    <span key={`${char}-${index}`} className="a4-header-org-char">
+                      {char === ' ' ? '\u00a0' : char}
+                    </span>
+                  ))}
+                </div>
+                {config.header.mode === 'formal' && (config.header.docNumber || config.header.signer) && (
+                  <div className={`a4-header-meta${config.header.signer ? ' a4-header-meta--with-signer' : ''}`}>
+                    <span>{config.header.docNumber}</span>
+                    {config.header.signer && (
+                      <span>
+                        <span className="a4-header-signer-label">签发人：</span>
+                        <span className="a4-header-signer-name">{config.header.signer}</span>
+                      </span>
+                    )}
+                  </div>
+                )}
+                <div className="a4-header-separator"></div>
+              </div>
+            )}
+            <div
+              ref={editorRef}
+              className="preview-editor"
+              contentEditable
+              suppressContentEditableWarning
+              onInput={emitChange}
+              onBlur={emitChange}
+              onKeyDown={handleKeyDown}
             />
           </div>
         </div>
-
-        {/* 渲染分页后的多个 A4 页面（每页渲染完整内容流，通过 offsetY 裁剪） */}
-        {pages.map((slice, index) => (
-          <A4Page
-            key={index}
-            title={ast.title}
-            body={ast.body}
-            pageNumber={index + 1}
-            offsetY={slice.offsetY}
-            clipHeight={slice.clipHeight}
-            showPageNumber={deferredConfig.specialOptions.showPageNumber}
-            pageNumberStyle={deferredConfig.specialOptions.pageNumberStyle}
-            boldFirstSentence={boldFirst}
-            boldHeading3={boldHeading3}
-            headerConfig={deferredConfig.header}
-            footerNoteConfig={deferredConfig.footerNote}
-            isFirstPage={index === 0}
-            isLastPage={index === pages.length - 1}
-            hasStamp={deferredConfig.specialOptions.hasStamp}
-          />
-        ))}
       </div>
     </div>
   )

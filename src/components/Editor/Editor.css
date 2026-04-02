@@ -8,10 +8,25 @@
 
 .editor-header {
   display: flex;
-  align-items: baseline;
-  gap: 12px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
   padding: 12px 16px;
   border-bottom: 1px solid #e5e7eb;
+  flex-shrink: 0;
+}
+
+.editor-header-main {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  min-width: 0;
+}
+
+.editor-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
   flex-shrink: 0;
 }
 
@@ -26,6 +41,40 @@
   color: #9ca3af;
 }
 
+.editor-feedback {
+  max-width: 240px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 13px;
+  color: #0f766e;
+  background: #ecfdf5;
+  border: 1px solid #a7f3d0;
+  border-radius: 999px;
+  padding: 6px 10px;
+}
+
+.editor-action-btn {
+  padding: 8px 14px;
+  border: none;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  color: #0f766e;
+  background: #ecfeff;
+  transition: background 0.15s, opacity 0.15s;
+}
+
+.editor-action-btn:hover:not(:disabled) {
+  background: #ccfbf1;
+}
+
+.editor-action-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
 .editor-textarea {
   flex: 1;
   width: 100%;
@@ -38,6 +87,7 @@
   line-height: 1.8;
   color: #374151;
   background: #fafafa;
+  box-sizing: border-box;
 }
 
 .editor-textarea::placeholder {

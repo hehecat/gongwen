@@ -1,4 +1,4 @@
-import type { DocumentNode, GongwenAST, AttachmentNode } from '../types/ast'
+import type { DocumentNode, GongwenAST, AttachmentNode, ParagraphAlignment, RichTextRun } from '../types/ast'
 import { NodeType } from '../types/ast'
 import { detectNodeType, HEADING_1_RE, ATTACHMENT_RE, extractAttachmentItemsFromLine } from './matchers'
 
@@ -23,6 +23,14 @@ const SIGNATURE_ORG_HINTS = [
   '公司',
   '中央',
 ]
+
+export interface ParsedLineInput {
+  text: string
+  lineNumber: number
+  runs?: RichTextRun[]
+  alignment?: ParagraphAlignment
+  noIndent?: boolean
+}
 
 /**
  * 检查节点是否可能为发文机关署名
@@ -51,13 +59,16 @@ function isPossibleAddressee(line: string): boolean {
 }
 
 /** 构造单附件节点（保留原始文本，避免信息丢失） */
-function buildSingleAttachmentNode(line: string, contentAfterColon: string, currentIndex: number): AttachmentNode {
+function buildSingleAttachmentNode(source: ParsedLineInput, contentAfterColon: string): AttachmentNode {
   return {
     type: NodeType.ATTACHMENT,
-    content: line,
-    lineNumber: currentIndex + 1,
+    content: source.text,
+    lineNumber: source.lineNumber,
+    runs: source.runs,
+    alignment: source.alignment,
     isMultiple: false,
     items: [{ index: 0, name: contentAfterColon }],
+    noIndent: source.noIndent,
   }
 }
 
@@ -68,12 +79,12 @@ function buildSingleAttachmentNode(line: string, contentAfterColon: string, curr
  * 多附件模式：附件：1.xxx 2.xxx ...（冒号后紧跟数字1）
  */
 function parseAttachment(
-  line: string,
-  lines: string[],
+  source: ParsedLineInput,
+  lines: ParsedLineInput[],
   currentIndex: number
 ): { node: AttachmentNode; nextIndex: number } {
   // 1. 提取冒号后的内容
-  const colonMatch = line.match(/^附件[：:](.*)$/)
+  const colonMatch = source.text.match(/^附件[：:](.*)$/)
   if (!colonMatch) {
     throw new Error('Invalid attachment line')
   }
@@ -85,9 +96,9 @@ function parseAttachment(
   if (!firstItemMatch || firstItemMatch[1] !== '1') {
     // 单附件模式：冒号后不是 "1." 开头
     return {
-      node: buildSingleAttachmentNode(line, contentAfterColon, currentIndex),
-      nextIndex: currentIndex + 1,
-    }
+        node: buildSingleAttachmentNode(source, contentAfterColon),
+        nextIndex: currentIndex + 1,
+      }
   }
 
   // 3. 多附件模式：收集所有附件项
@@ -109,15 +120,18 @@ function parseAttachment(
     if (remaining.trim() !== '') {
       if (lastConsumedIndex === currentIndex) {
         return {
-          node: buildSingleAttachmentNode(line, contentAfterColon, currentIndex),
+          node: buildSingleAttachmentNode(source, contentAfterColon),
           nextIndex: currentIndex + 1,
         }
       }
       return {
         node: {
           type: NodeType.ATTACHMENT,
-          content: line,
-          lineNumber: currentIndex + 1,
+          content: source.text,
+          lineNumber: source.lineNumber,
+          runs: source.runs,
+          alignment: source.alignment,
+          noIndent: source.noIndent,
           isMultiple: true,
           items,
         },
@@ -128,15 +142,18 @@ function parseAttachment(
     if (foundItems.length === 0) {
       if (lastConsumedIndex === currentIndex) {
         return {
-          node: buildSingleAttachmentNode(line, contentAfterColon, currentIndex),
+          node: buildSingleAttachmentNode(source, contentAfterColon),
           nextIndex: currentIndex + 1,
         }
       }
       return {
         node: {
           type: NodeType.ATTACHMENT,
-          content: line,
-          lineNumber: currentIndex + 1,
+          content: source.text,
+          lineNumber: source.lineNumber,
+          runs: source.runs,
+          alignment: source.alignment,
+          noIndent: source.noIndent,
           isMultiple: true,
           items,
         },
@@ -150,7 +167,7 @@ function parseAttachment(
     // 当前行的附件项已提取完毕，检查下一行是否有后续附件
     const nextLineIndex = lastConsumedIndex + 1
     if (nextLineIndex < lines.length) {
-      const nextLine = lines[nextLineIndex].trim()
+      const nextLine = lines[nextLineIndex].text.trim()
       // 跳过空行
       if (nextLine.length === 0) {
         lastConsumedIndex = nextLineIndex
@@ -170,8 +187,11 @@ function parseAttachment(
   return {
     node: {
       type: NodeType.ATTACHMENT,
-      content: line,
-      lineNumber: currentIndex + 1,
+      content: source.text,
+      lineNumber: source.lineNumber,
+      runs: source.runs,
+      alignment: source.alignment,
+      noIndent: source.noIndent,
       isMultiple: true,
       items,
     },
@@ -190,7 +210,11 @@ function parseAttachment(
  *    仅当 DATE 位于末尾，且 DATE 前一个段落满足“短句 + 机关关键词”时改为 SIGNATURE
  */
 export function parseGongwen(text: string): GongwenAST {
-  const lines = text.split('\n')
+  const lines = text.split('\n').map((line, index) => ({ text: line, lineNumber: index + 1 }))
+  return parseParsedLines(lines)
+}
+
+export function parseParsedLines(lines: ParsedLineInput[]): GongwenAST {
   let title: DocumentNode | null = null
   const body: DocumentNode[] = []
 
@@ -199,8 +223,8 @@ export function parseGongwen(text: string): GongwenAST {
   let i = 0
 
   while (i < lines.length) {
-    const raw = lines[i]
-    const trimmed = raw.trim()
+    const source = lines[i]
+    const trimmed = source.text.trim()
 
     // 跳过空行
     if (trimmed.length === 0) {
@@ -208,11 +232,18 @@ export function parseGongwen(text: string): GongwenAST {
       continue
     }
 
-    const lineNumber = i + 1
+    const lineNumber = source.lineNumber
 
     // 首个非空行 → 公文标题
     if (!titleFound) {
-      title = { type: NodeType.DOCUMENT_TITLE, content: trimmed, lineNumber }
+      title = {
+        type: NodeType.DOCUMENT_TITLE,
+        content: trimmed,
+        lineNumber,
+        runs: source.runs,
+        alignment: source.alignment,
+        noIndent: source.noIndent,
+      }
       titleFound = true
       i++
       continue
@@ -221,8 +252,12 @@ export function parseGongwen(text: string): GongwenAST {
     // 主送机关检测（标题后第一个非空行 + 冒号结尾 + 短行）
     if (!addresseeChecked) {
       addresseeChecked = true
-      if (isPossibleAddressee(trimmed)) {
-        body.push({ type: NodeType.ADDRESSEE, content: trimmed, lineNumber })
+      if (
+        (trimmed.endsWith('：') || trimmed.endsWith(':')) &&
+        !HEADING_1_RE.test(trimmed) &&
+        !ATTACHMENT_RE.test(trimmed)
+      ) {
+        body.push({ type: NodeType.ADDRESSEE, content: trimmed, lineNumber, runs: source.runs, alignment: source.alignment, noIndent: source.noIndent })
         i++
         continue
       }
@@ -230,7 +265,7 @@ export function parseGongwen(text: string): GongwenAST {
 
     // 附件说明检测
     if (ATTACHMENT_RE.test(trimmed)) {
-      const { node, nextIndex } = parseAttachment(trimmed, lines, i)
+      const { node, nextIndex } = parseAttachment(source, lines, i)
       body.push(node)
       i = nextIndex
       continue
@@ -238,7 +273,7 @@ export function parseGongwen(text: string): GongwenAST {
 
     // 正则检测类型
     const type = detectNodeType(trimmed)
-    body.push({ type, content: trimmed, lineNumber })
+    body.push({ type, content: trimmed, lineNumber, runs: source.runs, alignment: source.alignment, noIndent: source.noIndent })
     i++
   }
 

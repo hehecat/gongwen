@@ -13,7 +13,7 @@ interface ToolbarProps {
   importing?: boolean
 }
 
-export const Toolbar = memo(function Toolbar({
+export function Toolbar({
   ast,
   onExport,
   onClear,
