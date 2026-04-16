@@ -7,8 +7,8 @@ import {
   FONT_SIZE_OPTIONS,
   LINE_SPACING_OPTIONS,
   INDENT_OPTIONS,
-  PAGE_NUMBER_STYLE_OPTIONS,
-  formatFontSizeLabel,
+  PAGE_NUMBER_LAYOUT_OPTIONS,
+  HEADER_MODE_OPTIONS,
   type DeepPartial,
   type DocumentConfig,
   type PageNumberStyle,
@@ -303,7 +303,7 @@ export function SettingsModal({ onClose }: SettingsModalProps) {
   const { config, updateConfig, resetConfig } = useDocumentConfig()
   const { customFonts, addFont, removeFont } = useCustomFonts()
   const [showAdvanced, setShowAdvanced] = useState(false)
-  const [showProjectInfo, setShowProjectInfo] = useState(false)
+  const importInputRef = useRef<HTMLInputElement>(null)
 
   const patch = (p: DeepPartial<DocumentConfig>) => updateConfig(p)
   const FONT_SIZE_MIN = 8
@@ -327,6 +327,39 @@ export function SettingsModal({ onClose }: SettingsModalProps) {
     onRemoveCustomFont: removeFont,
   }
 
+  function handleExportSettings() {
+    const payload = {
+      version: 1,
+      exportedAt: new Date().toISOString(),
+      config,
+    }
+    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json;charset=utf-8' })
+    const url = URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = url
+    link.download = 'gongwen-settings.json'
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+    URL.revokeObjectURL(url)
+  }
+
+  async function handleImportSettings(e: ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    e.target.value = ''
+    if (!file) return
+
+    try {
+      const raw = await file.text()
+      const parsed = JSON.parse(raw) as { config?: DeepPartial<DocumentConfig> }
+      if (!parsed.config) throw new Error('设置文件格式无效')
+      updateConfig(parsed.config)
+      alert('设置已导入并实时应用')
+    } catch (error) {
+      alert(error instanceof Error ? error.message : '导入设置失败')
+    }
+  }
+
   return (
     <div className="settings-overlay" onClick={onClose}>
       <div className="settings-modal" onClick={(e) => e.stopPropagation()}>
@@ -341,23 +374,29 @@ export function SettingsModal({ onClose }: SettingsModalProps) {
         {/* 内容区 */}
         <div className="settings-body">
           <section className="settings-section">
-            <h3 className="settings-section-title">版头与版记</h3>
-            <div className="settings-dual-panels">
-              <div className="settings-panel">
-                <div className="settings-options">
-                  <CheckboxField
-                    label="启用版头"
-                    checked={config.header.enabled}
-                    onChange={(v) => patch({ header: { enabled: v } })}
+            <h3 className="settings-section-title">版头</h3>
+            <div className="settings-options">
+              <CheckboxField
+                label="启用版头"
+                checked={config.header.enabled}
+                onChange={(v) => patch({ header: { enabled: v } })}
+              />
+              {config.header.enabled && (
+                <div className="settings-grid settings-grid--3">
+                  <SelectField
+                    label="版头样式"
+                    value={config.header.mode}
+                    options={HEADER_MODE_OPTIONS}
+                    onChange={(v) => patch({ header: { mode: v as 'formal' | 'note' } })}
                   />
-                  {config.header.enabled && (
-                    <div className="settings-panel-fields">
-                      <TextField
-                        label="发文机关标志"
-                        value={config.header.orgName}
-                        placeholder="如：国务院办公厅"
-                        onChange={(v) => patch({ header: { orgName: v } })}
-                      />
+                  <TextField
+                    label="发文机关标志"
+                    value={config.header.orgName}
+                    placeholder="如：国务院办公厅"
+                    onChange={(v) => patch({ header: { orgName: v } })}
+                  />
+                  {config.header.mode === 'formal' && (
+                    <>
                       <TextField
                         label="发文字号"
                         value={config.header.docNumber}
@@ -370,7 +409,7 @@ export function SettingsModal({ onClose }: SettingsModalProps) {
                         placeholder="选填，上行文使用"
                         onChange={(v) => patch({ header: { signer: v } })}
                       />
-                    </div>
+                    </>
                   )}
                 </div>
               </div>
@@ -516,64 +555,53 @@ export function SettingsModal({ onClose }: SettingsModalProps) {
           {/* 区块 5: 特殊选项 */}
           <section className="settings-section">
             <h3 className="settings-section-title">特殊选项</h3>
-            <div className="settings-special-grid">
-              <div className="settings-special-card">
-                <CheckboxField
-                  label="正文段落首句加粗"
-                  checked={config.specialOptions.boldFirstSentence}
-                  onChange={(v) => patch({ specialOptions: { boldFirstSentence: v } })}
-                />
-              </div>
-
-              <div className="settings-special-card">
-                <CheckboxField
-                  label="三级小标题加粗"
-                  checked={config.specialOptions.boldHeading3}
-                  onChange={(v) => patch({ specialOptions: { boldHeading3: v } })}
-                />
-              </div>
-
-              <div className="settings-special-card">
-                <CheckboxField
-                  label={(
-                    <>
-                      加盖印章
-                      <span
-                        className="font-tooltip-icon"
-                        title="成文日期右空四字，发文机关署名以成文日期为基准居中"
-                      >
-                        ?
-                      </span>
-                    </>
-                  )}
-                  checked={config.specialOptions.hasStamp}
-                  onChange={(v) => patch({ specialOptions: { hasStamp: v } })}
-                />
-              </div>
-
-              <div className="settings-special-card">
-                <CheckboxField
-                  label="添加页码"
-                  checked={config.specialOptions.showPageNumber}
-                  onChange={(v) => patch({ specialOptions: { showPageNumber: v } })}
-                />
-                {config.specialOptions.showPageNumber && (
-                  <div className="settings-special-card-body">
-                    <FontSelectField
-                      label="页码字体"
-                      value={config.specialOptions.pageNumberFont}
-                      {...fontFieldProps}
-                      onChange={(v) => patch({ specialOptions: { pageNumberFont: v } })}
-                    />
-                    <SelectField
-                      label="页码样式"
-                      value={config.specialOptions.pageNumberStyle}
-                      options={PAGE_NUMBER_STYLE_OPTIONS}
-                      onChange={(v) => patch({ specialOptions: { pageNumberStyle: v as PageNumberStyle } })}
-                    />
-                  </div>
-                )}
-              </div>
+            <div className="settings-options">
+              <CheckboxField
+                label="正文段落首句加粗"
+                checked={config.specialOptions.boldFirstSentence}
+                onChange={(v) => patch({ specialOptions: { boldFirstSentence: v } })}
+              />
+              <CheckboxField
+                label="正文首段顶格"
+                checked={config.specialOptions.firstParagraphNoIndent}
+                onChange={(v) => patch({ specialOptions: { firstParagraphNoIndent: v } })}
+              />
+              <CheckboxField
+                label="添加页码"
+                checked={config.specialOptions.showPageNumber}
+                onChange={(v) => patch({ specialOptions: { showPageNumber: v } })}
+              />
+              {config.specialOptions.showPageNumber && (
+                <div className="settings-sub-option">
+                  <FontSelectField
+                    label="页码字体"
+                    value={config.specialOptions.pageNumberFont}
+                    {...fontFieldProps}
+                    onChange={(v) => patch({ specialOptions: { pageNumberFont: v } })}
+                  />
+                  <SelectField
+                    label="页码位置"
+                    value={config.specialOptions.pageNumberLayout}
+                    options={PAGE_NUMBER_LAYOUT_OPTIONS}
+                    onChange={(v) =>
+                      patch({ specialOptions: { pageNumberLayout: v as 'center' | 'mirrored' } })
+                    }
+                  />
+                </div>
+              )}
+              <CheckboxField
+                label="加盖印章（成文日期右空四字）"
+                checked={config.specialOptions.hasStamp}
+                onChange={(v) => patch({ specialOptions: { hasStamp: v } })}
+              />
+              <p className="settings-hint">
+                {config.specialOptions.hasStamp
+                  ? '加盖印章：成文日期右空四字，发文机关署名以成文日期为基准居中 (GB/T 9704 7.3.5.1)'
+                  : '不加盖印章：成文日期右空二字，发文机关署名以成文日期为基准居中 (GB/T 9704 7.3.5.2)'}
+              </p>
+              <p className="settings-hint">
+                发文机关署名自动识别：成文日期上一行、不超过15字、不以标点结尾的段落
+              </p>
             </div>
           </section>
 
@@ -629,6 +657,24 @@ export function SettingsModal({ onClose }: SettingsModalProps) {
                     </div>
                   </div>
                 ))}
+                <div className="settings-advanced-row settings-advanced-row--text-fix">
+                  <span className="settings-advanced-label">文本修复</span>
+                  <div className="settings-options">
+                    <CheckboxField
+                      label="一键修复和实时解析时，将英文标点替换为中文标点"
+                      checked={config.textFixOptions.convertEnglishPunctuation}
+                      onChange={(v) => patch({ textFixOptions: { convertEnglishPunctuation: v } })}
+                    />
+                    <CheckboxField
+                      label="一键修复和实时解析时，去除多余空格"
+                      checked={config.textFixOptions.removeRedundantSpaces}
+                      onChange={(v) => patch({ textFixOptions: { removeRedundantSpaces: v } })}
+                    />
+                    <p className="settings-hint">
+                      关闭某项后，预览解析与“一键修复”都会跳过对应处理，仅保留你启用的文本修复规则。
+                    </p>
+                  </div>
+                </div>
               </div>
             )}
           </section>
@@ -636,7 +682,14 @@ export function SettingsModal({ onClose }: SettingsModalProps) {
 
         {/* 底部操作栏 */}
         <div className="settings-footer">
-          <div className="settings-footer-left">
+          <input
+            ref={importInputRef}
+            type="file"
+            accept=".json"
+            onChange={handleImportSettings}
+            style={{ display: 'none' }}
+          />
+          <div className="settings-footer-actions settings-footer-actions--left">
             <a
               className="settings-btn settings-btn--download"
               href="https://github.com/hehecat/gongwen/releases/latest/download/gongwen.html"
@@ -645,79 +698,22 @@ export function SettingsModal({ onClose }: SettingsModalProps) {
             >
               下载离线版
             </a>
-            <button
-              className="settings-btn settings-btn--info"
-              onClick={() => setShowProjectInfo((prev) => !prev)}
-              type="button"
-              aria-expanded={showProjectInfo}
-              aria-controls="settings-project-info"
-            >
-              项目信息
-            </button>
-            {showProjectInfo && (
-              <div className="settings-info-card" id="settings-project-info" role="dialog" aria-label="项目信息">
-                <div className="settings-info-layout">
-                  <div className="settings-info-main">
-                    <div className="settings-info-item">
-                      <span className="settings-info-label">GitHub 地址</span>
-                      <a
-                        className="settings-info-link"
-                        href={PROJECT_INFO.repoUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                      >
-                        {PROJECT_INFO.repoUrl}
-                      </a>
-                    </div>
-                    <div className="settings-info-item">
-                      <span className="settings-info-label">更新版本说明</span>
-                      {PROJECT_INFO.recentUpdates.length > 0 ? (
-                        <ul className="settings-info-list">
-                          {PROJECT_INFO.recentUpdates.map((item) => (
-                            <li key={item}>{item}</li>
-                          ))}
-                        </ul>
-                      ) : (
-                        <p className="settings-hint settings-hint--tight">当前构建未包含可用的提交记录。</p>
-                      )}
-                      <a
-                        className="settings-info-link"
-                        href={PROJECT_INFO.releasesUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                      >
-                        查看全部 Releases
-                      </a>
-                    </div>
-                    <div className="settings-info-item settings-info-contact">
-                      <span className="settings-info-label">作者联系邮箱</span>
-                      <a className="settings-info-link" href={`mailto:${PROJECT_INFO.authorEmail}`}>
-                        {PROJECT_INFO.authorEmail}
-                      </a>
-                    </div>
-                  </div>
-                  <div className="settings-donate">
-                    <span className="settings-info-label settings-info-label--support">打赏作者</span>
-                    <div className="settings-donate-grid">
-                      {DONATION_QR_CODES.map((item) => (
-                        <figure key={item.label} className="settings-donate-card">
-                          <img className="settings-donate-image" src={item.src} alt={`${item.label}收款码`} />
-                          <figcaption className="settings-donate-name">{item.label}</figcaption>
-                        </figure>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
           </div>
           <div className="settings-footer-spacer" />
-          <button className="settings-btn settings-btn--reset" onClick={resetConfig}>
-            恢复默认
-          </button>
-          <button className="settings-btn settings-btn--close" onClick={onClose}>
-            关闭
-          </button>
+          <div className="settings-footer-actions settings-footer-actions--right">
+            <button className="settings-btn settings-btn--close" onClick={handleExportSettings}>
+              导出设置
+            </button>
+            <button className="settings-btn settings-btn--close" onClick={() => importInputRef.current?.click()}>
+              导入设置
+            </button>
+            <button className="settings-btn settings-btn--reset" onClick={resetConfig}>
+              恢复默认
+            </button>
+            <button className="settings-btn settings-btn--save" onClick={onClose}>
+              保存
+            </button>
+          </div>
         </div>
       </div>
     </div>

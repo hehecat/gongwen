@@ -4,16 +4,23 @@ import './Editor.css'
 interface EditorProps {
   value: string
   onChange: (value: string) => void
-  /** 文件导入回调 */
+  canTextCleanup: boolean
+  fixFeedback?: string
   onFileImport: (file: File) => void
-  /** 是否正在导入中 */
+  onTextCleanup: () => void
   importing?: boolean
 }
 
-export const Editor = memo(function Editor({ value, onChange, onFileImport, importing }: EditorProps) {
+export function Editor({
+  value,
+  onChange,
+  canTextCleanup,
+  fixFeedback,
+  onFileImport,
+  onTextCleanup,
+  importing,
+}: EditorProps) {
   const [dragging, setDragging] = useState(false)
-
-  // 使用 ref 计数器避免子元素触发 dragLeave 导致闪烁
   const dragCounterRef = useRef(0)
 
   const handleDragEnter = useCallback((e: DragEvent) => {
@@ -54,9 +61,28 @@ export const Editor = memo(function Editor({ value, onChange, onFileImport, impo
       onDrop={handleDrop}
     >
       <div className="editor-header">
-        <span className="editor-label">粘贴公文正文 或 拖入文件</span>
-        <span className="editor-hint">首行自动识别为标题，后续自动识别各级标题</span>
+        <div className="editor-header-main">
+          <span className="editor-label">原文</span>
+          <span className="editor-hint">左侧只保留原始内容输入，右侧用于排版和局部样式调整</span>
+        </div>
+        <div className="editor-header-actions">
+          {fixFeedback && (
+            <span className="editor-feedback" title={fixFeedback}>
+              {fixFeedback}
+            </span>
+          )}
+          <button
+            type="button"
+            className="editor-action-btn"
+            onClick={onTextCleanup}
+            disabled={!canTextCleanup}
+            title="把原文中的英文标点和多余空格整理成规范公文写法"
+          >
+            整理原文
+          </button>
+        </div>
       </div>
+
       <textarea
         className="editor-textarea"
         value={value}
@@ -64,6 +90,7 @@ export const Editor = memo(function Editor({ value, onChange, onFileImport, impo
         placeholder={`关于XXX的通知\n\n一、总体要求\n为深入贯彻落实……\n（一）指导思想\n坚持以……\n1.加强组织领导\n（1）制定实施方案\n各部门要……`}
         spellCheck={false}
       />
+
       {dragging && (
         <div className="editor-drop-overlay">
           <span>释放文件以导入</span>

@@ -22,12 +22,29 @@ export enum NodeType {
   DATE = 'DATE',
 }
 
+export type ParagraphAlignment = 'left' | 'center' | 'right' | 'justify'
+
+export interface RichTextRun {
+  text: string
+  bold?: boolean
+  italic?: boolean
+  underline?: boolean
+  fontFamily?: string
+  fontSize?: number
+}
+
 /** 单个文档节点 */
 export interface DocumentNode {
   type: NodeType
   content: string
   /** 原始文本中的行号（从 1 开始） */
   lineNumber: number
+  /** 行内富文本片段 */
+  runs?: RichTextRun[]
+  /** 段落对齐方式 */
+  alignment?: ParagraphAlignment
+  /** 取消默认首行缩进 */
+  noIndent?: boolean
 }
 
 /** 附件项 */

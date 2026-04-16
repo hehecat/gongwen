@@ -1,18 +1,23 @@
-import { useState, useCallback, useEffect, useRef, useMemo } from 'react'
+import { useState, useCallback, useEffect, useRef } from 'react'
 import { Editor } from './components/Editor/Editor'
 import { Preview } from './components/Preview/Preview'
 import { Toolbar } from './components/Toolbar/Toolbar'
 import { useDocumentParser } from './hooks/useDocumentParser'
 import { useDocumentConfig } from './contexts/useDocumentConfig'
 import { downloadDocx } from './exporter'
-import { sanitizeText } from './utils/sanitize'
+import { parseGongwen } from './parser'
+import { autoFixDocumentText, sanitizeText } from './utils/sanitize'
 import { importFile } from './utils/fileImporter'
+import {
+  astToStyledHtml,
+} from './utils/richText'
 import './App.css'
 
-const STORAGE_KEY_TEXT = 'docx-editor-text'
+const STORAGE_KEY_TEXT = 'docx-editor-source-text'
+const STORAGE_KEY_FORMATTED = 'docx-editor-formatted-html'
 
 /** 从 localStorage 读取持久化的编辑区文本 */
-function loadText(): string {
+function loadSourceText(): string {
   try {
     return localStorage.getItem(STORAGE_KEY_TEXT) ?? ''
   } catch {
@@ -20,20 +25,22 @@ function loadText(): string {
   }
 }
 
+function loadFormattedHtml(): string {
+  try {
+    return localStorage.getItem(STORAGE_KEY_FORMATTED) ?? ''
+  } catch {
+    return ''
+  }
+}
+
 function App() {
-  const [text, setText] = useState(loadText)
+  const [text, setText] = useState(loadSourceText)
+  const [formattedHtml, setFormattedHtml] = useState(loadFormattedHtml)
   const [importing, setImporting] = useState(false)
-  const [exporting, setExporting] = useState(false)
+  const [fixFeedback, setFixFeedback] = useState('')
 
-  // 自动净化：解析前预处理，编辑器保留原文不干扰输入
-  const sanitized = useMemo(() => sanitizeText(text).text, [text])
-  const ast = useDocumentParser(sanitized)
   const { config } = useDocumentConfig()
-  const configRef = useRef(config)
-
-  useEffect(() => {
-    configRef.current = config
-  }, [config])
+  const ast = useDocumentParser(formattedHtml)
 
   // Auto-Save: debounce 500ms 写入 localStorage
   const timerRef = useRef<ReturnType<typeof setTimeout>>(undefined)
@@ -48,6 +55,27 @@ function App() {
     }, 500)
     return () => clearTimeout(timerRef.current)
   }, [text])
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(STORAGE_KEY_FORMATTED, formattedHtml)
+    } catch {
+      // 静默忽略
+    }
+  }, [formattedHtml])
+
+  useEffect(() => {
+    const sanitized = sanitizeText(text, config.textFixOptions).text
+    const nextAst = parseGongwen(sanitized)
+    setFormattedHtml(astToStyledHtml(nextAst, config))
+  }, [config, text])
+
+  useEffect(() => {
+    if (!fixFeedback) return
+
+    const timer = setTimeout(() => setFixFeedback(''), 3000)
+    return () => clearTimeout(timer)
+  }, [fixFeedback])
 
   const handleExport = useCallback(async () => {
     setExporting(true)
@@ -68,8 +96,10 @@ function App() {
 
   const handleClear = useCallback(() => {
     setText('')
+    setFormattedHtml('')
     try {
       localStorage.removeItem(STORAGE_KEY_TEXT)
+      localStorage.removeItem(STORAGE_KEY_FORMATTED)
     } catch {
       // 静默忽略
     }
@@ -90,6 +120,27 @@ function App() {
     }
   }, [text])
 
+  const handleAutoFix = useCallback(() => {
+    const { textFixOptions } = config
+    if (!textFixOptions.convertEnglishPunctuation && !textFixOptions.removeRedundantSpaces) {
+      setFixFeedback('高级设置中已关闭全部文本修复选项')
+      return
+    }
+
+    const result = autoFixDocumentText(text, textFixOptions)
+    setText(result.text)
+
+    if (result.count === 0) {
+      setFixFeedback('未发现需要修复的标点或空格')
+      return
+    }
+
+    const segments = []
+    if (result.punctuationCount > 0) segments.push(`标点 ${result.punctuationCount} 处`)
+    if (result.whitespaceCount > 0) segments.push(`空格 ${result.whitespaceCount} 处`)
+    setFixFeedback(`已修复 ${result.count} 处：${segments.join('，')}`)
+  }, [config, text])
+
   return (
     <div className="app">
       <Toolbar
@@ -107,10 +158,13 @@ function App() {
             onChange={setText}
             onFileImport={handleImport}
             importing={importing}
+            canTextCleanup={text.trim().length > 0}
+            fixFeedback={fixFeedback}
+            onTextCleanup={handleAutoFix}
           />
         </div>
         <div className="app-preview">
-          <Preview ast={ast} />
+          <Preview value={formattedHtml} onChange={setFormattedHtml} />
         </div>
       </div>
     </div>
