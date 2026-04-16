@@ -59,6 +59,18 @@ describe('getAttachmentParagraphStyle', () => {
 })
 
 describe('getRunStyle', () => {
+  it('一级标题显式使用黑色文字，避免继承 Word 默认蓝色标题样式', () => {
+    const style = getRunStyle(NodeType.HEADING_1, DEFAULT_CONFIG)
+
+    expect(style.color).toBe('000000')
+  })
+
+  it('四级标题显式关闭斜体，避免继承 Word Heading4 默认斜体', () => {
+    const style = getRunStyle(NodeType.HEADING_4, DEFAULT_CONFIG)
+
+    expect(style.italics).toBe(false)
+  })
+
   it('三级标题默认加粗', () => {
     const style = getRunStyle(NodeType.HEADING_3, DEFAULT_CONFIG)
 
@@ -75,5 +87,11 @@ describe('getRunStyle', () => {
     })
 
     expect(style.bold).toBe(false)
+  })
+
+  it('附件说明显式使用黑色文字', () => {
+    const style = getRunStyle(NodeType.PARAGRAPH, DEFAULT_CONFIG)
+
+    expect(style.color).toBe('000000')
   })
 })

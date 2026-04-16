@@ -10,6 +10,8 @@ import { NodeType } from '../types/ast'
 import type { DocumentConfig } from '../types/documentConfig'
 import { ptToTwip, cmToTwip, CHARS_PER_LINE } from '../types/documentConfig'
 
+const DEFAULT_TEXT_COLOR = '000000'
+
 /**
  * 构建 IFontAttributesProperties，支持中英文字体分离
  * 
@@ -200,6 +202,8 @@ export function getRunStyle(type: NodeType, config: DocumentConfig): Partial<IRu
       return {
         font: font(config.title.fontFamily),
         size: titleFontSize,
+        color: DEFAULT_TEXT_COLOR,
+        italics: false,
       }
 
     case NodeType.HEADING_1:
@@ -207,6 +211,8 @@ export function getRunStyle(type: NodeType, config: DocumentConfig): Partial<IRu
         font: font(config.advanced.h1.fontFamily, config.advanced.h1.asciiFontFamily || config.advanced.h1.fontFamily),
         size: config.advanced.h1.fontSize * 2,
         characterSpacing: charSpacing,
+        color: DEFAULT_TEXT_COLOR,
+        italics: false,
       }
 
     case NodeType.HEADING_2:
@@ -214,6 +220,8 @@ export function getRunStyle(type: NodeType, config: DocumentConfig): Partial<IRu
         font: font(config.advanced.h2.fontFamily, config.advanced.h2.asciiFontFamily || config.advanced.h2.fontFamily),
         size: config.advanced.h2.fontSize * 2,
         characterSpacing: charSpacing,
+        color: DEFAULT_TEXT_COLOR,
+        italics: false,
       }
 
     case NodeType.HEADING_3:
@@ -222,6 +230,8 @@ export function getRunStyle(type: NodeType, config: DocumentConfig): Partial<IRu
         size: config.advanced.h3.fontSize * 2,
         bold: config.specialOptions.boldHeading3,
         characterSpacing: charSpacing,
+        color: DEFAULT_TEXT_COLOR,
+        italics: false,
       }
 
     case NodeType.HEADING_4:
@@ -234,6 +244,8 @@ export function getRunStyle(type: NodeType, config: DocumentConfig): Partial<IRu
         font: font(config.body.fontFamily),
         size: bodyFontSize,
         characterSpacing: charSpacing,
+        color: DEFAULT_TEXT_COLOR,
+        italics: false,
       }
   }
 }
@@ -310,5 +322,7 @@ export function getAttachmentRunStyle(config: DocumentConfig): Partial<IRunOptio
     },
     size: bodyFontSize,
     characterSpacing: charSpacing,
+    color: DEFAULT_TEXT_COLOR,
+    italics: false,
   }
 }

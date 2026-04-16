@@ -1,6 +1,6 @@
 import {
   Document, Paragraph, TextRun, Footer, PageNumber,
-  AlignmentType, BorderStyle, LineRuleType,
+  AlignmentType, BorderStyle, HeadingLevel, LineRuleType,
   Table, TableRow, TableCell, WidthType,
   TableAnchorType, RelativeHorizontalPosition, RelativeVerticalPosition, OverlapType,
 } from 'docx'
@@ -283,6 +283,25 @@ function attachmentToParagraphs(
   return paragraphs
 }
 
+function getWordHeadingOptions(nodeType: NodeType): Pick<IParagraphOptions, 'heading' | 'outlineLevel'> | undefined {
+  switch (nodeType) {
+    case NodeType.HEADING_1:
+      return { heading: HeadingLevel.HEADING_1, outlineLevel: 0 }
+    case NodeType.HEADING_2:
+      return { heading: HeadingLevel.HEADING_2, outlineLevel: 1 }
+    case NodeType.HEADING_3:
+      return { heading: HeadingLevel.HEADING_3, outlineLevel: 2 }
+    case NodeType.HEADING_4:
+      return { heading: HeadingLevel.HEADING_4, outlineLevel: 3 }
+    default:
+      return undefined
+  }
+}
+
+export function getWordHeadingMeta(nodeType: NodeType): Pick<IParagraphOptions, 'heading' | 'outlineLevel'> | undefined {
+  return getWordHeadingOptions(nodeType)
+}
+
 /** 将单个 AST 节点转换为 docx Paragraph */
 function nodeToParagraph(
   node: DocumentNode,
@@ -310,10 +329,12 @@ function nodeToParagraph(
   const baseParagraphStyle = useCharacterIndent
     ? { ...paragraphStyle, indent: undefined }
     : paragraphStyle
+  const wordHeadingOptions = getWordHeadingOptions(node.type)
 
   function createParagraph(children: TextRun[]): Paragraph {
     const paragraph = new Paragraph({
       ...baseParagraphStyle,
+      ...wordHeadingOptions,
       children,
     })
 
