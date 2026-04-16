@@ -1,4 +1,4 @@
-import { useDeferredValue, useRef, useMemo, type CSSProperties } from 'react'
+import { startTransition, useDeferredValue, useMemo, useRef, useState, type CSSProperties } from 'react'
 import type { GongwenAST } from '../../types/ast'
 import { useDocumentConfig } from '../../contexts/useDocumentConfig'
 import { cmToPagePercent, CHARS_PER_LINE } from '../../types/documentConfig'
@@ -13,10 +13,23 @@ interface PreviewProps {
   ast: GongwenAST
 }
 
+const LARGE_DOCUMENT_PREVIEW_THRESHOLD = 5000
+const LARGE_DOCUMENT_SAMPLE_SIZE = 200
+
 export function Preview({ ast }: PreviewProps) {
   const measurerRef = useRef<HTMLDivElement>(null)
   const { config } = useDocumentConfig()
   const deferredConfig = useDeferredValue(config)
+  const isLargeDocument = ast.body.length > LARGE_DOCUMENT_PREVIEW_THRESHOLD
+  const previewDocKey = `${ast.title?.content ?? ''}:${ast.body.length}:${ast.body[0]?.content ?? ''}`
+  const [fullPreviewDocKey, setFullPreviewDocKey] = useState<string | null>(null)
+  const isFullPreview = isLargeDocument && fullPreviewDocKey === previewDocKey
+  const isSamplePreview = isLargeDocument && !isFullPreview
+  const previewBody = useMemo(
+    () => (isSamplePreview ? ast.body.slice(0, LARGE_DOCUMENT_SAMPLE_SIZE) : ast.body),
+    [ast.body, isSamplePreview],
+  )
+
   const paginationConfig = useMemo(() => ({
     margins: {
       top: deferredConfig.margins.top,
@@ -96,7 +109,7 @@ export function Preview({ ast }: PreviewProps) {
     deferredConfig.specialOptions.boldHeading3,
     deferredConfig.specialOptions.hasStamp,
   ])
-  const pages = usePagination(ast.title, ast.body, measurerRef, paginationConfig)
+  const pages = usePagination(ast.title, previewBody, measurerRef, paginationConfig)
 
   /** 将 config 转换为 CSS 自定义属性 */
   const cssVars = useMemo((): CSSProperties => {
@@ -139,8 +152,34 @@ export function Preview({ ast }: PreviewProps) {
   return (
     <div className="preview-container">
       <div className="preview-header">
-        <span className="preview-label">预览</span>
-        <span className="preview-hint">共 {pages.length} 页</span>
+        <div className="preview-header-main">
+          <span className="preview-label">预览</span>
+          <span className="preview-hint">
+            {isSamplePreview
+              ? `抽样预览 ${pages.length} 页`
+              : `共 ${pages.length} 页`}
+          </span>
+        </div>
+        {isLargeDocument && (
+          <div className="preview-actions">
+            <span className="preview-mode-note">
+              {isSamplePreview
+                ? `大文档模式：仅预览前 ${LARGE_DOCUMENT_SAMPLE_SIZE} 段，共 ${ast.body.length} 段，导出不受影响`
+                : `已启用完整预览：当前共 ${ast.body.length} 段，调整字体和行距时可能卡顿`}
+            </span>
+            <button
+              type="button"
+              className="preview-action-btn"
+              onClick={() => {
+                startTransition(() => {
+                  setFullPreviewDocKey((prev) => (prev === previewDocKey ? null : previewDocKey))
+                })
+              }}
+            >
+              {isSamplePreview ? '完整预览（可能卡顿）' : '恢复快速预览'}
+            </button>
+          </div>
+        )}
       </div>
       <div className="preview-scroll" style={cssVars}>
         {/* 隐藏度量容器：渲染全部节点用于高度测量（与 A4Page 使用相同的 CSS 类和渲染逻辑） */}
@@ -148,7 +187,7 @@ export function Preview({ ast }: PreviewProps) {
           <div className="a4-measurer-content">
             <DocumentFlow
               title={ast.title}
-              body={ast.body}
+              body={previewBody}
               boldFirstSentence={boldFirst}
               boldHeading3={boldHeading3}
               hasStamp={deferredConfig.specialOptions.hasStamp}
@@ -161,7 +200,7 @@ export function Preview({ ast }: PreviewProps) {
           <A4Page
             key={index}
             title={ast.title}
-            body={ast.body}
+            body={previewBody}
             pageNumber={index + 1}
             offsetY={slice.offsetY}
             clipHeight={slice.clipHeight}

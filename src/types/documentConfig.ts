@@ -207,14 +207,14 @@ export const FONT_SIZE_OPTIONS: { label: string; value: number }[] = [
 }))
 
 export const LINE_SPACING_OPTIONS: { label: string; value: number }[] = [
-  { label: '22磅', value: 22 },
-  { label: '24磅', value: 24 },
-  { label: '26磅', value: 26 },
-  { label: '28磅', value: 28 },
-  { label: '29磅', value: 29 },
-  { label: '29.6磅', value: 29.6 },
-  { label: '30磅', value: 30 },
-  { label: '32磅', value: 32 },
+  { label: '22', value: 22 },
+  { label: '24', value: 24 },
+  { label: '26', value: 26 },
+  { label: '28', value: 28 },
+  { label: '29', value: 29 },
+  { label: '29.6', value: 29.6 },
+  { label: '30', value: 30 },
+  { label: '32', value: 32 },
 ]
 
 export const INDENT_OPTIONS: { label: string; value: number }[] = [

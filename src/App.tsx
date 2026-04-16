@@ -23,6 +23,8 @@ function loadText(): string {
 function App() {
   const [text, setText] = useState(loadText)
   const [importing, setImporting] = useState(false)
+  const [exporting, setExporting] = useState(false)
+  const [exportMessage, setExportMessage] = useState('导出 Word')
 
   // 自动净化：解析前预处理，编辑器保留原文不干扰输入
   const sanitized = useMemo(() => sanitizeText(text).text, [text])
@@ -49,11 +51,23 @@ function App() {
   }, [text])
 
   const handleExport = useCallback(async () => {
+    setExporting(true)
+    setExportMessage('准备导出…')
+
+    await new Promise<void>((resolve) => {
+      requestAnimationFrame(() => resolve())
+    })
+
     try {
-      await downloadDocx(ast, configRef.current)
+      await downloadDocx(ast, configRef.current, ({ message }) => {
+        setExportMessage(message)
+      })
     } catch (err) {
       console.error('导出失败:', err)
       alert('导出失败，请检查控制台日志')
+    } finally {
+      setExporting(false)
+      setExportMessage('导出 Word')
     }
   }, [ast])
 
@@ -89,6 +103,8 @@ function App() {
         onClear={handleClear}
         onImport={handleImport}
         importing={importing}
+        exporting={exporting}
+        exportMessage={exportMessage}
       />
       <div className="app-main">
         <div className="app-editor">

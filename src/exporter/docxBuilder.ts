@@ -4,7 +4,7 @@ import {
   Table, TableRow, TableCell, WidthType,
   TableAnchorType, RelativeHorizontalPosition, RelativeVerticalPosition, OverlapType,
 } from 'docx'
-import type { IRunOptions, IBorderOptions } from 'docx'
+import type { IRunOptions, IBorderOptions, IParagraphOptions } from 'docx'
 import type { GongwenAST, DocumentNode, AttachmentNode } from '../types/ast'
 import { NodeType } from '../types/ast'
 import type { DocumentConfig, PageNumberStyle } from '../types/documentConfig'
@@ -15,8 +15,82 @@ import {
   getRunStyle,
   getAttachmentParagraphStyle,
   getAttachmentRunStyle,
-  shouldUseCharacterFirstLineIndent,
 } from './styleFactory'
+
+type StaticParagraphType =
+  | NodeType.DOCUMENT_TITLE
+  | NodeType.HEADING_1
+  | NodeType.HEADING_2
+  | NodeType.HEADING_3
+  | NodeType.HEADING_4
+  | NodeType.ADDRESSEE
+  | NodeType.PARAGRAPH
+  | NodeType.DATE
+
+interface BuildStyleCache {
+  attachmentRunStyle: Partial<IRunOptions>
+  bodyRunStyle: Partial<IRunOptions>
+  runStyles: Record<NodeType, Partial<IRunOptions>>
+  paragraphStyles: Record<StaticParagraphType, Partial<IParagraphOptions>>
+  attachmentParagraphStyles: {
+    single: Partial<IParagraphOptions>
+    singleNoSpacingBefore: Partial<IParagraphOptions>
+    multiFirst: Partial<IParagraphOptions>
+    multiFirstNoSpacingBefore: Partial<IParagraphOptions>
+    multiRest: Partial<IParagraphOptions>
+  }
+  useCharacterIndent: Set<NodeType>
+}
+
+function createBuildStyleCache(config: DocumentConfig): BuildStyleCache {
+  const paragraphNodeTypes: StaticParagraphType[] = [
+    NodeType.DOCUMENT_TITLE,
+    NodeType.HEADING_1,
+    NodeType.HEADING_2,
+    NodeType.HEADING_3,
+    NodeType.HEADING_4,
+    NodeType.ADDRESSEE,
+    NodeType.PARAGRAPH,
+    NodeType.DATE,
+  ]
+
+  const runNodeTypes: NodeType[] = [
+    NodeType.DOCUMENT_TITLE,
+    NodeType.HEADING_1,
+    NodeType.HEADING_2,
+    NodeType.HEADING_3,
+    NodeType.HEADING_4,
+    NodeType.ADDRESSEE,
+    NodeType.PARAGRAPH,
+    NodeType.SIGNATURE,
+    NodeType.DATE,
+  ]
+
+  return {
+    attachmentRunStyle: getAttachmentRunStyle(config),
+    bodyRunStyle: getRunStyle(NodeType.PARAGRAPH, config),
+    runStyles: Object.fromEntries(
+      runNodeTypes.map((type) => [type, getRunStyle(type, config)]),
+    ) as Record<NodeType, Partial<IRunOptions>>,
+    paragraphStyles: Object.fromEntries(
+      paragraphNodeTypes.map((type) => [type, getParagraphStyle(type, config)]),
+    ) as Record<StaticParagraphType, Partial<IParagraphOptions>>,
+    attachmentParagraphStyles: {
+      single: getAttachmentParagraphStyle(false, false, config, false),
+      singleNoSpacingBefore: getAttachmentParagraphStyle(false, false, config, true),
+      multiFirst: getAttachmentParagraphStyle(true, true, config, false),
+      multiFirstNoSpacingBefore: getAttachmentParagraphStyle(true, true, config, true),
+      multiRest: getAttachmentParagraphStyle(true, false, config, false),
+    },
+    useCharacterIndent: new Set([
+      NodeType.HEADING_1,
+      NodeType.HEADING_2,
+      NodeType.HEADING_3,
+      NodeType.HEADING_4,
+      NodeType.PARAGRAPH,
+    ]),
+  }
+}
 
 // ---- 无边框定义（用于版头表格） ----
 
@@ -104,7 +178,11 @@ function pageNumberParagraph(
  * 拆分标题首句：首句（到第一个"。"）用标题字体/样式，其余用仿宋正文样式
  * 适用于一至四级标题（黑体/楷体/仿宋加粗 + 仿宋正文）
  */
-function splitHeadingSentence(content: string, headingStyle: Partial<IRunOptions>, config: DocumentConfig): TextRun[] {
+function splitHeadingSentence(
+  content: string,
+  headingStyle: Partial<IRunOptions>,
+  bodyStyle: Partial<IRunOptions>,
+): TextRun[] {
   const idx = content.indexOf('。')
   if (idx === -1 || idx === content.length - 1) {
     return [new TextRun({ ...headingStyle, text: content })]
@@ -112,7 +190,6 @@ function splitHeadingSentence(content: string, headingStyle: Partial<IRunOptions
 
   const headingText = content.slice(0, idx + 1)
   const bodyText = content.slice(idx + 1)
-  const bodyStyle = getRunStyle(NodeType.PARAGRAPH, config)
 
   return [
     new TextRun({ ...headingStyle, text: headingText }),
@@ -148,15 +225,17 @@ function splitBoldFirstSentence(content: string, runStyle: Partial<IRunOptions>)
  */
 function attachmentToParagraphs(
   node: AttachmentNode,
-  config: DocumentConfig,
+  cache: BuildStyleCache,
   omitSpacingBefore = false
 ): Paragraph[] {
   const paragraphs: Paragraph[] = []
-  const runStyle = getAttachmentRunStyle(config)
+  const runStyle = cache.attachmentRunStyle
 
   if (!node.isMultiple) {
     // 单附件模式
-    const paragraphStyle = getAttachmentParagraphStyle(false, false, config, omitSpacingBefore)
+    const paragraphStyle = omitSpacingBefore
+      ? cache.attachmentParagraphStyles.singleNoSpacingBefore
+      : cache.attachmentParagraphStyles.single
     paragraphs.push(
       new Paragraph({
         ...paragraphStyle,
@@ -170,12 +249,11 @@ function attachmentToParagraphs(
     // 多附件模式
     node.items.forEach((item, index) => {
       const isFirst = index === 0
-      const paragraphStyle = getAttachmentParagraphStyle(
-        true,
-        isFirst,
-        config,
-        omitSpacingBefore && isFirst,
-      )
+      const paragraphStyle = isFirst
+        ? (omitSpacingBefore
+          ? cache.attachmentParagraphStyles.multiFirstNoSpacingBefore
+          : cache.attachmentParagraphStyles.multiFirst)
+        : cache.attachmentParagraphStyles.multiRest
 
       if (isFirst) {
         // 第一个附件：附件：1.xxx
@@ -209,13 +287,17 @@ function attachmentToParagraphs(
 function nodeToParagraph(
   node: DocumentNode,
   config: DocumentConfig,
+  cache: BuildStyleCache,
   spacingBefore = 0,
   signatureContent?: string,
   dateContent?: string
 ): Paragraph {
-  let paragraphStyle = getParagraphStyle(node.type, config, signatureContent, dateContent)
-  const runStyle = getRunStyle(node.type, config)
-  const useCharacterIndent = shouldUseCharacterFirstLineIndent(node.type)
+  let paragraphStyle =
+    node.type === NodeType.SIGNATURE
+      ? getParagraphStyle(node.type, config, signatureContent, dateContent)
+      : cache.paragraphStyles[node.type as StaticParagraphType] ?? getParagraphStyle(node.type, config)
+  const runStyle = cache.runStyles[node.type] ?? getRunStyle(node.type, config)
+  const useCharacterIndent = cache.useCharacterIndent.has(node.type)
 
   // 外部传入的额外 spacing.before（如版头后标题空二行）
   if (spacingBefore > 0) {
@@ -255,7 +337,7 @@ function nodeToParagraph(
     node.type === NodeType.HEADING_3 ||
     node.type === NodeType.HEADING_4
   ) {
-    return createParagraph(splitHeadingSentence(node.content, runStyle, config))
+    return createParagraph(splitHeadingSentence(node.content, runStyle, cache.bodyRunStyle))
   }
 
   // 正文首句加粗
@@ -274,6 +356,7 @@ function nodeToParagraph(
 /** 将完整 GongwenAST 转换为 docx Document */
 export function buildDocument(ast: GongwenAST, config: DocumentConfig): Document {
   const children: (Paragraph | Table)[] = []
+  const cache = createBuildStyleCache(config)
 
   // ---- 版头段落 ----
   if (config.header.enabled && config.header.orgName) {
@@ -388,7 +471,7 @@ export function buildDocument(ast: GongwenAST, config: DocumentConfig): Document
     : 0
 
   if (ast.title) {
-    children.push(nodeToParagraph(ast.title, config, titleSpacingBefore))
+    children.push(nodeToParagraph(ast.title, config, cache, titleSpacingBefore))
   }
 
   for (let i = 0; i < ast.body.length; i++) {
@@ -418,7 +501,7 @@ export function buildDocument(ast: GongwenAST, config: DocumentConfig): Document
     if (node.type === NodeType.ATTACHMENT) {
       const attachmentParagraphs = attachmentToParagraphs(
         node as AttachmentNode,
-        config,
+        cache,
         isFirstBodyNode,
       )
       children.push(...attachmentParagraphs)
@@ -427,9 +510,9 @@ export function buildDocument(ast: GongwenAST, config: DocumentConfig): Document
     
     // 对于 SIGNATURE 节点，查找下一个节点是否为 DATE
     if (node.type === NodeType.SIGNATURE && i + 1 < ast.body.length && ast.body[i + 1].type === NodeType.DATE) {
-      children.push(nodeToParagraph(node, config, 0, node.content, ast.body[i + 1].content))
+      children.push(nodeToParagraph(node, config, cache, 0, node.content, ast.body[i + 1].content))
     } else {
-      children.push(nodeToParagraph(node, config))
+      children.push(nodeToParagraph(node, config, cache))
     }
   }
 
