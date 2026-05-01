@@ -353,6 +353,12 @@
   margin-bottom: 0;
 }
 
+.settings-advanced-row--text-fix {
+  margin-top: 18px;
+  padding-top: 14px;
+  border-top: 1px dashed #e5e7eb;
+}
+
 .settings-advanced-label {
   display: block;
   font-size: 13px;
@@ -371,11 +377,14 @@
   flex-shrink: 0;
 }
 
-.settings-footer-left {
+.settings-footer-actions {
   display: flex;
   align-items: center;
-  gap: 8px;
-  position: relative;
+  gap: 10px;
+}
+
+.settings-footer-actions--right {
+  justify-content: flex-end;
 }
 
 .settings-footer-spacer {
@@ -408,6 +417,15 @@
 
 .settings-btn--close:hover {
   background: #e5e7eb;
+}
+
+.settings-btn--save {
+  background: #2563eb;
+  color: #fff;
+}
+
+.settings-btn--save:hover {
+  background: #1d4ed8;
 }
 
 .settings-btn--download {

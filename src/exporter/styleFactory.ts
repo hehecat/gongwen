@@ -5,12 +5,14 @@ import {
   type IRunOptions,
   type IFontAttributesProperties,
   LineRuleType,
+  UnderlineType,
 } from 'docx'
-import { NodeType } from '../types/ast'
+import { NodeType, type ParagraphAlignment, type RichTextRun } from '../types/ast'
 import type { DocumentConfig } from '../types/documentConfig'
 import { ptToTwip, cmToTwip, CHARS_PER_LINE } from '../types/documentConfig'
 
-const DEFAULT_TEXT_COLOR = '000000'
+const TITLE_DATE_RE = /^[（(]?\d{4}年\d{1,2}月\d{1,2}日[）)]?$/
+const TITLE_NAME_RE = /^[\u4e00-\u9fff]{2,4}$/
 
 /**
  * 构建 IFontAttributesProperties，支持中英文字体分离
@@ -117,7 +119,11 @@ export function getParagraphStyle(
   type: NodeType,
   config: DocumentConfig,
   signatureContent?: string,
-  dateContent?: string
+  dateContent?: string,
+  isTitleDate = false,
+  isTitleName = false,
+  manualAlignment?: ParagraphAlignment,
+  noIndent = false,
 ): Partial<IParagraphOptions> {
   const lineSpacingValue = ptToTwip(config.body.lineSpacing)
   const firstLineIndentTwips = calculateFirstLineIndent(config)
@@ -132,61 +138,107 @@ export function getParagraphStyle(
 
   const BODY_INDENT = { firstLine: firstLineIndentTwips, left: 0 } as const
 
+  let style: Partial<IParagraphOptions>
+
   switch (type) {
     case NodeType.DOCUMENT_TITLE:
-      return {
+      style = {
         alignment: AlignmentType.CENTER,
         spacing: {
           line: ptToTwip(config.title.lineSpacing),
           lineRule: LineRuleType.EXACT,
           before: 0,
-          after: ptToTwip(config.body.lineSpacing),
+          after: 0,
         },
       }
+      break
 
     case NodeType.ADDRESSEE:
-      return {
+      style = {
         alignment: AlignmentType.JUSTIFIED,
         spacing: BASE_SPACING,
         indent: { left: 0 },
       }
+      break
 
     case NodeType.ATTACHMENT:
-      return {
+      style = {
         alignment: AlignmentType.JUSTIFIED,
         spacing: { ...BASE_SPACING, before: lineSpacingValue },
         indent: { left: 2 * charWidthTwips },
       }
+      break
 
     case NodeType.SIGNATURE:
       if (!signatureContent || !dateContent) {
-        return {
+        style = {
           alignment: AlignmentType.RIGHT,
           spacing: BASE_SPACING,
           indent: { right: (config.specialOptions.hasStamp ? 4 : 2) * charWidthTwips },
         }
+        break
       }
-      return {
+      style = {
         alignment: AlignmentType.RIGHT,
         spacing: BASE_SPACING,
         indent: { right: calculateSignatureIndent(signatureContent, dateContent, config) },
       }
+      break
 
     case NodeType.DATE:
+      if (isTitleDate) {
+        style = {
+          alignment: AlignmentType.CENTER,
+          spacing: BASE_SPACING,
+        }
+        break
+      }
       // GB/T 9704: 加盖印章右空四字，不加盖印章右空二字
-      return {
+      style = {
         alignment: AlignmentType.RIGHT,
         spacing: BASE_SPACING,
         indent: { right: (config.specialOptions.hasStamp ? 4 : 2) * charWidthTwips },
       }
+      break
 
     // 正文及所有标题级别：两端对齐 + 首行缩进
     default:
-      return {
+      style = {
         alignment: AlignmentType.JUSTIFIED,
         spacing: BASE_SPACING,
         indent: BODY_INDENT,
       }
+      break
+  }
+
+  if (type === NodeType.PARAGRAPH && noIndent) {
+    style = {
+      ...style,
+      indent: { left: 0, right: 0, firstLine: 0 },
+    }
+  }
+
+  if (isTitleName || isTitleDate) {
+    style = {
+      ...style,
+      alignment: AlignmentType.CENTER,
+      indent: { left: 0, right: 0, firstLine: 0 },
+    }
+  }
+
+  if (!manualAlignment) return style
+
+  const alignmentMap = {
+    left: AlignmentType.LEFT,
+    center: AlignmentType.CENTER,
+    right: AlignmentType.RIGHT,
+    justify: AlignmentType.JUSTIFIED,
+  } as const
+
+  return {
+    ...style,
+    alignment: alignmentMap[manualAlignment],
+    indent: manualAlignment === 'justify' ? style.indent : { left: 0, right: 0, firstLine: 0 },
   }
 }
 
@@ -253,6 +305,53 @@ export function getRunStyle(type: NodeType, config: DocumentConfig): Partial<IRu
         color: DEFAULT_TEXT_COLOR,
         italics: false,
       }
+  }
+}
+
+export function isTitleDateLine(text: string): boolean {
+  return TITLE_DATE_RE.test(text.trim())
+}
+
+export function isTitleNameLine(text: string): boolean {
+  return TITLE_NAME_RE.test(text.trim())
+}
+
+export function getTitleDateRunStyle(config: DocumentConfig): Partial<IRunOptions> {
+  return {
+    font: font('楷体_GB2312', '楷体_GB2312'),
+    size: 16 * 2,
+    characterSpacing: Math.floor(
+      (11906 - cmToTwip(config.margins.left) - cmToTwip(config.margins.right)) / CHARS_PER_LINE - config.body.fontSize * 20,
+    ),
+  }
+}
+
+export function getTitleNameRunStyle(config: DocumentConfig): Partial<IRunOptions> {
+  return getTitleDateRunStyle(config)
+}
+
+export function hasRichStyleOverrides(runs?: RichTextRun[]): boolean {
+  return !!runs?.some((run) => (
+    run.bold ||
+    run.italic ||
+    run.underline ||
+    !!run.fontFamily ||
+    !!run.fontSize
+  ))
+}
+
+export function buildRunStyleOverride(
+  baseStyle: Partial<IRunOptions>,
+  run: RichTextRun,
+): Partial<IRunOptions> {
+  return {
+    ...baseStyle,
+    text: run.text,
+    ...(run.fontFamily ? { font: font(run.fontFamily, run.fontFamily) } : {}),
+    ...(run.fontSize ? { size: run.fontSize * 2 } : {}),
+    ...(run.bold !== undefined ? { bold: run.bold } : {}),
+    ...(run.italic !== undefined ? { italics: run.italic } : {}),
+    ...(run.underline ? { underline: { type: UnderlineType.SINGLE } } : {}),
   }
 }
 
