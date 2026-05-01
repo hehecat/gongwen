@@ -135,9 +135,10 @@ function NumberInputField({
 }) {
   const [draft, setDraft] = useState(String(value))
   const filterText = draft.trim()
+  const validOptions = options.filter((opt) => opt.value >= min && opt.value <= max)
   const filteredOptions = filterText.length > 0
-    ? options.filter((opt) => opt.label.includes(filterText) || String(opt.value).includes(filterText))
-    : options
+    ? validOptions.filter((opt) => opt.label.includes(filterText) || String(opt.value).includes(filterText))
+    : validOptions
   const selectedOption = options.find((opt) => opt.value === value)
   const {
     activeIdx,
@@ -189,6 +190,12 @@ function NumberInputField({
   }
 
   function handleSelect(nextValue: number) {
+    if (parseNumber(String(nextValue)) === null) {
+      setDraft(String(value))
+      closeDropdown()
+      inputRef.current?.blur()
+      return
+    }
     onChange(nextValue)
     setDraft(String(nextValue))
     closeDropdown()
@@ -310,6 +317,14 @@ export function SettingsModal({ onClose }: SettingsModalProps) {
   const FONT_SIZE_MAX = 72
   const LINE_SPACING_MIN = 10
   const LINE_SPACING_MAX = 120
+  const titleLineSpacingMin = Math.max(LINE_SPACING_MIN, config.title.fontSize)
+  const bodyLineSpacingMin = Math.max(
+    LINE_SPACING_MIN,
+    config.body.fontSize,
+    config.advanced.h1.fontSize,
+    config.advanced.h2.fontSize,
+    config.advanced.h3.fontSize,
+  )
 
   /** 通用字体选择属性（中文字体） */
   const fontFieldProps = {
@@ -460,12 +475,12 @@ export function SettingsModal({ onClose }: SettingsModalProps) {
                 max={FONT_SIZE_MAX}
                 unit="pt"
                 options={FONT_SIZE_OPTIONS}
-                onChange={(v) => patch({ title: { fontSize: v } })}
+                onChange={(v) => patch({ title: { fontSize: v, lineSpacing: Math.max(config.title.lineSpacing, v) } })}
               />
               <NumberInputField
                 label="行距"
                 value={config.title.lineSpacing}
-                min={LINE_SPACING_MIN}
+                min={titleLineSpacingMin}
                 max={LINE_SPACING_MAX}
                 unit="磅"
                 options={LINE_SPACING_OPTIONS}
@@ -491,12 +506,12 @@ export function SettingsModal({ onClose }: SettingsModalProps) {
                 max={FONT_SIZE_MAX}
                 unit="pt"
                 options={FONT_SIZE_OPTIONS}
-                onChange={(v) => patch({ body: { fontSize: v } })}
+                onChange={(v) => patch({ body: { fontSize: v, lineSpacing: Math.max(config.body.lineSpacing, v) } })}
               />
               <NumberInputField
                 label="行距"
                 value={config.body.lineSpacing}
-                min={LINE_SPACING_MIN}
+                min={bodyLineSpacingMin}
                 max={LINE_SPACING_MAX}
                 unit="磅"
                 options={LINE_SPACING_OPTIONS}
@@ -623,7 +638,10 @@ export function SettingsModal({ onClose }: SettingsModalProps) {
                         unit="pt"
                         options={FONT_SIZE_OPTIONS}
                         onChange={(v) =>
-                          patch({ advanced: { [key]: { fontSize: v } } })
+                          patch({
+                            advanced: { [key]: { fontSize: v } },
+                            body: { lineSpacing: Math.max(config.body.lineSpacing, v) },
+                          })
                         }
                       />
                     </div>

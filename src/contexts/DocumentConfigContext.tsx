@@ -58,9 +58,9 @@ type Action =
 function configReducer(state: DocumentConfig, action: Action): DocumentConfig {
   switch (action.type) {
     case 'update':
-      return deepMerge(state, action.patch)
+      return normalizeLineSpacing(deepMerge(state, action.patch))
     case 'reset':
-      return DEFAULT_CONFIG
+      return normalizeLineSpacing(DEFAULT_CONFIG)
   }
 }
 
@@ -87,18 +87,48 @@ function migrateLegacyHeadingConfig(parsed: LegacyDocumentConfig): DeepPartial<D
   }
 }
 
+function normalizeLineSpacing(config: DocumentConfig): DocumentConfig {
+  const titleLineSpacing = Math.max(config.title.lineSpacing, config.title.fontSize)
+  const bodyLineSpacing = Math.max(
+    config.body.lineSpacing,
+    config.body.fontSize,
+    config.advanced.h1.fontSize,
+    config.advanced.h2.fontSize,
+    config.advanced.h3.fontSize,
+  )
+
+  if (
+    titleLineSpacing === config.title.lineSpacing
+    && bodyLineSpacing === config.body.lineSpacing
+  ) {
+    return config
+  }
+
+  return {
+    ...config,
+    title: {
+      ...config.title,
+      lineSpacing: titleLineSpacing,
+    },
+    body: {
+      ...config.body,
+      lineSpacing: bodyLineSpacing,
+    },
+  }
+}
+
 /** 从 localStorage 读取配置，深合并到默认值（兼容旧版缺字段） */
 function loadConfig(): DocumentConfig {
   try {
     const raw = localStorage.getItem(STORAGE_KEY)
     if (raw) {
       const parsed = migrateLegacyHeadingConfig(JSON.parse(raw) as LegacyDocumentConfig)
-      return deepMerge(DEFAULT_CONFIG, parsed)
+      return normalizeLineSpacing(deepMerge(DEFAULT_CONFIG, parsed))
     }
   } catch {
     // 解析失败则使用默认值
   }
-  return DEFAULT_CONFIG
+  return normalizeLineSpacing(DEFAULT_CONFIG)
 }
 
 // ---- Provider ----

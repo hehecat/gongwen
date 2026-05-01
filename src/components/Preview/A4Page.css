@@ -2,7 +2,7 @@
 .a4-page {
   position: relative;
   width: 100%;
-  max-width: 595px; /* A4 @ 72dpi */
+  max-width: 595.28px; /* A4 210mm @ 72dpi */
   aspect-ratio: 210 / 297;
   margin: 0 auto;
   background: white;
@@ -246,7 +246,7 @@
   position: absolute;
   top: 0;
   left: 0;
-  max-width: 595px;
+  max-width: 595.28px;
   visibility: hidden;
   pointer-events: none;
   z-index: -1;

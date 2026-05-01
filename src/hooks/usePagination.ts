@@ -1,5 +1,6 @@
 import { useEffect, useState, type RefObject } from 'react'
 import type { DocumentNode } from '../types/ast'
+import { A4_PREVIEW_WIDTH_PX } from '../types/documentConfig'
 
 /** 单页裁剪信息 */
 export interface PageSlice {
@@ -124,7 +125,7 @@ export function usePagination(
         const cs = getComputedStyle(scrollContainer)
         const contentWidth = scrollContainer.clientWidth
           - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight)
-        el.style.width = `${Math.min(contentWidth, 595)}px`
+        el.style.width = `${Math.min(contentWidth, A4_PREVIEW_WIDTH_PX)}px`
       }
 
       // ② 读取 .a4-content 内容区全量高度（= 页面高度 - 上下 padding）
@@ -150,7 +151,7 @@ export function usePagination(
       const headerSection = scrollContainer.querySelector('.a4-header-section') as HTMLElement | null
       if (headerSection) {
         const hs = getComputedStyle(headerSection)
-        headerHeight = headerSection.offsetHeight
+        headerHeight = headerSection.getBoundingClientRect().height
           + parseFloat(hs.marginTop) + parseFloat(hs.marginBottom)
       }
 
@@ -158,7 +159,7 @@ export function usePagination(
       let footerNoteHeight = 0
       const footerNote = scrollContainer.querySelector('.a4-footer-note') as HTMLElement | null
       if (footerNote) {
-        footerNoteHeight = footerNote.offsetHeight
+        footerNoteHeight = footerNote.getBoundingClientRect().height
       }
 
       // 首页可用高度 = 全量 - 版头占位
@@ -180,10 +181,12 @@ export function usePagination(
       // ⑥ 收集所有行的 top/bottom 位置
       interface LinePos { top: number; bottom: number }
       const lines: LinePos[] = []
+      const contentRect = contentEl.getBoundingClientRect()
 
       for (const p of paragraphs) {
-        const pTop = p.offsetTop
-        const pHeight = p.offsetHeight
+        const pRect = p.getBoundingClientRect()
+        const pTop = pRect.top - contentRect.top
+        const pHeight = pRect.height
         const computedStyle = getComputedStyle(p)
         const lineHeight = parseFloat(computedStyle.lineHeight)
 

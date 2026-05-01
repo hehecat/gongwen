@@ -237,6 +237,9 @@ export const CHARS_PER_LINE = 28
 /** 每页行数 */
 export const LINES_PER_PAGE = 22
 
+/** A4 预览宽度：210mm @ 72dpi */
+export const A4_PREVIEW_WIDTH_PX = 595.28
+
 // ---- 单位转换工具函数 ----
 
 /** 厘米 → twip (1cm = 567 twip) */

@@ -1,7 +1,7 @@
 import { startTransition, useDeferredValue, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
 import type { GongwenAST } from '../../types/ast'
 import { useDocumentConfig } from '../../contexts/useDocumentConfig'
-import { cmToPagePercent, CHARS_PER_LINE } from '../../types/documentConfig'
+import { A4_PREVIEW_WIDTH_PX, cmToPagePercent, CHARS_PER_LINE } from '../../types/documentConfig'
 import { usePagination } from '../../hooks/usePagination'
 import { getPreviewFontFamily } from '../../utils/fontAliases'
 import { A4Page } from './A4Page'
@@ -26,7 +26,7 @@ interface CharacterMeasure {
 export function Preview({ ast }: PreviewProps) {
   const measurerRef = useRef<HTMLDivElement>(null)
   const scrollRef = useRef<HTMLDivElement>(null)
-  const [pageWidthPx, setPageWidthPx] = useState(595)
+  const [pageWidthPx, setPageWidthPx] = useState(A4_PREVIEW_WIDTH_PX)
   const [contentWidthPx, setContentWidthPx] = useState<number | null>(null)
   const [characterMeasure, setCharacterMeasure] = useState<CharacterMeasure | null>(null)
   const { config } = useDocumentConfig()
@@ -141,7 +141,7 @@ export function Preview({ ast }: PreviewProps) {
       const contentWidth = current.clientWidth
         - parseFloat(style.paddingLeft)
         - parseFloat(style.paddingRight)
-      const nextWidth = Math.min(595, Math.max(1, contentWidth))
+      const nextWidth = Math.min(A4_PREVIEW_WIDTH_PX, Math.max(1, contentWidth))
       setPageWidthPx((prev) => (Math.abs(prev - nextWidth) > 0.5 ? nextWidth : prev))
 
       const viewport = current.querySelector('.a4-page .a4-content-viewport') as HTMLElement | null
