@@ -531,12 +531,18 @@ export function SettingsModal({ onClose }: SettingsModalProps) {
           {/* 区块 3: 正文格式 */}
           <section className="settings-section">
             <h3 className="settings-section-title">正文格式</h3>
-            <div className="settings-grid settings-grid--2">
+            <div className="settings-grid settings-grid--3">
               <FontSelectField
-                label="字体"
+                label="中文字体"
                 value={config.body.fontFamily}
                 {...fontFieldProps}
                 onChange={(v) => patch({ body: { fontFamily: v } })}
+              />
+              <FontSelectField
+                label="英数字体"
+                value={config.body.asciiFontFamily}
+                {...asciiFontFieldProps}
+                onChange={(v) => patch({ body: { asciiFontFamily: v } })}
               />
               <NumberInputField
                 label="字号"

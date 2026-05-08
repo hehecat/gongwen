@@ -94,4 +94,21 @@ describe('getRunStyle', () => {
 
     expect(style.color).toBe('000000')
   })
+
+  it('正文支持单独配置英数字体', () => {
+    const style = getRunStyle(NodeType.PARAGRAPH, {
+      ...DEFAULT_CONFIG,
+      body: {
+        ...DEFAULT_CONFIG.body,
+        fontFamily: '仿宋_GB2312',
+        asciiFontFamily: 'Arial',
+      },
+    })
+
+    expect(style.font).toMatchObject({
+      eastAsia: '仿宋_GB2312',
+      ascii: 'Arial',
+      cs: 'Arial',
+    })
+  })
 })

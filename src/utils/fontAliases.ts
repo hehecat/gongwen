@@ -36,3 +36,14 @@ export function getPreviewFontFamily(fontName: string): string {
 
   return uniqueAliases.map(quoteFontFamily).join(', ')
 }
+
+export function getPreviewMixedFontFamily(eastAsiaFontName: string, asciiFontName: string): string {
+  const eastAsiaFamily = getPreviewFontFamily(eastAsiaFontName)
+  const asciiFamily = getPreviewFontFamily(asciiFontName)
+  const combined = [asciiFamily, eastAsiaFamily]
+    .flatMap((family) => family.split(','))
+    .map((name) => name.trim())
+    .filter(Boolean)
+
+  return [...new Set(combined)].join(', ')
+}

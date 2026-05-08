@@ -14,6 +14,10 @@ import { ptToTwip, cmToTwip, CHARS_PER_LINE } from '../types/documentConfig'
 const TITLE_DATE_RE = /^[（(]?\d{4}年\d{1,2}月\d{1,2}日[）)]?$/
 const TITLE_NAME_RE = /^[\u4e00-\u9fff]{2,4}$/
 
+function getBodyAsciiFont(config: DocumentConfig): string {
+  return config.body.asciiFontFamily || config.body.fontFamily
+}
+
 /**
  * 构建 IFontAttributesProperties，支持中英文字体分离
  * 
@@ -299,7 +303,7 @@ export function getRunStyle(type: NodeType, config: DocumentConfig): Partial<IRu
     case NodeType.SIGNATURE:
     default:
       return {
-        font: font(config.body.fontFamily),
+        font: font(config.body.fontFamily, getBodyAsciiFont(config)),
         size: bodyFontSize,
         characterSpacing: charSpacing,
         color: DEFAULT_TEXT_COLOR,
@@ -423,10 +427,10 @@ export function getAttachmentRunStyle(config: DocumentConfig): Partial<IRunOptio
 
   return {
     font: {
-      ascii: config.body.fontFamily,
+      ascii: getBodyAsciiFont(config),
       eastAsia: config.body.fontFamily,
       hAnsi: config.body.fontFamily,
-      cs: config.body.fontFamily,
+      cs: getBodyAsciiFont(config),
     },
     size: bodyFontSize,
     characterSpacing: charSpacing,
