@@ -36,6 +36,7 @@ export interface PaginationConfig {
   }
   body: {
     fontFamily: string
+    asciiFontFamily: string
     fontSize: number
     lineSpacing: number
     firstLineIndent: number

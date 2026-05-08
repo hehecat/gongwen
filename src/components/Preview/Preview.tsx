@@ -3,7 +3,7 @@ import type { GongwenAST } from '../../types/ast'
 import { useDocumentConfig } from '../../contexts/useDocumentConfig'
 import { A4_PREVIEW_WIDTH_PX, cmToPagePercent, CHARS_PER_LINE } from '../../types/documentConfig'
 import { usePagination } from '../../hooks/usePagination'
-import { getPreviewFontFamily } from '../../utils/fontAliases'
+import { getPreviewFontFamily, getPreviewMixedFontFamily } from '../../utils/fontAliases'
 import { A4Page } from './A4Page'
 import { DocumentFlow } from './DocumentFlow'
 import './A4Page.css'
@@ -32,8 +32,11 @@ export function Preview({ ast }: PreviewProps) {
   const { config } = useDocumentConfig()
   const deferredConfig = useDeferredValue(config)
   const bodyPreviewFontFamily = useMemo(
-    () => getPreviewFontFamily(deferredConfig.body.fontFamily),
-    [deferredConfig.body.fontFamily]
+    () => getPreviewMixedFontFamily(
+      deferredConfig.body.fontFamily,
+      deferredConfig.body.asciiFontFamily,
+    ),
+    [deferredConfig.body.fontFamily, deferredConfig.body.asciiFontFamily]
   )
   const isLargeDocument = ast.body.length > LARGE_DOCUMENT_PREVIEW_THRESHOLD
   const previewDocKey = `${ast.title?.content ?? ''}:${ast.body.length}:${ast.body[0]?.content ?? ''}`
@@ -69,11 +72,12 @@ export function Preview({ ast }: PreviewProps) {
       fontSize: deferredConfig.title.fontSize,
       lineSpacing: deferredConfig.title.lineSpacing,
     },
-    body: {
-      fontFamily: deferredConfig.body.fontFamily,
-      fontSize: deferredConfig.body.fontSize,
-      lineSpacing: deferredConfig.body.lineSpacing,
-      firstLineIndent: deferredConfig.body.firstLineIndent,
+      body: {
+        fontFamily: deferredConfig.body.fontFamily,
+        asciiFontFamily: deferredConfig.body.asciiFontFamily,
+        fontSize: deferredConfig.body.fontSize,
+        lineSpacing: deferredConfig.body.lineSpacing,
+        firstLineIndent: deferredConfig.body.firstLineIndent,
     },
     advanced: {
       h1: {
@@ -113,6 +117,7 @@ export function Preview({ ast }: PreviewProps) {
     deferredConfig.title.fontSize,
     deferredConfig.title.lineSpacing,
     deferredConfig.body.fontFamily,
+    deferredConfig.body.asciiFontFamily,
     deferredConfig.body.fontSize,
     deferredConfig.body.lineSpacing,
     deferredConfig.body.firstLineIndent,

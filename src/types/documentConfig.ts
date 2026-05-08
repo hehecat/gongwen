@@ -23,6 +23,7 @@ export interface TitleConfig {
 /** 正文格式 */
 export interface BodyConfig {
   fontFamily: string
+  asciiFontFamily: string // 英数字体
   fontSize: number      // pt
   lineSpacing: number   // 磅 (固定行距)
   firstLineIndent: number // 字符数
@@ -114,6 +115,7 @@ export const DEFAULT_CONFIG: DocumentConfig = {
   },
   body: {
     fontFamily: '仿宋_GB2312',
+    asciiFontFamily: 'Times New Roman',
     fontSize: 16,
     lineSpacing: 29.6,
     firstLineIndent: 2,
