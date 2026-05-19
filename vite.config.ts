@@ -70,9 +70,71 @@ const recentUpdates = readRecentUpdates(8)
 // 与 release.yml 的 TAG 规则保持一致；支持用 APP_VERSION 显式覆盖
 const appVersion = process.env.APP_VERSION?.trim() || releaseStyleVersion
 
+function getNodeModulesPackageName(id: string): string | null {
+  const marker = '/node_modules/'
+  const markerIndex = id.lastIndexOf(marker)
+  if (markerIndex === -1) return null
+
+  const packagePath = id.slice(markerIndex + marker.length)
+  if (!packagePath) return null
+
+  const [scopeOrName, scopedName] = packagePath.split('/')
+  if (!scopeOrName) return null
+
+  return scopeOrName.startsWith('@') && scopedName
+    ? `${scopeOrName}/${scopedName}`
+    : scopeOrName
+}
+
+function manualChunks(id: string): string | undefined {
+  const packageName = getNodeModulesPackageName(id)
+  if (!packageName) return undefined
+
+  if (['react', 'react-dom', 'scheduler'].includes(packageName)) {
+    return 'vendor-react'
+  }
+
+  if (['docx'].includes(packageName)) {
+    return 'vendor-docx'
+  }
+
+  if (['mammoth', 'underscore', 'xmlbuilder', 'lop'].includes(packageName)) {
+    return 'vendor-mammoth'
+  }
+
+  if ([
+    'jszip',
+    'pako',
+    'sax',
+    'xml-js',
+    'base64-js',
+    'buffer-from',
+    'process-nextick-args',
+  ].includes(packageName)) {
+    return 'vendor-zip'
+  }
+
+  if (packageName === 'file-saver') {
+    return 'vendor-file-saver'
+  }
+
+  return 'vendor-misc'
+}
+
 // https://vite.dev/config/
 export default defineConfig({
   base,
+  build: {
+    rollupOptions: {
+      output: isSingleFile
+        ? {
+            inlineDynamicImports: true,
+          }
+        : {
+            manualChunks,
+          },
+    },
+  },
   define: {
     __APP_VERSION__: JSON.stringify(appVersion),
     __APP_RECENT_UPDATES__: JSON.stringify(recentUpdates),

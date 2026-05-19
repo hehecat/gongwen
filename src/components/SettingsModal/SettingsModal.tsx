@@ -14,6 +14,7 @@ import {
   type PageNumberStyle,
 } from '../../types/documentConfig'
 import { FontSelectField } from './FontSelectField'
+import { TemplateManagerSection } from './TemplateManagerSection'
 import { useComboBox } from './useComboBox'
 import './SettingsModal.css'
 
@@ -355,6 +356,8 @@ export function SettingsModal({ onClose }: SettingsModalProps) {
 
         {/* 内容区 */}
         <div className="settings-body">
+          <TemplateManagerSection />
+
           <section className="settings-section">
             <h3 className="settings-section-title">版头与版记</h3>
             <div className="settings-dual-panels">

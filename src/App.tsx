@@ -4,9 +4,7 @@ import { Preview } from './components/Preview/Preview'
 import { Toolbar } from './components/Toolbar/Toolbar'
 import { useDocumentParser } from './hooks/useDocumentParser'
 import { useDocumentConfig } from './contexts/useDocumentConfig'
-import { downloadDocx } from './exporter'
 import { sanitizeText } from './utils/sanitize'
-import { importFile } from './utils/fileImporter'
 import './App.css'
 
 const STORAGE_KEY_TEXT = 'docx-editor-text'
@@ -57,6 +55,7 @@ function App() {
     })
 
     try {
+      const { downloadDocx } = await import('./exporter/download')
       await downloadDocx(ast, configRef.current)
     } catch (err) {
       console.error('导出失败:', err)
@@ -81,6 +80,7 @@ function App() {
 
     setImporting(true)
     try {
+      const { importFile } = await import('./utils/fileImporter')
       const result = await importFile(file)
       setText(result.text)
     } catch (err) {

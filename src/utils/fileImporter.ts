@@ -5,8 +5,6 @@
  * .doc/.wps 给出明确的格式转换提示。
  */
 
-import mammoth from 'mammoth'
-
 export interface ImportResult {
   /** 提取并规范化后的纯文本 */
   text: string
@@ -25,6 +23,7 @@ export async function importFile(file: File): Promise<ImportResult> {
 
   switch (ext) {
     case '.docx': {
+      const { default: mammoth } = await import('mammoth')
       const arrayBuffer = await file.arrayBuffer()
       const result = await mammoth.extractRawText({ arrayBuffer })
       return {
