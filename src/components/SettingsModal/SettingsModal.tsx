@@ -16,7 +16,6 @@ import {
 import { FontSelectField } from './FontSelectField'
 import { TemplateManagerSection } from './TemplateManagerSection'
 import { useComboBox } from './useComboBox'
-import { TemplateSection } from './TemplateSection'
 import './SettingsModal.css'
 
 interface SettingsModalProps {
