@@ -1,5 +1,5 @@
-import { useState, type ChangeEvent, type MouseEvent } from 'react'
-import { useComboBox } from './useComboBox'
+import { useState, type MouseEvent } from 'react'
+import { SearchableSelectField, type SearchableSelectSection } from './SearchableSelectField'
 
 interface FontOption {
   label: string
@@ -50,12 +50,6 @@ export function FontSelectField({
     ? uniqueCustom.filter((f) => f.toLowerCase().includes(lowerFilter))
     : uniqueCustom
 
-  // 扁平化用于键盘导航的列表（内置在前，自定义在后）
-  const flatItems: { value: string; label: string; isCustom: boolean }[] = [
-    ...filteredBuiltin.map((o) => ({ ...o, isCustom: false })),
-    ...filteredCustom.map((f) => ({ value: f, label: f, isCustom: true })),
-  ]
-
   function commitFilter() {
     const trimmed = filter.trim()
     if (trimmed && !builtinValues.has(trimmed) && trimmed !== value) {
@@ -68,34 +62,6 @@ export function FontSelectField({
   function handleSelect(val: string) {
     onChange(val)
     setFilter('')
-    closeDropdown()
-    inputRef.current?.blur()
-  }
-
-  const {
-    activeIdx,
-    closeDropdown,
-    handleFocus,
-    handleKeyDown,
-    handleWrapClick,
-    handleWrapMouseDown,
-    inputRef,
-    open,
-    setActiveIdx,
-    setOpen,
-    wrapRef,
-  } = useComboBox({
-    itemCount: flatItems.length,
-    onOpen: () => setFilter(''),
-    onCommit: commitFilter,
-    onSelect: (index) => handleSelect(flatItems[index].value),
-    onEscape: () => setFilter(''),
-  })
-
-  function handleInputChange(e: ChangeEvent<HTMLInputElement>) {
-    setFilter(e.target.value)
-    setActiveIdx(-1)
-    if (!open) setOpen(true)
   }
 
   function handleRemoveCustom(e: MouseEvent<HTMLButtonElement>, fontName: string) {
@@ -103,95 +69,50 @@ export function FontSelectField({
     onRemoveCustomFont(fontName)
   }
 
-  // 显示值：打开编辑时显示 filter，关闭时显示当前选中值
-  const displayValue = open ? filter : value
-
   const hasCustomSection = filteredCustom.length > 0
   const hasBuiltinSection = filteredBuiltin.length > 0
   const noResults = !hasBuiltinSection && !hasCustomSection && filter.length > 0
+  const sections: SearchableSelectSection[] = []
+
+  if (hasCustomSection) {
+    sections.push({
+      title: '自定义字体',
+      showDividerAfter: hasBuiltinSection,
+      items: filteredCustom.map((fontName) => ({
+        key: `custom-${fontName}`,
+        label: fontName,
+        value: fontName,
+        selected: value === fontName,
+        removeButtonTitle: '删除',
+        onRemove: (event) => handleRemoveCustom(event, fontName),
+      })),
+    })
+  }
+
+  if (hasBuiltinSection) {
+    sections.push({
+      items: filteredBuiltin.map((option) => ({
+        key: `builtin-${option.value}`,
+        label: option.label,
+        value: option.value,
+        selected: value === option.value,
+      })),
+    })
+  }
 
   return (
-    <label className="settings-field" onClick={(e) => e.preventDefault()}>
-      <span className="settings-field-label">{label}</span>
-      <div className="settings-control-row">
-        <div className="font-combo settings-field-main" ref={wrapRef}>
-          <div
-            className="font-combo-input-wrap"
-            onMouseDown={handleWrapMouseDown}
-            onClick={handleWrapClick}
-          >
-            <input
-              ref={inputRef}
-              className="settings-select font-combo-input"
-              type="text"
-              value={displayValue}
-              placeholder={value || '选择或输入字体'}
-              onChange={handleInputChange}
-              onFocus={handleFocus}
-              onKeyDown={handleKeyDown}
-              autoComplete="off"
-              spellCheck={false}
-            />
-            <span className={`font-combo-arrow ${open ? 'font-combo-arrow--open' : ''}`} />
-          </div>
-
-          {open && (
-            <div className="font-combo-dropdown">
-              {/* 自定义字体区 */}
-              {hasCustomSection && (
-                <>
-                  <div className="font-combo-group-title">自定义字体</div>
-                  {filteredCustom.map((f) => {
-                    const idx = flatItems.findIndex((item) => item.isCustom && item.value === f)
-                    return (
-                      <div
-                        key={`custom-${f}`}
-                        className={`font-combo-item ${value === f ? 'font-combo-item--selected' : ''} ${idx === activeIdx ? 'font-combo-item--active' : ''}`}
-                        onMouseDown={(e) => { e.preventDefault(); handleSelect(f) }}
-                        onMouseEnter={() => setActiveIdx(idx)}
-                      >
-                        <span className="font-combo-item-text">{f}</span>
-                        <button
-                          className="font-combo-item-remove"
-                          onMouseDown={(e) => { e.preventDefault(); e.stopPropagation(); handleRemoveCustom(e, f) }}
-                          title="删除"
-                        >
-                          ×
-                        </button>
-                      </div>
-                    )
-                  })}
-                  {hasBuiltinSection && <div className="font-combo-divider" />}
-                </>
-              )}
-
-              {/* 内置字体区 */}
-              {hasBuiltinSection &&
-                filteredBuiltin.map((opt) => {
-                  const idx = flatItems.findIndex((item) => !item.isCustom && item.value === opt.value)
-                  return (
-                    <div
-                      key={`builtin-${opt.value}`}
-                      className={`font-combo-item ${value === opt.value ? 'font-combo-item--selected' : ''} ${idx === activeIdx ? 'font-combo-item--active' : ''}`}
-                      onMouseDown={(e) => { e.preventDefault(); handleSelect(opt.value) }}
-                      onMouseEnter={() => setActiveIdx(idx)}
-                    >
-                      <span className="font-combo-item-text">{opt.label}</span>
-                    </div>
-                  )
-                })}
-
-              {/* 输入新字体提示 */}
-              {noResults && (
-                <div className="font-combo-hint">
-                  按 Enter 添加「{filter}」为自定义字体
-                </div>
-              )}
-            </div>
-          )}
-        </div>
-        <span className="settings-unit settings-unit--placeholder" aria-hidden="true" />
-      </div>
-    </label>
+    <SearchableSelectField
+      label={label}
+      closedValue={value}
+      openValue={filter}
+      placeholder={value || '选择或输入字体'}
+      sections={sections}
+      emptyHint={noResults ? `按 Enter 添加「${filter}」为自定义字体` : undefined}
+      onOpen={() => setFilter('')}
+      onCommit={commitFilter}
+      onEscape={() => setFilter('')}
+      onInputChange={setFilter}
+      onSelect={handleSelect}
+    />
   )
 }

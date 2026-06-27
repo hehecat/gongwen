@@ -16,6 +16,7 @@ import {
 import { FontSelectField } from './FontSelectField'
 import { TemplateManagerSection } from './TemplateManagerSection'
 import { useComboBox } from './useComboBox'
+import { TemplateSection } from './TemplateSection'
 import './SettingsModal.css'
 
 interface SettingsModalProps {
@@ -356,7 +357,7 @@ export function SettingsModal({ onClose }: SettingsModalProps) {
 
         {/* 内容区 */}
         <div className="settings-body">
-          <TemplateManagerSection />
+<TemplateManagerSection />
 
           <section className="settings-section">
             <h3 className="settings-section-title">版头与版记</h3>
