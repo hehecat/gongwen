@@ -23,7 +23,8 @@ function yieldToMainThread(): Promise<void> {
 }
 
 function getBaseFileName(ast: GongwenAST): string {
-  return ast.title?.content || '公文'
+  const raw = ast.title?.content || '公文'
+  return raw.split('\n').filter(Boolean).join('')
 }
 
 function getPartFileName(baseName: string, part: number, total: number): string {

@@ -105,7 +105,7 @@ function isStandaloneTitleLine(line: string): boolean {
 
 /**
  * 从文首提取公文标题：
- * - 可跳过文头机关前缀行（不进入 AST）
+ * - 可识别文头机关前缀行，与后续标题一起作为公文标题（机关行保留在 title.content 中，用 \n 连接）
  * - 可合并连续多行标题片段
  * 返回 title 与 body 循环起始下标 startIndex
  */
@@ -123,17 +123,22 @@ function extractPreamble(lines: string[]): { title: DocumentNode | null; startIn
     return { title: null, startIndex: i }
   }
 
-  // 可选：跳过机关前缀（允许其后空行）
+  // 可选：识别机关前缀（允许其后空行），保留在 title 中
+  let orgPrefix: string | null = null
+  let orgLineNumber = 0
+
   if (isOrgPrefixLine(first)) {
     let j = i + 1
     while (j < lines.length && lines[j].trim().length === 0) j++
     if (j < lines.length) {
       const next = lines[j].trim()
       if (!isStructuralPreambleStop(next) && (isTitleFragment(next) || isStandaloneTitleLine(next))) {
-        // 丢弃机关行，从标题行继续
+        // 保留机关行，从标题行继续合并
+        orgPrefix = first
+        orgLineNumber = i + 1
         i = j
       } else {
-        // 仅机关名：保持旧行为，当作标题
+        // 仅机关名：当作标题
         return {
           title: { type: NodeType.DOCUMENT_TITLE, content: first, lineNumber: i + 1 },
           startIndex: i + 1,
@@ -181,8 +186,8 @@ function extractPreamble(lines: string[]): { title: DocumentNode | null; startIn
   return {
     title: {
       type: NodeType.DOCUMENT_TITLE,
-      content: parts.join(''),
-      lineNumber: titleLineNumber,
+      content: orgPrefix ? `${orgPrefix}\n${parts.join('')}` : parts.join(''),
+      lineNumber: orgPrefix ? orgLineNumber : titleLineNumber,
     },
     startIndex: cursor,
   }

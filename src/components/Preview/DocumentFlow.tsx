@@ -55,9 +55,13 @@ export const DocumentFlow = memo(function DocumentFlow({
 }: DocumentFlowProps) {
   return (
     <>
-      {title && (
-        <p className={NODE_CLASS_MAP[title.type]}>{title.content}</p>
-      )}
+      {title && title.content.split('\n').map((line, idx, arr) => (
+        <p
+          key={`title-${title.lineNumber}-${idx}`}
+          className={NODE_CLASS_MAP[title.type]}
+          style={idx < arr.length - 1 ? { marginBottom: 0 } : undefined}
+        >{line}</p>
+      ))}
       {body.flatMap((node, index) => {
         const elements: React.ReactNode[] = []
 

@@ -166,6 +166,11 @@
   margin: var(--body-line-height, 29px) 0 0 0;
 }
 
+/* 多行标题中间行不要顶部间距 */
+.a4-title + .a4-title {
+  margin-top: 0;
+}
+
 /* 标题负责与紧随其后的主送机关/附件之间的留白，避免段后和段前重复控制 */
 .a4-title + .a4-addressee,
 .a4-title + .a4-attachment {

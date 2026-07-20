@@ -498,7 +498,16 @@ export function buildDocument(ast: GongwenAST, config: DocumentConfig): Document
     : 0
 
   if (ast.title) {
-    children.push(nodeToParagraph(ast.title, config, cache, titleSpacingBefore))
+    const title = ast.title
+    const lines = title.content.split('\n').filter(l => l.length > 0)
+    lines.forEach((line, idx) => {
+      children.push(nodeToParagraph(
+        { ...title, content: line },
+        config,
+        cache,
+        idx === 0 ? titleSpacingBefore : 0,
+      ))
+    })
   }
 
   for (let i = 0; i < ast.body.length; i++) {

@@ -541,15 +541,15 @@ describe('发文机关署名识别', () => {
 })
 
 describe('文头标题识别', () => {
-  it('单位+标题无空行 → title 正确，单位不在 body', () => {
+  it('单位+标题无空行 → title 包含机关+\\n+标题，单位不在 body', () => {
     const text = [
       'XX市人民政府办公厅',
       '关于加强安全生产工作的通知',
       '各单位：',
     ].join('\n')
     const ast = parseGongwen(text)
-    expect(ast.title!.content).toBe('关于加强安全生产工作的通知')
-    expect(ast.title!.lineNumber).toBe(2)
+    expect(ast.title!.content).toBe('XX市人民政府办公厅\n关于加强安全生产工作的通知')
+    expect(ast.title!.lineNumber).toBe(1)
     expect(ast.body[0].type).toBe(NodeType.ADDRESSEE)
     expect(ast.body[0].content).toBe('各单位：')
     expect(ast.body.some(n => n.content.includes('办公厅'))).toBe(false)
@@ -585,8 +585,8 @@ describe('文头标题识别', () => {
       '工伤保险有关工作的通知',
     ].join('\n')
     const ast = parseGongwen(text)
-    expect(ast.title!.content).toBe('关于进一步规范劳务派遣单位参加工伤保险有关工作的通知')
-    expect(ast.title!.lineNumber).toBe(2)
+    expect(ast.title!.content).toBe('国务院办公厅\n关于进一步规范劳务派遣单位参加工伤保险有关工作的通知')
+    expect(ast.title!.lineNumber).toBe(1)
     expect(ast.body.some(n => n.content.includes('办公厅'))).toBe(false)
   })
 
@@ -616,16 +616,27 @@ describe('文头标题识别', () => {
     expect(ast.body[1].type).toBe(NodeType.PARAGRAPH)
   })
 
-  it('单位与标题间有空行 → 单位不在 AST', () => {
+  it('单位与标题间有空行 → title 仍包含机关，空行不写入 content', () => {
     const text = [
       '国务院办公厅',
       '',
       '关于做好有关工作的通知',
     ].join('\n')
     const ast = parseGongwen(text)
-    expect(ast.title!.content).toBe('关于做好有关工作的通知')
-    expect(ast.title!.lineNumber).toBe(3)
+    expect(ast.title!.content).toBe('国务院办公厅\n关于做好有关工作的通知')
+    expect(ast.title!.lineNumber).toBe(1)
     expect(ast.body.some(n => n.content.includes('办公厅'))).toBe(false)
+  })
+
+  it('市审计局+标题 → title 含市审计局+\\n+标题', () => {
+    const text = [
+      '市审计局',
+      '关于开展审计整改工作的通知',
+    ].join('\n')
+    const ast = parseGongwen(text)
+    expect(ast.title!.content).toBe('市审计局\n关于开展审计整改工作的通知')
+    expect(ast.title!.lineNumber).toBe(1)
+    expect(ast.body.some(n => n.content.includes('审计局'))).toBe(false)
   })
 
   it('标题后长正文不并入标题（长段有句号）', () => {
