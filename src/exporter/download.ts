@@ -2,11 +2,17 @@ import { Packer } from 'docx'
 import { saveAs } from 'file-saver'
 import { NodeType, type GongwenAST } from '../types/ast'
 import type { DocumentConfig } from '../types/documentConfig'
+import { sanitizeExportFileName } from '../layout/typography'
 import { buildDocument } from './docxBuilder'
 
 export interface ExportStatus {
   stage: 'building' | 'packing' | 'saving'
   message: string
+}
+
+export interface DownloadDocxOptions {
+  onStatusChange?: (status: ExportStatus) => void
+  onConfirmMultipart?: (paragraphCount: number, totalParts: number) => Promise<boolean>
 }
 
 const MULTIPART_EXPORT_THRESHOLD = 15000
@@ -23,8 +29,7 @@ function yieldToMainThread(): Promise<void> {
 }
 
 function getBaseFileName(ast: GongwenAST): string {
-  const raw = ast.title?.content || '公文'
-  return raw.split('\n').filter(Boolean).join('')
+  return sanitizeExportFileName(ast.title?.content || '公文')
 }
 
 function getPartFileName(baseName: string, part: number, total: number): string {
@@ -56,11 +61,11 @@ export function splitAstForLargeExport(
   while (start < ast.body.length) {
     let end = Math.min(start + chunkSize, ast.body.length)
 
-    // 避免把署名和成文日期拆到两个文件里。
+    // 避免把署名和成文日期拆到两个文件里
     if (
-      end < ast.body.length &&
-      ast.body[end - 1]?.type === NodeType.SIGNATURE &&
-      ast.body[end]?.type === NodeType.DATE
+      end < ast.body.length
+      && ast.body[end - 1]?.type === NodeType.SIGNATURE
+      && ast.body[end]?.type === NodeType.DATE
     ) {
       end -= 1
     }
@@ -103,18 +108,27 @@ async function saveDocx(
 
 /**
  * 将 AST 导出为 .docx 文件并触发浏览器下载
- * 文件名取公文标题，若无标题则用默认名
  */
 export async function downloadDocx(
   ast: GongwenAST,
   config: DocumentConfig,
-  onStatusChange?: (status: ExportStatus) => void,
+  statusOrOptions?: ((status: ExportStatus) => void) | DownloadDocxOptions,
 ): Promise<void> {
+  const options: DownloadDocxOptions =
+    typeof statusOrOptions === 'function'
+      ? { onStatusChange: statusOrOptions }
+      : (statusOrOptions ?? {})
+
   if (ast.body.length > MULTIPART_EXPORT_THRESHOLD) {
     const parts = splitAstForLargeExport(ast)
-    const confirmed = typeof window === 'undefined' || window.confirm(
-      `当前文档共 ${ast.body.length} 段。单个 Word 导出可能导致浏览器卡死或标签页崩溃。\n\n将自动拆分为 ${parts.length} 个 Word 文件分别下载，是否继续？`,
-    )
+    let confirmed = true
+    if (options.onConfirmMultipart) {
+      confirmed = await options.onConfirmMultipart(ast.body.length, parts.length)
+    } else if (typeof window !== 'undefined' && typeof window.confirm === 'function') {
+      confirmed = window.confirm(
+        `当前文档共 ${ast.body.length} 段。单个 Word 导出可能导致浏览器卡死或标签页崩溃。\n\n将自动拆分为 ${parts.length} 个 Word 文件分别下载，是否继续？`,
+      )
+    }
 
     if (!confirmed) return
 
@@ -129,7 +143,7 @@ export async function downloadDocx(
         config,
         getPartFileName(baseName, current, total),
         ({ stage, message }) => {
-          onStatusChange?.({
+          options.onStatusChange?.({
             stage,
             message: `第 ${current}/${total} 部分：${message}`,
           })
@@ -145,6 +159,6 @@ export async function downloadDocx(
     ast,
     config,
     `${getBaseFileName(ast)}.docx`,
-    onStatusChange,
+    options.onStatusChange,
   )
 }

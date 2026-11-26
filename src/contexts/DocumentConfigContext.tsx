@@ -10,7 +10,7 @@ import {
   normalizeLineSpacing,
   type LegacyDocumentConfig,
 } from '../utils/documentConfigHelpers'
-import { DocumentConfigContext } from './documentConfigContext'
+import { DocumentConfigContext } from './documentConfigStore'
 
 const STORAGE_KEY = 'docx-document-config'
 
@@ -64,7 +64,11 @@ export function DocumentConfigProvider({ children }: { children: ReactNode }) {
 
   // 持久化到 localStorage
   useEffect(() => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(config))
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(config))
+    } catch {
+      // 隐私模式或配额不足时静默忽略
+    }
   }, [config])
 
   return (

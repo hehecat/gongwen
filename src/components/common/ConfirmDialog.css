@@ -1,0 +1,87 @@
+.confirm-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1300;
+  background: rgba(15, 23, 42, 0.35);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+}
+
+.confirm-dialog {
+  width: min(400px, 100%);
+  background: #ffffff;
+  border-radius: 10px;
+  box-shadow: 0 20px 50px rgba(15, 23, 42, 0.2);
+  overflow: hidden;
+}
+
+.confirm-header {
+  padding: 14px 18px 10px;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.confirm-title {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 600;
+  color: #111827;
+}
+
+.confirm-body {
+  padding: 14px 18px;
+}
+
+.confirm-message {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.6;
+  color: #4b5563;
+  white-space: pre-line;
+}
+
+.confirm-actions {
+  padding: 10px 18px 14px;
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  background: #f8fafc;
+}
+
+.confirm-btn {
+  padding: 7px 14px;
+  border-radius: 6px;
+  border: 1px solid transparent;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.confirm-btn--cancel {
+  background: #ffffff;
+  border-color: #d1d5db;
+  color: #374151;
+}
+
+.confirm-btn--cancel:hover {
+  background: #f3f4f6;
+}
+
+.confirm-btn--primary {
+  background: #2563eb;
+  color: #ffffff;
+}
+
+.confirm-btn--primary:hover {
+  background: #1d4ed8;
+}
+
+.confirm-btn--danger {
+  background: #dc2626;
+  color: #ffffff;
+}
+
+.confirm-btn--danger:hover {
+  background: #b91c1c;
+}

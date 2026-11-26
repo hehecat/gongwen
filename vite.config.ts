@@ -138,6 +138,7 @@ export default defineConfig({
   define: {
     __APP_VERSION__: JSON.stringify(appVersion),
     __APP_RECENT_UPDATES__: JSON.stringify(recentUpdates),
+    __IS_SINGLE_FILE__: JSON.stringify(isSingleFile),
   },
   plugins: [
     react(),

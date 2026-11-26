@@ -2,76 +2,153 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 20px;
-  height: 56px;
-  background: white;
+  gap: 10px;
+  padding: 0 14px;
+  min-height: 56px;
+  background: #ffffff;
   border-bottom: 1px solid #e5e7eb;
   flex-shrink: 0;
+  flex-wrap: wrap;
 }
 
 .toolbar-left {
   display: flex;
   align-items: center;
   gap: 10px;
+  flex-wrap: wrap;
+}
+
+.toolbar-brand {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.toolbar-logo {
+  flex-shrink: 0;
 }
 
 .toolbar-title {
-  font-size: 18px;
+  font-size: 16px;
   font-weight: 700;
   color: #111827;
   margin: 0;
-}
-
-.toolbar-meta {
-  display: flex;
-  align-items: center;
-  padding-top: 1px;
-  line-height: 1;
+  white-space: nowrap;
 }
 
 .toolbar-version {
-  font-size: 13px;
+  font-size: 11px;
   font-weight: 600;
   color: #64748b;
-  letter-spacing: 0.01em;
+  background: #f1f5f9;
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+.toolbar-group {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+}
+
+.toolbar-select {
+  height: 30px;
+  max-width: 170px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  padding: 0 8px;
+  font-size: 12px;
+  color: #374151;
+  background: #ffffff;
+  cursor: pointer;
+}
+
+.toolbar-select--template {
+  max-width: 155px;
+}
+
+.toolbar-icon-btn {
+  width: 26px;
+  height: 30px;
+  border: 1px solid #d1d5db;
+  background: #f9fafb;
+  color: #374151;
+  border-radius: 6px;
+  font-size: 15px;
+  line-height: 1;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.toolbar-icon-btn:hover {
+  background: #f3f4f6;
+}
+
+.toolbar-icon-btn--danger:hover {
+  color: #dc2626;
+  background: #fef2f2;
+  border-color: #fecaca;
 }
 
 .toolbar-right {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 7px;
+  flex-wrap: wrap;
 }
 
-.toolbar-stats {
-  font-size: 13px;
-  color: #6b7280;
+.toolbar-toggle {
+  height: 32px;
+  padding: 0 10px;
+  border: 1px solid #d1d5db;
+  background: #ffffff;
+  color: #4b5563;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.toolbar-toggle--active {
+  border-color: #ef4444;
+  background: #fef2f2;
+  color: #b91c1c;
 }
 
 .toolbar-btn {
-  padding: 8px 16px;
+  height: 32px;
+  padding: 0 12px;
   border: none;
   border-radius: 6px;
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 500;
   cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  white-space: nowrap;
   transition: background 0.15s, opacity 0.15s;
 }
 
 .toolbar-btn:disabled {
-  opacity: 0.4;
+  opacity: 0.45;
   cursor: not-allowed;
 }
 
-.toolbar-btn--settings {
-  display: flex;
-  align-items: center;
-  gap: 5px;
+.toolbar-btn--neutral {
   background: #f3f4f6;
   color: #374151;
 }
 
-.toolbar-btn--settings:hover:not(:disabled) {
+.toolbar-btn--neutral:hover:not(:disabled) {
   background: #e5e7eb;
+}
+
+.toolbar-btn--active {
+  background: #dbeafe;
+  color: #1d4ed8;
 }
 
 .toolbar-btn--import {
@@ -83,20 +160,80 @@
   background: #dbeafe;
 }
 
-.toolbar-btn--clear {
-  background: #f3f4f6;
-  color: #374151;
-}
-
-.toolbar-btn--clear:hover:not(:disabled) {
-  background: #e5e7eb;
-}
-
 .toolbar-btn--export {
   background: #2563eb;
-  color: white;
+  color: #ffffff;
 }
 
 .toolbar-btn--export:hover:not(:disabled) {
   background: #1d4ed8;
+}
+
+.toolbar-badge {
+  background: #f59e0b;
+  color: #ffffff;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 0 6px;
+  line-height: 1.5;
+}
+
+.toolbar-dropdown {
+  position: relative;
+}
+
+.toolbar-menu {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  width: 280px;
+  z-index: 1000;
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  box-shadow: 0 12px 28px rgba(15, 23, 42, 0.15);
+  padding: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.toolbar-menu-item {
+  border: none;
+  background: transparent;
+  text-align: left;
+  padding: 8px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.toolbar-menu-item:hover {
+  background: #f3f4f6;
+}
+
+.toolbar-menu-item-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: #111827;
+}
+
+.toolbar-menu-item-desc {
+  font-size: 11px;
+  color: #6b7280;
+}
+
+@media (max-width: 1100px) {
+  .toolbar {
+    padding: 8px 12px;
+  }
+}
+
+@media print {
+  .toolbar {
+    display: none !important;
+  }
 }

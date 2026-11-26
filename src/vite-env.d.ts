@@ -2,3 +2,4 @@
 
 declare const __APP_VERSION__: string
 declare const __APP_RECENT_UPDATES__: string[]
+declare const __IS_SINGLE_FILE__: boolean

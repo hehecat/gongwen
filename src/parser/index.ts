@@ -1,2 +1,2 @@
-export { parseGongwen } from './parser'
-export { detectNodeType } from './matchers'
+export { parseGongwen, type ParseGongwenOptions } from './parser'
+export { detectNodeType, extractAttachmentItemsFromLine } from './matchers'

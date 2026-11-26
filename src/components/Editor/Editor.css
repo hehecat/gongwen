@@ -4,26 +4,97 @@
   height: 100%;
   min-height: 0;
   position: relative;
+  background: #ffffff;
 }
 
 .editor-header {
   display: flex;
-  align-items: baseline;
-  gap: 12px;
-  padding: 12px 16px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 8px 12px;
   border-bottom: 1px solid #e5e7eb;
+  background: #ffffff;
   flex-shrink: 0;
+  flex-wrap: wrap;
 }
 
-.editor-label {
-  font-size: 15px;
+.editor-tabs {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: #f3f4f6;
+  padding: 2px;
+  border-radius: 7px;
+}
+
+.editor-tab {
+  border: none;
+  background: transparent;
+  color: #4b5563;
+  font-size: 13px;
+  font-weight: 500;
+  padding: 5px 10px;
+  border-radius: 5px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  transition: background 0.12s, color 0.12s;
+}
+
+.editor-tab--active {
+  background: #ffffff;
+  color: #111827;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
+}
+
+.editor-tab-count {
+  font-size: 11px;
+  color: #6b7280;
+  background: #e5e7eb;
+  padding: 0 5px;
+  border-radius: 999px;
+  line-height: 1.5;
+}
+
+.editor-tab-override {
+  font-size: 11px;
+  color: #2563eb;
   font-weight: 600;
-  color: #1f2937;
 }
 
-.editor-hint {
+.editor-header-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.editor-action-btn {
+  border: 1px solid #e5e7eb;
+  background: #f9fafb;
+  color: #374151;
+  border-radius: 6px;
+  padding: 4px 9px;
   font-size: 12px;
-  color: #9ca3af;
+  cursor: pointer;
+  transition: background 0.12s, border-color 0.12s;
+}
+
+.editor-action-btn:hover:not(:disabled) {
+  background: #f3f4f6;
+  border-color: #cbd5e1;
+}
+
+.editor-action-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.editor-action-btn--danger:hover:not(:disabled) {
+  color: #dc2626;
+  background: #fef2f2;
+  border-color: #fecaca;
 }
 
 .editor-textarea {
@@ -33,15 +104,124 @@
   border: none;
   outline: none;
   resize: none;
-  font-family: 'Noto Sans SC', 'Microsoft YaHei', sans-serif;
+  font-family: 'Noto Sans SC', 'Microsoft YaHei', 'PingFang SC', sans-serif;
   font-size: 14px;
   line-height: 1.8;
-  color: #374151;
+  color: #1f2937;
   background: #fafafa;
 }
 
 .editor-textarea::placeholder {
-  color: #d1d5db;
+  color: #9ca3af;
+}
+
+/* ---- 结构标注视图 ---- */
+.editor-structure-view {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  background: #f8fafc;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.editor-structure-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.editor-structure-hint {
+  font-size: 12px;
+  color: #6b7280;
+}
+
+.editor-structure-empty {
+  text-align: center;
+  color: #9ca3af;
+  font-size: 13px;
+  padding: 48px 16px;
+}
+
+.editor-structure-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.editor-structure-card {
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.editor-structure-card-top {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.editor-structure-line-btn {
+  border: 1px solid #e2e8f0;
+  background: #f8fafc;
+  color: #475569;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 11px;
+  border-radius: 4px;
+  padding: 2px 6px;
+  cursor: pointer;
+}
+
+.editor-structure-line-btn:hover {
+  border-color: #93c5fd;
+  color: #1d4ed8;
+}
+
+.editor-node-badge {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 999px;
+}
+
+.node-badge--title { background: #fef2f2; color: #b91c1c; }
+.node-badge--h1 { background: #eff6ff; color: #1d4ed8; }
+.node-badge--h2 { background: #ecfeff; color: #0e7490; }
+.node-badge--h3 { background: #f0fdf4; color: #15803d; }
+.node-badge--h4 { background: #fefce8; color: #a16207; }
+.node-badge--body { background: #f3f4f6; color: #374151; }
+.node-badge--meta { background: #f5f3ff; color: #6d28d9; }
+.node-badge--att { background: #fff7ed; color: #c2410c; }
+.node-badge--sig { background: #fdf2f8; color: #be185d; }
+
+.editor-override-select {
+  margin-left: auto;
+  border: 1px solid #d1d5db;
+  border-radius: 5px;
+  padding: 3px 6px;
+  font-size: 12px;
+  color: #374151;
+  background: #ffffff;
+}
+
+.editor-structure-snippet {
+  margin: 0;
+  font-size: 13px;
+  color: #334155;
+  line-height: 1.5;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 
 /* 拖拽覆盖层 */
@@ -54,7 +234,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 16px;
+  font-size: 15px;
   font-weight: 500;
   color: #2563eb;
   z-index: 10;

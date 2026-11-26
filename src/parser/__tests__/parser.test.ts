@@ -669,3 +669,62 @@ describe('文头标题识别', () => {
     expect(ast.body[0].type).toBe(NodeType.HEADING_1)
   })
 })
+
+describe('v2 解析精度与扩展要素增强', () => {
+  it('多附件名称包含小数（如 2.5亿元）时不会误截断', () => {
+    const text = '标题\n\n附件：1.关于2.5亿元专项资金的说明 2.责任清单'
+    const ast = parseGongwen(text)
+    const node = ast.body[0] as AttachmentNode
+    expect(node.isMultiple).toBe(true)
+    expect(node.items).toEqual([
+      { index: 1, name: '关于2.5亿元专项资金的说明' },
+      { index: 2, name: '责任清单' },
+    ])
+  })
+
+  it('严格数字三级标题模式避免 3.5万元 和 2026.4月 误判', () => {
+    expect(detectNodeType('3.5万元用于项目建设')).toBe(NodeType.PARAGRAPH)
+    expect(detectNodeType('2026.4月完成验收')).toBe(NodeType.PARAGRAPH)
+    expect(detectNodeType('1.加强组织领导')).toBe(NodeType.HEADING_3)
+  })
+
+  it('扩展机关关键词识别中心/专班/指挥部/支队', () => {
+    for (const org of ['市大数据中心', '专项工作专班', '防汛抗旱指挥部', '交警支队']) {
+      const ast = parseGongwen(`关于工作的通知\n\n正文。\n${org}\n2026年11月26日`)
+      expect(ast.body[1].type).toBe(NodeType.SIGNATURE)
+    }
+  })
+
+  it('自动识别纪要出席行、附注与附件另面标识', () => {
+    const text = [
+      '市政府会议纪要',
+      '一、主要事项',
+      '会议研究了相关事项。',
+      '出席：张三、李四',
+      '国务院办公厅',
+      '2026年11月26日',
+      '（此件公开发布）',
+      '附件1',
+    ].join('\n')
+
+    const ast = parseGongwen(text)
+    expect(ast.body.find((n) => n.content.startsWith('出席'))?.type).toBe(NodeType.MINUTES_ATTENDANCE)
+    expect(ast.body.find((n) => n.content === '国务院办公厅')?.type).toBe(NodeType.SIGNATURE)
+    expect(ast.body.find((n) => n.content === '（此件公开发布）')?.type).toBe(NodeType.POSTSCRIPT)
+    expect(ast.body.find((n) => n.content === '附件1')?.type).toBe(NodeType.ATTACHMENT_PAGE_HEADER)
+  })
+
+  it('手动类型覆写优先于自动识别且不被署名规则覆盖', () => {
+    const text = '关于工作的通知\n\n1.5亿元投资说明\n市大数据中心\n2026年11月26日'
+    const ast = parseGongwen(text, {
+      overrides: {
+        3: NodeType.HEADING_3,
+        4: NodeType.PARAGRAPH,
+      },
+    })
+    expect(ast.body[0].type).toBe(NodeType.HEADING_3)
+    expect(ast.body[0].overridden).toBe(true)
+    expect(ast.body[1].type).toBe(NodeType.PARAGRAPH)
+    expect(ast.body[1].overridden).toBe(true)
+  })
+})

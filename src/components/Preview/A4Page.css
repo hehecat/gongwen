@@ -1,23 +1,31 @@
-/* A4 纸张模拟 (按 210:297 比例缩放) */
-.a4-page {
-  position: relative;
-  width: 100%;
-  max-width: 595.28px; /* A4 210mm @ 72dpi */
-  aspect-ratio: 210 / 297;
+/* A4 纸张模拟（固定 72dpi 595.28×841.89 画布，外部由 .a4-page-scaler 等比缩放） */
+.a4-page-slot {
   margin: 0 auto;
-  background: white;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
-  border-radius: 2px;
-  overflow: hidden;
+  position: relative;
 }
 
-/* 多页间距 */
-.a4-page + .a4-page {
-  margin-top: 16px;
+.a4-page-slot + .a4-page-slot {
+  margin-top: 18px;
+}
+
+.a4-page-scaler {
+  transform-origin: top left;
+  width: 595.28px;
+  height: 841.89px;
+}
+
+.a4-page {
+  position: relative;
+  width: 595.28px;
+  height: 841.89px;
+  background: white;
+  box-shadow: 0 2px 14px rgba(15, 23, 42, 0.12);
+  border-radius: 2px;
+  overflow: hidden;
+  color: #000000;
 }
 
 .a4-content {
-  /* 页边距通过 CSS 变量控制，fallback 为国标默认值 */
   padding:
     var(--margin-top, 17.62%)
     var(--margin-right, 12.38%)
@@ -30,10 +38,22 @@
   flex-direction: column;
 }
 
-/* 视窗裁剪容器：高度由 JS clipHeight 精确控制（已对齐到行边界），
-   不设 max-height 避免 CSS 亚像素精度与 JS 计算冲突导致二次截断 */
 .a4-content-viewport {
   overflow: hidden;
+}
+
+/* 保证 sliced 首段 marginTop 不折叠溢出容器外 */
+.a4-flow-slice {
+  display: flow-root;
+}
+
+.a4-clickable-node {
+  cursor: pointer;
+  transition: background-color 0.12s;
+}
+
+.a4-clickable-node:hover {
+  background-color: rgba(37, 99, 235, 0.05);
 }
 
 /* 字符网格间距：微调 letter-spacing 使每行恰好 28 字 (GB/T 9704) */
@@ -45,48 +65,50 @@
 .a4-paragraph,
 .a4-addressee,
 .a4-attachment,
-.a4-date {
+.a4-date,
+.a4-signature,
+.a4-postscript,
+.a4-minutes-attendance,
+.a4-attachment-page-header {
   letter-spacing: var(--char-spacing, 0);
 }
 
-/* 公文标题: 方正小标宋_GBK 22pt 居中, 固定行距 */
+/* 公文标题: 2号小标宋居中，国标不额外加粗 */
 .a4-title {
   font-family: var(--title-font, 'FZXiaoBiaoSong-B05S'), 'STSong', 'SimSun', serif;
   font-size: var(--title-size, 22px);
-  font-weight: bold;
+  font-weight: normal;
   text-align: center;
-  line-height: var(--title-line-height, 29px);
+  line-height: var(--title-line-height, 28.9px);
   margin: 0;
-  margin-bottom: var(--body-line-height, 29px);
+  margin-bottom: var(--body-line-height, 28.9px);
 }
 
-/* 一级标题段落: 基础样式（含首句拆分时的段落容器） */
+/* 一级标题段落 */
 .a4-h1 {
   font-size: var(--h1-size, 16px);
   font-weight: normal;
   text-indent: var(--body-indent, 2em);
   text-align: justify;
-  line-height: var(--body-line-height, 29px);
+  line-height: var(--body-line-height, 28.9px);
   margin: 0;
 }
 
-/* 一级小标题 inline: 黑体 */
 .a4-h1-inline {
   font-family: var(--h1-font, 'SimHei'), 'Heiti SC', sans-serif;
 }
 
-/* 二级标题段落: 楷体_GB2312 基础样式（含首句拆分时的段落容器） */
+/* 二级标题段落 */
 .a4-h2 {
   font-size: var(--h2-size, 16px);
   font-weight: normal;
   font-style: normal;
   text-indent: var(--body-indent, 2em);
   text-align: justify;
-  line-height: var(--body-line-height, 29px);
+  line-height: var(--body-line-height, 28.9px);
   margin: 0;
 }
 
-/* 二级小标题 inline: 楷体 */
 .a4-h2-inline {
   font-family: var(--h2-font, 'KaiTi_GB2312'), 'KaiTi', 'STKaiti', serif;
   font-style: normal;
@@ -96,13 +118,13 @@
   font-weight: bold;
 }
 
-/* 标题后续正文 inline: 仿宋，显式重置 bold 防止继承 */
+/* 标题后续正文 inline */
 .a4-paragraph-inline {
   font-family: var(--body-font, 'FangSong_GB2312'), 'FangSong', 'STFangsong', serif;
   font-weight: normal;
 }
 
-/* 三级标题 inline: 仿宋加粗（首句用） */
+/* 三级标题 inline */
 .a4-h3-inline {
   font-family: var(--h3-font, 'FangSong_GB2312'), 'FangSong', 'STFangsong', serif;
 }
@@ -111,28 +133,27 @@
   font-weight: bold;
 }
 
-/* 四级标题 inline: 仿宋（首句用，与正文同字体但不缩进） */
 .a4-h4-inline {
   font-family: var(--body-font, 'FangSong_GB2312'), 'FangSong', 'STFangsong', serif;
 }
 
-/* 三级标题: 段落容器（不设 bold，由 inline 控制首句加粗） */
 .a4-h3 {
   font-family: var(--h3-font, 'FangSong_GB2312'), 'FangSong', 'STFangsong', serif;
   font-size: var(--h3-size, 16px);
   font-weight: normal;
   text-indent: var(--body-indent, 2em);
-  line-height: var(--body-line-height, 29px);
+  text-align: justify;
+  line-height: var(--body-line-height, 28.9px);
   margin: 0;
 }
 
-/* 四级标题: 仿宋 */
 .a4-h4 {
   font-family: var(--body-font, 'FangSong_GB2312'), 'FangSong', 'STFangsong', serif;
   font-size: var(--body-size, 16px);
   font-weight: normal;
   text-indent: var(--body-indent, 2em);
-  line-height: var(--body-line-height, 29px);
+  text-align: justify;
+  line-height: var(--body-line-height, 28.9px);
   margin: 0;
 }
 
@@ -143,119 +164,150 @@
   font-weight: normal;
   text-indent: var(--body-indent, 2em);
   text-align: justify;
-  line-height: var(--body-line-height, 29px);
+  line-height: var(--body-line-height, 28.9px);
   margin: 0;
 }
 
-/* 空状态占位 */
+/* §7.3.6 附注: 左空二字 */
+.a4-postscript {
+  font-family: var(--body-font, 'FangSong_GB2312'), 'FangSong', 'STFangsong', serif;
+  font-size: var(--body-size, 16px);
+  font-weight: normal;
+  text-indent: var(--body-indent, 2em);
+  text-align: justify;
+  line-height: var(--body-line-height, 28.9px);
+  margin: 0;
+}
+
+/* §10.3 纪要出席/请假/列席行: 左空二字 + 冒号后首字对齐 */
+.a4-minutes-attendance {
+  font-family: var(--body-font, 'FangSong_GB2312'), 'FangSong', 'STFangsong', serif;
+  font-size: var(--body-size, 16px);
+  font-weight: normal;
+  padding-left: calc(var(--body-indent, 2em) + 3em);
+  text-indent: -3em;
+  text-align: justify;
+  line-height: var(--body-line-height, 28.9px);
+  margin: var(--body-line-height, 28.9px) 0 0 0;
+}
+
+/* §7.3.7 附件另面标识: 3号黑体左上角顶格 */
+.a4-attachment-page-header {
+  font-family: var(--h1-font, 'SimHei'), 'Heiti SC', sans-serif;
+  font-size: var(--body-size, 16px);
+  font-weight: normal;
+  text-indent: 0;
+  text-align: left;
+  line-height: var(--body-line-height, 28.9px);
+  margin: 0 0 var(--body-line-height, 28.9px) 0;
+}
+
 .a4-placeholder {
   text-align: center;
-  color: #d1d5db;
+  color: #cbd5e1;
   font-size: 14px;
-  padding-top: 40%;
+  padding-top: 38%;
   margin: 0;
 }
 
-/* 主送机关: 顶格 仿宋，段前空一行 */
+/* 主送机关: 顶格 仿宋 */
 .a4-addressee {
   font-family: var(--body-font, 'FangSong_GB2312'), 'FangSong', 'STFangsong', serif;
   font-size: var(--body-size, 16px);
   text-indent: 0;
   text-align: justify;
-  line-height: var(--body-line-height, 29px);
-  margin: var(--body-line-height, 29px) 0 0 0;
+  line-height: var(--body-line-height, 28.9px);
+  margin: var(--body-line-height, 28.9px) 0 0 0;
 }
 
-/* 多行标题中间行不要顶部间距 */
 .a4-title + .a4-title {
   margin-top: 0;
 }
 
-/* 标题负责与紧随其后的主送机关/附件之间的留白，避免段后和段前重复控制 */
 .a4-title + .a4-addressee,
 .a4-title + .a4-attachment {
   margin-top: 0;
 }
 
-/* 附件说明基础样式：左空二字，段前空一行 */
+/* 附件说明 */
 .a4-attachment {
   font-family: var(--body-font, 'FangSong_GB2312'), 'FangSong', 'STFangsong', serif;
   font-size: var(--body-size, 16px);
   text-indent: 0;
   padding-left: var(--body-indent, 2em);
   text-align: justify;
-  line-height: var(--body-line-height, 29px);
-  margin: var(--body-line-height, 29px) 0 0 0;
+  line-height: var(--body-line-height, 28.9px);
+  margin: var(--body-line-height, 28.9px) 0 0 0;
 }
 
-/* 单附件换行悬挂缩进：首行正常，后续行缩进 3 字符 */
-.a4-attachment--single {
-  padding-left: calc(var(--body-indent, 2em) + 3em);
-  text-indent: -3em;
-}
-
-/* 多附件第一行：附件：1.xxx，左空 2 字符，换行后悬挂缩进 3 字符 */
+.a4-attachment--single,
 .a4-attachment--multi-first {
   padding-left: calc(var(--body-indent, 2em) + 3em);
   text-indent: -3em;
 }
 
-/* 多附件项：从第二个附件开始，每项单独一行 */
 .a4-attachment-item {
   font-family: var(--body-font, 'FangSong_GB2312'), 'FangSong', 'STFangsong', serif;
   font-size: var(--body-size, 16px);
   text-align: justify;
-  line-height: var(--body-line-height, 29px);
+  line-height: var(--body-line-height, 28.9px);
   margin: 0;
   letter-spacing: var(--char-spacing, 0);
 }
 
-/* 多附件项：左缩进 5 字符（2 + 3），首行和换行后都从 5 字符开始 */
 .a4-attachment-item--multi {
   padding-left: calc(var(--body-indent, 2em) + 3em);
   text-indent: 0;
 }
 
-/* 成文日期: 右对齐 仿宋
- * 右空字数由 JS 动态设置（加盖印章右空四字，不加盖印章右空二字）
- * GB/T 9704: 7.3.5.1 加盖印章右空四字，7.3.5.2 不加盖印章右空二字
- */
 .a4-date {
   font-family: var(--body-font, 'FangSong_GB2312'), 'FangSong', 'STFangsong', serif;
   font-size: var(--body-size, 16px);
   text-indent: 0;
   text-align: right;
   padding-right: 4em;
-  line-height: var(--body-line-height, 29px);
+  line-height: var(--body-line-height, 28.9px);
   margin: 0;
 }
 
-/* 发文机关署名: 右对齐 仿宋
- * 以成文日期为基准居中，右缩进由 JS 动态计算
- * 公式：基础右空字数 + (成文日期宽度 - 署名宽度) / 2
- */
 .a4-signature {
   font-family: var(--body-font, 'FangSong_GB2312'), 'FangSong', 'STFangsong', serif;
   font-size: var(--body-size, 16px);
   text-indent: 0;
   text-align: right;
-  line-height: var(--body-line-height, 29px);
+  line-height: var(--body-line-height, 28.9px);
   margin: 0;
 }
 
-/* 空行：用于发文机关署名前的段前间距 */
+.a4-signer-stamp {
+  text-align: right;
+  padding-right: 4em;
+  line-height: var(--body-line-height, 28.9px);
+  margin: 0;
+}
+
+.a4-signer-stamp-title {
+  font-family: var(--body-font, 'FangSong_GB2312'), 'FangSong', 'STFangsong', serif;
+  font-size: var(--body-size, 16px);
+}
+
+.a4-signer-stamp-name {
+  font-family: 'KaiTi_GB2312', 'KaiTi', 'STKaiti', serif;
+  font-size: var(--body-size, 16px);
+}
+
 .a4-empty-line {
-  line-height: var(--body-line-height, 29px);
-  height: var(--body-line-height, 29px);
+  line-height: var(--body-line-height, 28.9px);
+  height: var(--body-line-height, 28.9px);
   margin: 0;
 }
 
-/* 度量容器: absolute 定位，宽度由 JS 动态修正以匹配 A4 页面 */
+/* 度量容器: 固定 595.28px */
 .a4-measurer {
   position: absolute;
   top: 0;
   left: 0;
-  max-width: 595.28px;
+  width: 595.28px;
   visibility: hidden;
   pointer-events: none;
   z-index: -1;
@@ -266,73 +318,127 @@
   position: relative;
 }
 
-/* 页脚: 页码区域 */
+/* 页脚: 页码区域（72dpi 下距版心下边缘 7mm = 19.84px） */
 .a4-footer {
   position: absolute;
-  bottom: 8.3%;
+  top: calc(100% - var(--margin-bottom-y, 11.78%) + 19.84px);
   left: var(--margin-left, 13.33%);
   right: var(--margin-right, 12.38%);
-  font-family: 'Times New Roman', var(--page-number-font, '宋体'), serif;
+  font-family: var(--page-number-font, '宋体'), 'SimSun', serif;
   font-size: 14px;
-  color: #374151;
+  line-height: 1;
+  color: #000000;
 }
 
 .a4-footer-odd {
   text-align: right;
+  padding-right: 1em;
 }
 
 .a4-footer-even {
   text-align: left;
+  padding-left: 1em;
 }
 
 .a4-footer-center {
   text-align: center;
 }
 
-/* 首句加粗样式 */
 .a4-bold-first {
   font-weight: bold;
 }
 
 /* ---- 版头 ---- */
 .a4-header-section {
-  /* 红线之下空二行再出标题 */
-  margin-bottom: calc(var(--body-line-height, 29px) * 2);
+  margin-bottom: calc(var(--body-line-height, 28.9px) * 2);
+}
+
+.a4-header-security {
+  font-size: var(--body-size, 16px);
+  line-height: var(--body-line-height, 28.9px);
+  margin-bottom: 4px;
+  color: #000000;
+}
+
+.a4-header-copy-num {
+  font-family: var(--body-font, 'FangSong_GB2312'), serif;
+}
+
+.a4-header-secret,
+.a4-header-urgency {
+  font-family: var(--h1-font, 'SimHei'), 'Heiti SC', sans-serif;
+}
+
+.a4-header-image-wrap {
+  display: flex;
+  justify-content: center;
+}
+
+.a4-header-image {
+  max-width: 100%;
+  object-fit: contain;
+  display: block;
 }
 
 .a4-header-org {
-  font-family: '方正小标宋_GBK', 'STSong', serif;
+  font-family: var(--header-org-font, '方正小标宋_GBK'), 'STSong', serif;
   font-size: 30px;
   color: #e00000;
   text-align: center;
-  line-height: 1.4;
+  line-height: 1.35;
   letter-spacing: 0;
 }
 
-/* 红色分隔线：单条红线，位于发文字号/签发人之下 */
-.a4-header-separator {
-  border-bottom: 2px solid #e00000;
-  margin-top: 8px;
+.a4-header-org--distribute {
+  text-align: justify;
+  text-align-last: justify;
 }
 
-/* 发文字号 / 签发人行 */
+.a4-header-org-line {
+  width: 100%;
+}
+
+.a4-header-org-with-suffix {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: #e00000;
+  line-height: 1.35;
+}
+
+.a4-header-org-lines {
+  flex: 1;
+  text-align: center;
+}
+
+.a4-header-org-suffix {
+  flex: 0 0 auto;
+  padding-right: 4px;
+}
+
+.a4-header-signer-block {
+  margin-top: calc(var(--body-line-height, 28.9px) * 2);
+}
+
 .a4-header-meta {
   display: flex;
   justify-content: center;
   padding: 0 1em;
-  /* 发文机关标志下空二行 */
-  margin-top: calc(var(--body-line-height, 29px) * 2);
+  margin-top: calc(var(--body-line-height, 28.9px) * 2);
   font-family: var(--body-font);
   font-size: var(--body-size);
   line-height: var(--body-line-height);
   letter-spacing: 0;
 }
 
+.a4-header-signer-block .a4-header-meta {
+  margin-top: 0;
+}
+
 .a4-header-meta--with-signer {
   justify-content: space-between;
 }
 
-/* 签发人字体：标签仿宋，姓名楷体 */
 .a4-header-signer-label {
   font-family: var(--body-font, 'FangSong_GB2312'), 'FangSong', 'STFangsong', serif;
 }
@@ -341,10 +447,90 @@
   font-family: 'KaiTi_GB2312', 'KaiTi', 'STKaiti', serif;
 }
 
-/* ---- 版记（绝对定位，锚定最后一页版心底部） ---- */
+.a4-header-separator {
+  border-bottom: 2px solid #e00000;
+  margin-top: 11px;
+  position: relative;
+}
+
+.a4-header-separator--star {
+  border-bottom: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 14px;
+  margin-top: 8px;
+}
+
+.a4-header-separator--star::before,
+.a4-header-separator--star::after {
+  content: '';
+  flex: 1;
+  height: 2px;
+  background: #e00000;
+}
+
+.a4-header-star {
+  color: #e00000;
+  font-size: 13px;
+  line-height: 1;
+  padding: 0 8px;
+}
+
+/* 信函格式版头 (§10.1) */
+.a4-header-letter-double-line {
+  width: 481.89px; /* 170mm @ 72dpi */
+  max-width: 100%;
+  margin: 11.34px auto 0; /* 4mm */
+  height: 4px;
+  border-top: 2.4px solid #e00000;
+  border-bottom: 1px solid #e00000;
+  box-sizing: border-box;
+}
+
+.a4-header-letter-meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-top: 14px;
+  font-family: var(--body-font);
+  font-size: var(--body-size);
+  line-height: var(--body-line-height);
+}
+
+.a4-letter-bottom-line {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  bottom: 56.69px; /* 20mm @ 72dpi */
+  width: 481.89px; /* 170mm @ 72dpi */
+  max-width: calc(100% - 40px);
+  height: 4px;
+  border-top: 1px solid #e00000;
+  border-bottom: 2.4px solid #e00000;
+  box-sizing: border-box;
+}
+
+/* 命令 / 纪要号 */
+.a4-header-command-num {
+  text-align: center;
+  margin-top: calc(var(--body-line-height, 28.9px) * 2);
+  font-family: var(--body-font);
+  font-size: var(--body-size);
+  line-height: var(--body-line-height);
+}
+
+.a4-header-minutes-num {
+  text-align: center;
+  margin-top: var(--body-line-height, 28.9px);
+  font-family: var(--body-font);
+  font-size: var(--body-size);
+  line-height: var(--body-line-height);
+}
+
+/* ---- 版记 ---- */
 .a4-footer-note {
   position: absolute;
-  /* bottom 使用 y 轴百分比（相对页面高度 297mm），末条线与版心下边缘重合 */
   bottom: var(--margin-bottom-y, 11.78%);
   left: var(--margin-left, 13.33%);
   right: var(--margin-right, 12.38%);
@@ -385,4 +571,48 @@
   display: flex;
   justify-content: space-between;
   padding: 0 1em;
+}
+
+/* ---- 打印 / 另存 PDF (@media print) ---- */
+@page {
+  size: A4 portrait;
+  margin: 0;
+}
+
+@media print {
+  .a4-measurer {
+    display: none !important;
+  }
+
+  .a4-page-slot {
+    width: 210mm !important;
+    height: 297mm !important;
+    margin: 0 !important;
+    overflow: hidden !important;
+    page-break-after: always;
+    break-after: page;
+  }
+
+  .a4-page-slot:last-child {
+    page-break-after: auto;
+    break-after: auto;
+  }
+
+  .a4-page-scaler {
+    transform: scale(1.3333333) !important;
+    transform-origin: top left !important;
+    width: 595.28px !important;
+    height: 841.89px !important;
+  }
+
+  .a4-page {
+    width: 595.28px !important;
+    height: 841.89px !important;
+    box-shadow: none !important;
+    border-radius: 0 !important;
+  }
+
+  .a4-clickable-node:hover {
+    background-color: transparent !important;
+  }
 }

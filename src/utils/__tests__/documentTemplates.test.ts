@@ -25,6 +25,8 @@ import {
 describe('documentTemplates', () => {
   it('creates a stable signature for equivalent configs', () => {
     const reorderedConfig = {
+      parser: { ...DEFAULT_CONFIG.parser },
+      sanitize: { ...DEFAULT_CONFIG.sanitize },
       footerNote: { ...DEFAULT_CONFIG.footerNote },
       header: { ...DEFAULT_CONFIG.header },
       specialOptions: { ...DEFAULT_CONFIG.specialOptions },

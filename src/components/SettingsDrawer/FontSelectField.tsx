@@ -9,19 +9,13 @@ interface FontOption {
 interface FontSelectFieldProps {
   label: string
   value: string
-  /** 内置字体选项 */
   options: FontOption[]
-  /** 用户自定义字体列表 */
   customFonts: string[]
-  /** 值变化回调 */
   onChange: (val: string) => void
-  /** 新增自定义字体 */
   onAddCustomFont: (name: string) => void
-  /** 删除自定义字体 */
   onRemoveCustomFont: (name: string) => void
 }
 
-/** 字体选择字段：可输入 + 自定义下拉面板 */
 export function FontSelectField({
   label,
   value,
@@ -33,24 +27,17 @@ export function FontSelectField({
 }: FontSelectFieldProps) {
   const [filter, setFilter] = useState('')
 
-  // 内置选项 value 集合
   const builtinValues = new Set(options.map((o) => o.value))
-
-  // 自定义字体（去除与内置重复的）
   const uniqueCustom = customFonts.filter((f) => !builtinValues.has(f))
 
-  // 过滤后的内置选项
   const lowerFilter = filter.toLowerCase()
   const filteredBuiltin = lowerFilter
     ? options.filter((o) => o.label.toLowerCase().includes(lowerFilter))
     : options
-
-  // 过滤后的自定义选项
   const filteredCustom = lowerFilter
     ? uniqueCustom.filter((f) => f.toLowerCase().includes(lowerFilter))
     : uniqueCustom
 
-  // 扁平化用于键盘导航的列表（内置在前，自定义在后）
   const flatItems: { value: string; label: string; isCustom: boolean }[] = [
     ...filteredBuiltin.map((o) => ({ ...o, isCustom: false })),
     ...filteredCustom.map((f) => ({ value: f, label: f, isCustom: true })),
@@ -103,9 +90,7 @@ export function FontSelectField({
     onRemoveCustomFont(fontName)
   }
 
-  // 显示值：打开编辑时显示 filter，关闭时显示当前选中值
   const displayValue = open ? filter : value
-
   const hasCustomSection = filteredCustom.length > 0
   const hasBuiltinSection = filteredBuiltin.length > 0
   const noResults = !hasBuiltinSection && !hasCustomSection && filter.length > 0
@@ -137,7 +122,6 @@ export function FontSelectField({
 
           {open && (
             <div className="font-combo-dropdown">
-              {/* 自定义字体区 */}
               {hasCustomSection && (
                 <>
                   <div className="font-combo-group-title">自定义字体</div>
@@ -152,6 +136,7 @@ export function FontSelectField({
                       >
                         <span className="font-combo-item-text">{f}</span>
                         <button
+                          type="button"
                           className="font-combo-item-remove"
                           onMouseDown={(e) => { e.preventDefault(); e.stopPropagation(); handleRemoveCustom(e, f) }}
                           title="删除"
@@ -165,7 +150,6 @@ export function FontSelectField({
                 </>
               )}
 
-              {/* 内置字体区 */}
               {hasBuiltinSection &&
                 filteredBuiltin.map((opt) => {
                   const idx = flatItems.findIndex((item) => !item.isCustom && item.value === opt.value)
@@ -181,7 +165,6 @@ export function FontSelectField({
                   )
                 })}
 
-              {/* 输入新字体提示 */}
               {noResults && (
                 <div className="font-combo-hint">
                   按 Enter 添加「{filter}」为自定义字体

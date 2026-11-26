@@ -36,4 +36,27 @@ describe('sanitizeText 双引号转换', () => {
     expect(sanitizeText('"好"').count).toBe(2)
     expect(sanitizeText('无引号').count).toBe(0)
   })
+
+  it('保护 URL、邮箱、时间与千分位数字不被误转全角', () => {
+    const input = '请于14:30前登录https://example.com:8080/a?x=1,2或发邮件至a@b.com,共1,234,567.89元.'
+    const out = sanitizeText(input).text
+    expect(out).toContain('14:30')
+    expect(out).toContain('https://example.com:8080/a?x=1,2')
+    expect(out).toContain('a@b.com')
+    expect(out).toContain('1,234,567.89')
+  })
+
+  it('单段出现未闭合半角引号时按行隔离，不污染后文', () => {
+    const input = '第一段未闭合"引文\n第二段"正常"引用'
+    expect(sanitizeText(input).text).toBe('第一段未闭合\u201c引文\n第二段\u201c正常\u201d引用')
+  })
+
+  it('关闭净化总开关时原样返回', () => {
+    const input = '测试:1,2'
+    expect(sanitizeText(input, { enabled: false })).toEqual({
+      text: input,
+      count: 0,
+      details: { punctuation: 0, quotes: 0, whitespace: 0 },
+    })
+  })
 })

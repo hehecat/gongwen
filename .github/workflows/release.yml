@@ -22,6 +22,8 @@ jobs:
           cache: npm
 
       - run: npm ci
+      - run: npm run lint
+      - run: npm test
 
       - name: Generate version tag
         id: version

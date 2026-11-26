@@ -216,6 +216,15 @@ export function buildTemplateSummary(config: DocumentConfig): TemplateSummary {
     `版记: ${config.footerNote.enabled ? '开启' : '关闭'}`,
     `印章: ${config.specialOptions.hasStamp ? '开启' : '关闭'}`,
   ]
+  if (config.header.enabled && config.header.format !== 'standard') {
+    const formatLabels: Record<string, string> = {
+      letter: '信函格式',
+      command: '命令格式',
+      minutes: '纪要格式',
+    }
+    const label = formatLabels[config.header.format]
+    if (label) featureTags.push(`版式: ${label}`)
+  }
 
   return {
     titleStyle,

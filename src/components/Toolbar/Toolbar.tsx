@@ -1,35 +1,75 @@
-import { memo, useState, useRef, useCallback } from 'react'
+import { memo, useCallback, useEffect, useRef, useState } from 'react'
 import type { GongwenAST } from '../../types/ast'
-import { SettingsModal } from '../SettingsModal/SettingsModal'
+import { useDocumentConfig } from '../../contexts/useDocumentConfig'
+import { useDocumentTemplates } from '../../hooks/useDocumentTemplates'
+import type { DocumentDraft } from '../../hooks/useDocumentDrafts'
+import { BUILTIN_TEMPLATES } from '../../utils/builtinTemplates'
+import { SAMPLE_DOCUMENTS, type SampleDocument } from '../../utils/sampleDocuments'
+import type { SettingsTabId } from '../SettingsDrawer/SettingsDrawer'
 import './Toolbar.css'
 
 interface ToolbarProps {
   ast: GongwenAST
-  onExport: () => void
-  onClear: () => void
-  /** 文件导入回调 */
+  drafts: DocumentDraft[]
+  activeDraftId: string
+  onSelectDraft: (draftId: string) => void
+  onCreateDraft: () => void
+  onDeleteDraft: (draftId: string) => void
+  onLoadSample: (sample: SampleDocument) => void
+  onApplyBuiltinTemplate: (templateId: string) => void
+  onOpenSettings: (tab?: SettingsTabId) => void
+  settingsOpen: boolean
+  onToggleChecker: () => void
+  checkerOpen: boolean
+  issueCount: number
   onImport: (file: File) => void
-  /** 是否正在导入中 */
+  onPrint: () => void
+  onExport: () => void
   importing?: boolean
-  /** 是否正在导出中 */
   exporting?: boolean
+  exportStatusMessage?: string
 }
 
 export const Toolbar = memo(function Toolbar({
   ast,
-  onExport,
-  onClear,
+  drafts,
+  activeDraftId,
+  onSelectDraft,
+  onCreateDraft,
+  onDeleteDraft,
+  onLoadSample,
+  onApplyBuiltinTemplate,
+  onOpenSettings,
+  settingsOpen,
+  onToggleChecker,
+  checkerOpen,
+  issueCount,
   onImport,
+  onPrint,
+  onExport,
   importing,
   exporting,
+  exportStatusMessage,
 }: ToolbarProps) {
+  const { config, updateConfig, replaceConfig } = useDocumentConfig()
+  const { activeTemplateMeta, applyTemplate, templates } = useDocumentTemplates(config, replaceConfig)
+  const [showSampleMenu, setShowSampleMenu] = useState(false)
+  const sampleMenuRef = useRef<HTMLDivElement>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
+
   const hasContent = ast.title !== null || ast.body.length > 0
-  const nodeCount = (ast.title ? 1 : 0) + ast.body.length
-  const [showSettings, setShowSettings] = useState(false)
   const displayVersion = __APP_VERSION__.split('-')[0]
 
-  // 隐藏的 file input 引用
-  const fileInputRef = useRef<HTMLInputElement>(null)
+  useEffect(() => {
+    if (!showSampleMenu) return
+    const handleOutside = (e: MouseEvent) => {
+      if (sampleMenuRef.current && !sampleMenuRef.current.contains(e.target as Node)) {
+        setShowSampleMenu(false)
+      }
+    }
+    document.addEventListener('mousedown', handleOutside)
+    return () => document.removeEventListener('mousedown', handleOutside)
+  }, [showSampleMenu])
 
   const handleImportClick = useCallback(() => {
     fileInputRef.current?.click()
@@ -38,36 +78,168 @@ export const Toolbar = memo(function Toolbar({
   const handleFileChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (file) onImport(file)
-    // 重置 input 以允许连续选择同一文件
     e.target.value = ''
   }, [onImport])
 
+  const handleQuickTemplateChange = (value: string) => {
+    if (!value) return
+    if (value.startsWith('builtin:')) {
+      onApplyBuiltinTemplate(value.slice('builtin:'.length))
+      return
+    }
+    if (value.startsWith('user:')) {
+      applyTemplate(value.slice('user:'.length))
+    }
+  }
+
   return (
-    <div className="toolbar">
+    <header className="toolbar">
       <div className="toolbar-left">
-        <h1 className="toolbar-title">公文排版工具</h1>
-        <div className="toolbar-meta" aria-label="版本信息">
+        <div className="toolbar-brand">
+          <svg className="toolbar-logo" width="22" height="22" viewBox="0 0 512 512" aria-hidden="true">
+            <rect width="512" height="512" rx="84" fill="#c0392b" />
+            <rect x="96" y="72" width="320" height="368" rx="18" fill="#ffffff" />
+            <line x1="128" y1="154" x2="384" y2="154" stroke="#c0392b" strokeWidth="14" />
+            <rect x="144" y="188" width="224" height="18" rx="4" fill="#334155" />
+            <rect x="144" y="230" width="224" height="14" rx="4" fill="#94a3b8" />
+            <rect x="144" y="264" width="180" height="14" rx="4" fill="#94a3b8" />
+            <polygon points="256,88 263,110 286,110 267,124 274,146 256,132 238,146 245,124 226,110 249,110" fill="#c0392b" />
+          </svg>
+          <h1 className="toolbar-title">公文排版工具</h1>
           <span className="toolbar-version">{displayVersion}</span>
         </div>
-      </div>
-      <div className="toolbar-right">
-        {hasContent && (
-          <span className="toolbar-stats">
-            已识别 {nodeCount} 个段落
-          </span>
-        )}
-        <button
-          className="toolbar-btn toolbar-btn--settings"
-          onClick={() => setShowSettings(true)}
-          title="设置"
+
+        {/* 多草稿切换 */}
+        <div className="toolbar-group" aria-label="草稿切换">
+          <select
+            className="toolbar-select"
+            aria-label="选择草稿"
+            value={activeDraftId}
+            onChange={(e) => onSelectDraft(e.target.value)}
+          >
+            {drafts.map((draft, idx) => (
+              <option key={draft.id} value={draft.id}>
+                草稿 {idx + 1}: {draft.title}
+              </option>
+            ))}
+          </select>
+          <button
+            type="button"
+            className="toolbar-icon-btn"
+            onClick={onCreateDraft}
+            title="新建空白草稿"
+          >
+            +
+          </button>
+          {drafts.length > 1 && (
+            <button
+              type="button"
+              className="toolbar-icon-btn toolbar-icon-btn--danger"
+              onClick={() => onDeleteDraft(activeDraftId)}
+              title="删除当前草稿"
+            >
+              ×
+            </button>
+          )}
+        </div>
+
+        {/* 快速套用模板 */}
+        <select
+          className="toolbar-select toolbar-select--template"
+          aria-label="快速套用模板"
+          value={activeTemplateMeta ? `user:${activeTemplateMeta.templateId}` : ''}
+          onChange={(e) => handleQuickTemplateChange(e.target.value)}
         >
-          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M6.5 1L6.87 2.96C6.08 3.24 5.37 3.67 4.77 4.22L2.87 3.5L1.37 6.1L2.93 7.4C2.85 7.76 2.8 8.12 2.8 8.5C2.8 8.88 2.85 9.24 2.93 9.6L1.37 10.9L2.87 13.5L4.77 12.78C5.37 13.33 6.08 13.76 6.87 14.04L7.25 16H9.75L10.13 14.04C10.92 13.76 11.63 13.33 12.23 12.78L14.13 13.5L15.63 10.9L14.07 9.6C14.15 9.24 14.2 8.88 14.2 8.5C14.2 8.12 14.15 7.76 14.07 7.4L15.63 6.1L14.13 3.5L12.23 4.22C11.63 3.67 10.92 3.24 10.13 2.96L9.75 1H6.5Z" stroke="currentColor" strokeWidth="1.2" strokeLinejoin="round" fill="none"/>
-            <circle cx="8.5" cy="8.5" r="2.5" stroke="currentColor" strokeWidth="1.2" fill="none"/>
-          </svg>
-          <span>设置</span>
+          <option value="" disabled>
+            快速套用模板…
+          </option>
+          <optgroup label="GB/T 9704 国标预设">
+            {BUILTIN_TEMPLATES.map((tpl) => (
+              <option key={tpl.id} value={`builtin:${tpl.id}`}>
+                {tpl.name}
+              </option>
+            ))}
+          </optgroup>
+          {templates.length > 0 && (
+            <optgroup label="我的模板">
+              {templates.map((tpl) => (
+                <option key={tpl.id} value={`user:${tpl.id}`}>
+                  {tpl.name}
+                </option>
+              ))}
+            </optgroup>
+          )}
+        </select>
+      </div>
+
+      <div className="toolbar-right">
+        <button
+          type="button"
+          className={`toolbar-toggle ${config.header.enabled ? 'toolbar-toggle--active' : ''}`}
+          onClick={() => updateConfig({ header: { enabled: !config.header.enabled } })}
+          title="快速开启或关闭版头"
+        >
+          版头
         </button>
         <button
+          type="button"
+          className={`toolbar-toggle ${config.footerNote.enabled ? 'toolbar-toggle--active' : ''}`}
+          onClick={() => updateConfig({ footerNote: { enabled: !config.footerNote.enabled } })}
+          title="快速开启或关闭版记"
+        >
+          版记
+        </button>
+
+        <button
+          type="button"
+          className={`toolbar-btn toolbar-btn--neutral ${checkerOpen ? 'toolbar-btn--active' : ''}`}
+          onClick={onToggleChecker}
+          title="GB/T 9704 公文规范体检"
+        >
+          <span>体检</span>
+          {issueCount > 0 && <span className="toolbar-badge">{issueCount}</span>}
+        </button>
+
+        <div className="toolbar-dropdown" ref={sampleMenuRef}>
+          <button
+            type="button"
+            className="toolbar-btn toolbar-btn--neutral"
+            onClick={() => setShowSampleMenu((prev) => !prev)}
+            aria-expanded={showSampleMenu}
+          >
+            示例 ▾
+          </button>
+          {showSampleMenu && (
+            <div className="toolbar-menu">
+              {SAMPLE_DOCUMENTS.map((sample) => (
+                <button
+                  key={sample.id}
+                  type="button"
+                  className="toolbar-menu-item"
+                  onClick={() => {
+                    setShowSampleMenu(false)
+                    onLoadSample(sample)
+                  }}
+                >
+                  <span className="toolbar-menu-item-title">{sample.label}</span>
+                  <span className="toolbar-menu-item-desc">{sample.description}</span>
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+
+        <button
+          type="button"
+          className={`toolbar-btn toolbar-btn--neutral ${settingsOpen ? 'toolbar-btn--active' : ''}`}
+          onClick={() => onOpenSettings()}
+          title="格式与版式设置"
+        >
+          设置
+        </button>
+
+        <button
+          type="button"
           className="toolbar-btn toolbar-btn--import"
           onClick={handleImportClick}
           disabled={importing}
@@ -82,22 +254,27 @@ export const Toolbar = memo(function Toolbar({
           onChange={handleFileChange}
           style={{ display: 'none' }}
         />
+
         <button
-          className="toolbar-btn toolbar-btn--clear"
-          onClick={onClear}
+          type="button"
+          className="toolbar-btn toolbar-btn--neutral"
+          onClick={onPrint}
           disabled={!hasContent}
+          title="打印或另存为标准 A4 PDF"
         >
-          清空
+          打印 / PDF
         </button>
+
         <button
+          type="button"
           className="toolbar-btn toolbar-btn--export"
           onClick={onExport}
           disabled={!hasContent || exporting}
+          title="导出 Word 文档 (Cmd/Ctrl+S)"
         >
-          导出 Word
+          {exporting ? (exportStatusMessage || '导出中…') : '导出 Word'}
         </button>
       </div>
-      {showSettings && <SettingsModal onClose={() => setShowSettings(false)} />}
-    </div>
+    </header>
   )
 })

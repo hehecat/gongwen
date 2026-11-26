@@ -116,6 +116,7 @@ export function useComboBox({
         break
       case 'Escape':
         e.preventDefault()
+        e.stopPropagation()
         callbacksRef.current.onEscape?.()
         closeDropdown()
         if (blurOnEscape) {

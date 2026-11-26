@@ -28,3 +28,7 @@ dist-ssr
 # Screenshots
 *.png
 !public/*.png
+!src/assets/*.png
+
+# Local standard reference PDF
+docs/*.pdf

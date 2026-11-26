@@ -1,55 +1,135 @@
-import { useState, useCallback, useEffect, useRef, useMemo } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Editor } from './components/Editor/Editor'
-import { Preview } from './components/Preview/Preview'
+import { Preview, type ViewLayoutMode } from './components/Preview/Preview'
 import { Toolbar } from './components/Toolbar/Toolbar'
+import { SettingsDrawer, type SettingsTabId } from './components/SettingsDrawer/SettingsDrawer'
+import { CheckerPanel } from './components/CheckerPanel/CheckerPanel'
+import { StatusBar } from './components/StatusBar/StatusBar'
+import { Toast, type ToastItem } from './components/common/Toast'
+import { ConfirmDialog, type ConfirmDialogState } from './components/common/ConfirmDialog'
 import { useDocumentParser } from './hooks/useDocumentParser'
+import { useDocumentDrafts } from './hooks/useDocumentDrafts'
+import type { PageSlice } from './hooks/usePagination'
 import { useDocumentConfig } from './contexts/useDocumentConfig'
+import { applyLineFixToText, checkGongwen, type CheckIssue } from './checker'
+import { BUILTIN_TEMPLATES } from './utils/builtinTemplates'
+import type { SampleDocument } from './utils/sampleDocuments'
 import { sanitizeText } from './utils/sanitize'
 import { isChunkLoadError, reloadOnceOnChunkError } from './utils/lazyImport'
 import './App.css'
 
-const STORAGE_KEY_TEXT = 'docx-editor-text'
+const SPLIT_STORAGE_KEY = 'gongwen-split-percent'
 
-/** 从 localStorage 读取持久化的编辑区文本 */
-function loadText(): string {
+function loadSplitPercent(): number {
   try {
-    return localStorage.getItem(STORAGE_KEY_TEXT) ?? ''
+    const raw = Number(localStorage.getItem(SPLIT_STORAGE_KEY))
+    if (Number.isFinite(raw) && raw >= 25 && raw <= 70) return raw
   } catch {
-    return ''
+    // 忽略读取异常
   }
+  return 45
 }
 
 function App() {
-  const [text, setText] = useState(loadText)
-  const [importing, setImporting] = useState(false)
-  const [exporting, setExporting] = useState(false)
+  const {
+    drafts,
+    activeDraft,
+    saveState,
+    updateActiveText,
+    setActiveOverride,
+    clearActiveOverrides,
+    restoreActiveSnapshot,
+    createDraft,
+    selectDraft,
+    deleteDraft,
+  } = useDocumentDrafts()
 
-  // 自动净化：解析前预处理，编辑器保留原文不干扰输入
-  const sanitized = useMemo(() => sanitizeText(text).text, [text])
-  const ast = useDocumentParser(sanitized)
-  const { config } = useDocumentConfig()
+  const { config, updateConfig, replaceConfig } = useDocumentConfig()
   const configRef = useRef(config)
-
   useEffect(() => {
     configRef.current = config
   }, [config])
 
-  // Auto-Save: debounce 500ms 写入 localStorage
-  const timerRef = useRef<ReturnType<typeof setTimeout>>(undefined)
-  useEffect(() => {
-    clearTimeout(timerRef.current)
-    timerRef.current = setTimeout(() => {
-      try {
-        localStorage.setItem(STORAGE_KEY_TEXT, text)
-      } catch {
-        // localStorage 写入失败（空间不足等）静默忽略
-      }
-    }, 500)
-    return () => clearTimeout(timerRef.current)
-  }, [text])
+  const [importing, setImporting] = useState(false)
+  const [exporting, setExporting] = useState(false)
+  const [exportStatusMessage, setExportStatusMessage] = useState('')
+  const [layoutMode, setLayoutMode] = useState<ViewLayoutMode>('split')
+  const [mobilePane, setMobilePane] = useState<'editor' | 'preview'>('editor')
+  const [splitPercent, setSplitPercent] = useState<number>(loadSplitPercent)
+
+  const [settingsOpen, setSettingsOpen] = useState(false)
+  const [settingsTab, setSettingsTab] = useState<SettingsTabId>('templates')
+  const [checkerOpen, setCheckerOpen] = useState(false)
+  const [pages, setPages] = useState<PageSlice[]>([])
+  const [highlightRequest, setHighlightRequest] = useState<{ lineNumber: number; seq: number } | null>(null)
+  const [toast, setToast] = useState<ToastItem | null>(null)
+
+  const [confirmState, setConfirmState] = useState<{
+    dialog: ConfirmDialogState
+    onConfirm: () => void
+    onCancel?: () => void
+  } | null>(null)
+
+  const mainContainerRef = useRef<HTMLDivElement>(null)
+  const seqRef = useRef(0)
+
+  const showToast = useCallback((next: Omit<ToastItem, 'id'>) => {
+    setToast({ ...next, id: String(Date.now() + Math.random()) })
+  }, [])
+
+  const sanitizeResult = useMemo(
+    () => sanitizeText(activeDraft.text, config.sanitize),
+    [activeDraft.text, config.sanitize],
+  )
+
+  const ast = useDocumentParser(sanitizeResult.text, {
+    overrides: activeDraft.overrides,
+    parserConfig: config.parser,
+  })
+
+  const checkIssues = useMemo(
+    () =>
+      checkGongwen({
+        ast,
+        rawText: sanitizeResult.text,
+        config,
+        pages,
+      }),
+    [ast, config, pages, sanitizeResult.text],
+  )
+
+  const askConfirm = useCallback(
+    (dialog: ConfirmDialogState): Promise<boolean> => {
+      return new Promise((resolve) => {
+        setConfirmState({
+          dialog,
+          onConfirm: () => {
+            setConfirmState(null)
+            resolve(true)
+          },
+          onCancel: () => {
+            setConfirmState(null)
+            resolve(false)
+          },
+        })
+      })
+    },
+    [],
+  )
+
+  const handleLocateLine = useCallback((lineNumber: number) => {
+    seqRef.current += 1
+    setHighlightRequest({ lineNumber, seq: seqRef.current })
+    setMobilePane('editor')
+    if (layoutMode === 'preview') {
+      setLayoutMode('split')
+    }
+  }, [layoutMode])
 
   const handleExport = useCallback(async () => {
+    if (ast.title === null && ast.body.length === 0) return
     setExporting(true)
+    setExportStatusMessage('正在准备导出…')
 
     await new Promise<void>((resolve) => {
       requestAnimationFrame(() => resolve())
@@ -57,77 +137,411 @@ function App() {
 
     try {
       const { downloadDocx } = await import('./exporter/download')
-      // 成功后清 flag
-      try { sessionStorage.removeItem('chunk-reload-export') } catch {}
-      await downloadDocx(ast, configRef.current)
+      try {
+        sessionStorage.removeItem('chunk-reload-export')
+      } catch {
+        // 忽略 sessionStorage 异常
+      }
+      await downloadDocx(ast, configRef.current, {
+        onStatusChange: (status) => setExportStatusMessage(status.message),
+        onConfirmMultipart: (count, parts) => askConfirm({
+          title: '超大文档分片导出确认',
+          message: `当前文档共 ${count} 段，单文件打包可能导致浏览器内存占用过高。\n\n将自动拆分为 ${parts} 个 Word 文件依次下载，是否继续？`,
+          confirmLabel: '继续分片导出',
+        }),
+      })
+      showToast({ type: 'success', message: 'Word 文档已生成并开始下载。' })
     } catch (err) {
       if (reloadOnceOnChunkError(err, 'chunk-reload-export')) return
       console.error('导出失败:', err)
-      alert(
-        isChunkLoadError(err)
-          ? '导出模块加载失败，可能是网页版本已更新。请强制刷新页面（Ctrl+F5 / Cmd+Shift+R）后重试。'
-          : '导出失败，请检查控制台日志'
-      )
+      showToast({
+        type: 'error',
+        message: isChunkLoadError(err)
+          ? '导出模块加载失败，可能是网页版本已更新，请强制刷新页面后重试。'
+          : '导出失败，请检查文档内容或浏览器权限后重试。',
+      })
     } finally {
       setExporting(false)
+      setExportStatusMessage('')
     }
-  }, [ast])
+  }, [askConfirm, ast, showToast])
+
+  // 全局快捷键：Esc 关闭抽屉/面板；Cmd/Ctrl+S 导出 Word
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        if (confirmState) {
+          confirmState.onCancel?.()
+          setConfirmState(null)
+          return
+        }
+        if (settingsOpen) {
+          setSettingsOpen(false)
+          return
+        }
+        if (checkerOpen) {
+          setCheckerOpen(false)
+        }
+        return
+      }
+
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 's') {
+        e.preventDefault()
+        if (!exporting && (ast.title !== null || ast.body.length > 0)) {
+          void handleExport()
+        }
+      }
+    }
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [ast.body.length, ast.title, checkerOpen, confirmState, exporting, handleExport, settingsOpen])
 
   const handleClear = useCallback(() => {
-    setText('')
+    const prevText = activeDraft.text
+    const prevOverrides = activeDraft.overrides
+    if (!prevText.trim()) return
+
+    updateActiveText('')
+    clearActiveOverrides()
+    showToast({
+      type: 'info',
+      message: '已清空当前草稿内容。',
+      durationMs: 6000,
+      actionLabel: '撤销清空',
+      onAction: () => {
+        restoreActiveSnapshot(prevText, prevOverrides)
+        showToast({ type: 'success', message: '已恢复草稿内容。' })
+      },
+    })
+  }, [activeDraft.overrides, activeDraft.text, clearActiveOverrides, restoreActiveSnapshot, showToast, updateActiveText])
+
+  const handleCopySanitized = useCallback(async () => {
     try {
-      localStorage.removeItem(STORAGE_KEY_TEXT)
+      await navigator.clipboard.writeText(sanitizeResult.text)
+      showToast({ type: 'success', message: '已复制规范化纯文本到剪贴板。' })
     } catch {
-      // 静默忽略
+      showToast({ type: 'error', message: '剪贴板写入失败，请手动全选复制。' })
     }
-  }, [])
+  }, [sanitizeResult.text, showToast])
 
   const handleImport = useCallback(async (file: File) => {
-    // 编辑器非空时，确认覆盖
-    if (text.trim() && !confirm('导入文件将覆盖当前内容，是否继续？')) return
+    if (activeDraft.text.trim()) {
+      const ok = await askConfirm({
+        title: '覆盖当前草稿',
+        message: `导入「${file.name}」将覆盖当前草稿内容，是否继续？`,
+        confirmLabel: '确认覆盖',
+      })
+      if (!ok) return
+    }
 
     setImporting(true)
     try {
       const { importFile } = await import('./utils/fileImporter')
-      // 成功后清 flag
-      try { sessionStorage.removeItem('chunk-reload-import') } catch {}
+      try {
+        sessionStorage.removeItem('chunk-reload-import')
+      } catch {
+        // 忽略 sessionStorage 异常
+      }
       const result = await importFile(file)
-      setText(result.text)
+      updateActiveText(result.text)
+      clearActiveOverrides()
+      showToast({ type: 'success', message: `已导入「${result.fileName}」。` })
     } catch (err) {
       if (reloadOnceOnChunkError(err, 'chunk-reload-import')) return
-      alert(
-        isChunkLoadError(err)
-          ? '导入模块加载失败，可能是网页版本已更新。请强制刷新页面（Ctrl+F5 / Cmd+Shift+R）后重试。'
-          : err instanceof Error ? err.message : '文件导入失败'
-      )
+      showToast({
+        type: 'error',
+        message: isChunkLoadError(err)
+          ? '导入模块加载失败，可能是网页版本已更新，请强制刷新页面后重试。'
+          : err instanceof Error ? err.message : '文件导入失败',
+      })
     } finally {
       setImporting(false)
     }
-  }, [text])
+  }, [activeDraft.text, askConfirm, clearActiveOverrides, showToast, updateActiveText])
+
+  const handleLoadSample = useCallback(async (sample: SampleDocument) => {
+    if (activeDraft.text.trim()) {
+      const ok = await askConfirm({
+        title: '载入示例公文',
+        message: `载入「${sample.label}」将替换当前草稿内容，并切换为匹配的国标版式预设，是否继续？`,
+        confirmLabel: '确认载入',
+      })
+      if (!ok) return
+    }
+
+    updateActiveText(sample.text)
+    clearActiveOverrides()
+    const preset = BUILTIN_TEMPLATES.find((t) => t.id === sample.builtinTemplateId)
+    if (preset) {
+      replaceConfig(preset.config)
+    }
+    showToast({ type: 'success', message: `已载入示例「${sample.label}」。` })
+  }, [activeDraft.text, askConfirm, clearActiveOverrides, replaceConfig, showToast, updateActiveText])
+
+  const handleApplyBuiltinTemplate = useCallback((templateId: string) => {
+    const preset = BUILTIN_TEMPLATES.find((t) => t.id === templateId)
+    if (!preset) return
+    const prevConfig = configRef.current
+    replaceConfig(preset.config)
+    showToast({
+      type: 'success',
+      message: `已套用预设「${preset.name}」。`,
+      durationMs: 5000,
+      actionLabel: '撤销',
+      onAction: () => replaceConfig(prevConfig),
+    })
+  }, [replaceConfig, showToast])
+
+  const handleDeleteDraft = useCallback(async (draftId: string) => {
+    const target = drafts.find((d) => d.id === draftId)
+    if (!target) return
+    if (target.text.trim()) {
+      const ok = await askConfirm({
+        title: '删除草稿',
+        message: `确认删除草稿「${target.title}」？删除后不可恢复。`,
+        confirmLabel: '确认删除',
+        danger: true,
+      })
+      if (!ok) return
+    }
+    deleteDraft(draftId)
+    showToast({ type: 'info', message: `已删除草稿「${target.title}」。` })
+  }, [askConfirm, deleteDraft, drafts, showToast])
+
+  const handleApplyCheckFix = useCallback((issue: CheckIssue) => {
+    if (!issue.fix) return
+    const fix = issue.fix
+    if (fix.kind === 'replace-line' && fix.lineNumber && fix.replacementText !== undefined) {
+      const rawLineCount = activeDraft.text.split('\n').length
+      const sanitizedLineCount = sanitizeResult.text.split('\n').length
+      const baseText = rawLineCount === sanitizedLineCount ? activeDraft.text : sanitizeResult.text
+      updateActiveText(applyLineFixToText(baseText, fix.lineNumber, fix.replacementText))
+      showToast({ type: 'success', message: `已修复第 ${fix.lineNumber} 行。` })
+      return
+    }
+    if (fix.kind === 'update-doc-number' && fix.nextDocNumber) {
+      updateConfig({ header: { docNumber: fix.nextDocNumber } })
+      showToast({ type: 'success', message: `发文字号已规范为「${fix.nextDocNumber}」。` })
+      return
+    }
+    if (fix.kind === 'adjust-line-spacing' && fix.nextLineSpacing) {
+      updateConfig({ body: { lineSpacing: fix.nextLineSpacing } })
+      showToast({ type: 'success', message: `已将正文行距微调至 ${fix.nextLineSpacing} 磅。` })
+    }
+  }, [activeDraft.text, sanitizeResult.text, showToast, updateActiveText, updateConfig])
+
+  const handleApplyAllCheckFixes = useCallback(() => {
+    const rawLineCount = activeDraft.text.split('\n').length
+    const sanitizedLineCount = sanitizeResult.text.split('\n').length
+    let nextText = rawLineCount === sanitizedLineCount ? activeDraft.text : sanitizeResult.text
+    let fixedCount = 0
+
+    for (const issue of checkIssues) {
+      const fix = issue.fix
+      if (!fix) continue
+      if (fix.kind === 'replace-line' && fix.lineNumber && fix.replacementText !== undefined) {
+        nextText = applyLineFixToText(nextText, fix.lineNumber, fix.replacementText)
+        fixedCount++
+      } else if (fix.kind === 'update-doc-number' && fix.nextDocNumber) {
+        updateConfig({ header: { docNumber: fix.nextDocNumber } })
+        fixedCount++
+      } else if (fix.kind === 'adjust-line-spacing' && fix.nextLineSpacing) {
+        updateConfig({ body: { lineSpacing: fix.nextLineSpacing } })
+        fixedCount++
+      }
+    }
+
+    if (nextText !== activeDraft.text) {
+      updateActiveText(nextText)
+    }
+    if (fixedCount > 0) {
+      showToast({ type: 'success', message: `已自动修复 ${fixedCount} 项规范问题。` })
+    }
+  }, [activeDraft.text, checkIssues, sanitizeResult.text, showToast, updateActiveText, updateConfig])
+
+  const handleOpenSettings = useCallback((tab?: SettingsTabId) => {
+    if (tab) {
+      setSettingsTab(tab)
+      setSettingsOpen(true)
+      setCheckerOpen(false)
+      return
+    }
+    setSettingsOpen((prev) => {
+      if (!prev) setCheckerOpen(false)
+      return !prev
+    })
+  }, [])
+
+  const handleToggleChecker = useCallback(() => {
+    setCheckerOpen((prev) => {
+      if (!prev) setSettingsOpen(false)
+      return !prev
+    })
+  }, [])
+
+  // 拖拽调节左右分栏宽度
+  const handleDividerMouseDown = useCallback((e: React.MouseEvent) => {
+    e.preventDefault()
+    const container = mainContainerRef.current
+    if (!container) return
+
+    const onMouseMove = (moveEvent: MouseEvent) => {
+      const rect = container.getBoundingClientRect()
+      if (rect.width <= 0) return
+      const pct = ((moveEvent.clientX - rect.left) / rect.width) * 100
+      const clamped = Math.min(70, Math.max(25, Math.round(pct * 10) / 10))
+      setSplitPercent(clamped)
+    }
+
+    const onMouseUp = () => {
+      window.removeEventListener('mousemove', onMouseMove)
+      window.removeEventListener('mouseup', onMouseUp)
+      setSplitPercent((latest) => {
+        try {
+          localStorage.setItem(SPLIT_STORAGE_KEY, String(latest))
+        } catch {
+          // 忽略存储异常
+        }
+        return latest
+      })
+    }
+
+    window.addEventListener('mousemove', onMouseMove)
+    window.addEventListener('mouseup', onMouseUp)
+  }, [])
+
+  const editorStyle = layoutMode === 'split'
+    ? { width: `${splitPercent}%`, flex: 'none' }
+    : undefined
 
   return (
     <div className="app">
       <Toolbar
         ast={ast}
-        onExport={handleExport}
-        onClear={handleClear}
+        drafts={drafts}
+        activeDraftId={activeDraft.id}
+        onSelectDraft={selectDraft}
+        onCreateDraft={() => {
+          createDraft('')
+          showToast({ type: 'info', message: '已新建空白草稿。' })
+        }}
+        onDeleteDraft={handleDeleteDraft}
+        onLoadSample={handleLoadSample}
+        onApplyBuiltinTemplate={handleApplyBuiltinTemplate}
+        onOpenSettings={handleOpenSettings}
+        settingsOpen={settingsOpen}
+        onToggleChecker={handleToggleChecker}
+        checkerOpen={checkerOpen}
+        issueCount={checkIssues.length}
         onImport={handleImport}
+        onPrint={() => window.print()}
+        onExport={handleExport}
         importing={importing}
         exporting={exporting}
+        exportStatusMessage={exportStatusMessage}
       />
-      <div className="app-main">
-        <div className="app-editor">
-          <Editor
-            value={text}
-            onChange={setText}
-            onFileImport={handleImport}
-            importing={importing}
-          />
-        </div>
-        <div className="app-preview">
-          <Preview ast={ast} />
-        </div>
+
+      {/* 移动端分栏切换条 */}
+      <div className="app-mobile-tabs" role="tablist" aria-label="移动端视图切换">
+        <button
+          type="button"
+          className={`app-mobile-tab ${mobilePane === 'editor' ? 'app-mobile-tab--active' : ''}`}
+          onClick={() => setMobilePane('editor')}
+        >
+          正文编辑
+        </button>
+        <button
+          type="button"
+          className={`app-mobile-tab ${mobilePane === 'preview' ? 'app-mobile-tab--active' : ''}`}
+          onClick={() => setMobilePane('preview')}
+        >
+          A4 预览 ({pages.length}页)
+        </button>
       </div>
+
+      <div
+        ref={mainContainerRef}
+        className={`app-main app-main--${layoutMode} app-main--mobile-${mobilePane}`}
+      >
+        {layoutMode !== 'preview' && (
+          <div className="app-editor" style={editorStyle}>
+            <Editor
+              value={activeDraft.text}
+              onChange={updateActiveText}
+              ast={ast}
+              overrides={activeDraft.overrides}
+              onChangeOverride={setActiveOverride}
+              onClearOverrides={clearActiveOverrides}
+              onFileImport={handleImport}
+              onCopySanitized={handleCopySanitized}
+              onClear={handleClear}
+              importing={importing}
+              highlightRequest={highlightRequest}
+              layoutMode={layoutMode}
+              onChangeLayoutMode={setLayoutMode}
+            />
+          </div>
+        )}
+
+        {layoutMode === 'split' && (
+          <div
+            className="app-resizer"
+            role="separator"
+            aria-orientation="vertical"
+            aria-label="拖动调节编辑区与预览区宽度"
+            onMouseDown={handleDividerMouseDown}
+          />
+        )}
+
+        {layoutMode !== 'editor' && (
+          <div className="app-preview">
+            <Preview
+              ast={ast}
+              layoutMode={layoutMode}
+              onChangeLayoutMode={setLayoutMode}
+              onSelectLine={handleLocateLine}
+              onPagesChange={setPages}
+            />
+          </div>
+        )}
+      </div>
+
+      <StatusBar
+        rawText={activeDraft.text}
+        ast={ast}
+        pageCount={pages.length}
+        sanitizeCount={sanitizeResult.count}
+        sanitizeEnabled={config.sanitize.enabled}
+        overrideCount={Object.keys(activeDraft.overrides).length}
+        saveState={saveState}
+        onOpenSanitizeSettings={() => handleOpenSettings('sanitizeParser')}
+      />
+
+      {settingsOpen && (
+        <SettingsDrawer
+          activeTab={settingsTab}
+          onTabChange={setSettingsTab}
+          onClose={() => setSettingsOpen(false)}
+        />
+      )}
+
+      {checkerOpen && (
+        <CheckerPanel
+          issues={checkIssues}
+          onClose={() => setCheckerOpen(false)}
+          onLocateLine={handleLocateLine}
+          onApplyFix={handleApplyCheckFix}
+          onApplyAllFixes={handleApplyAllCheckFixes}
+        />
+      )}
+
+      <ConfirmDialog
+        dialog={confirmState?.dialog ?? null}
+        onConfirm={() => confirmState?.onConfirm()}
+        onCancel={() => confirmState?.onCancel?.()}
+      />
+
+      <Toast toast={toast} onDismiss={() => setToast(null)} />
     </div>
   )
 }
