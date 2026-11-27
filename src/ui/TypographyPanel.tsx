@@ -79,84 +79,7 @@ export function TypographyPanel({
 
   return (
     <div className="cb-panel-scroll">
-      {/* 1. 页面边距与版心 */}
-      <CollapsibleSection
-        title="页面边距与版心"
-        defaultOpen
-        meta={
-          <span className={`cb-section-badge cb-tabular${!marginsModified ? ' is-accent' : ''}`}>
-            {marginsModified ? '自定义' : '国标 22×28'}
-          </span>
-        }
-      >
-        <div className="cb-fields-stack">
-          <div className="cb-grid-2">
-            <div className="cb-field">
-              <label className="cb-label">天头（上）</label>
-              <NumberStepper
-                ariaLabel="上边距厘米"
-                value={config.margins.top}
-                min={0.5}
-                max={8}
-                step={0.1}
-                unit="cm"
-                onChange={(top) => updateConfig({ margins: { top } })}
-              />
-            </div>
-            <div className="cb-field">
-              <label className="cb-label">下白边（下）</label>
-              <NumberStepper
-                ariaLabel="下边距厘米"
-                value={config.margins.bottom}
-                min={0.5}
-                max={8}
-                step={0.1}
-                unit="cm"
-                onChange={(bottom) => updateConfig({ margins: { bottom } })}
-              />
-            </div>
-            <div className="cb-field">
-              <label className="cb-label">订口（左）</label>
-              <NumberStepper
-                ariaLabel="左边距厘米"
-                value={config.margins.left}
-                min={0.5}
-                max={8}
-                step={0.1}
-                unit="cm"
-                onChange={(left) => updateConfig({ margins: { left } })}
-              />
-            </div>
-            <div className="cb-field">
-              <label className="cb-label">右白边（右）</label>
-              <NumberStepper
-                ariaLabel="右边距厘米"
-                value={config.margins.right}
-                min={0.5}
-                max={8}
-                step={0.1}
-                unit="cm"
-                onChange={(right) => updateConfig({ margins: { right } })}
-              />
-            </div>
-          </div>
-
-          {marginsModified && (
-            <div className="cb-margins-reset-row cb-tabular">
-              <span>国标标准：上 3.7 · 下 3.5 · 左 2.8 · 右 2.6 cm</span>
-              <button
-                type="button"
-                className="cb-link-btn"
-                onClick={() => updateConfig({ margins: { ...DEFAULT_CONFIG.margins } })}
-              >
-                还原边距
-              </button>
-            </div>
-          )}
-        </div>
-      </CollapsibleSection>
-
-      {/* 2. 标题与正文 */}
+      {/* 1. 标题与正文字型 */}
       <CollapsibleSection title="标题与正文字型" defaultOpen>
         <div className="cb-fields-stack">
           <div className="cb-level-card">
@@ -285,6 +208,83 @@ export function TypographyPanel({
               }
             />
           </div>
+        </div>
+      </CollapsibleSection>
+
+      {/* 2. 页面边距与版心 */}
+      <CollapsibleSection
+        title="页面边距与版心"
+        defaultOpen={false}
+        meta={
+          <span className={`cb-section-badge cb-tabular${!marginsModified ? ' is-accent' : ''}`}>
+            {marginsModified ? '自定义' : '国标 22×28'}
+          </span>
+        }
+      >
+        <div className="cb-fields-stack">
+          <div className="cb-grid-2">
+            <div className="cb-field">
+              <label className="cb-label">天头（上）</label>
+              <NumberStepper
+                ariaLabel="上边距厘米"
+                value={config.margins.top}
+                min={0.5}
+                max={8}
+                step={0.1}
+                unit="cm"
+                onChange={(top) => updateConfig({ margins: { top } })}
+              />
+            </div>
+            <div className="cb-field">
+              <label className="cb-label">下白边（下）</label>
+              <NumberStepper
+                ariaLabel="下边距厘米"
+                value={config.margins.bottom}
+                min={0.5}
+                max={8}
+                step={0.1}
+                unit="cm"
+                onChange={(bottom) => updateConfig({ margins: { bottom } })}
+              />
+            </div>
+            <div className="cb-field">
+              <label className="cb-label">订口（左）</label>
+              <NumberStepper
+                ariaLabel="左边距厘米"
+                value={config.margins.left}
+                min={0.5}
+                max={8}
+                step={0.1}
+                unit="cm"
+                onChange={(left) => updateConfig({ margins: { left } })}
+              />
+            </div>
+            <div className="cb-field">
+              <label className="cb-label">右白边（右）</label>
+              <NumberStepper
+                ariaLabel="右边距厘米"
+                value={config.margins.right}
+                min={0.5}
+                max={8}
+                step={0.1}
+                unit="cm"
+                onChange={(right) => updateConfig({ margins: { right } })}
+              />
+            </div>
+          </div>
+
+          {marginsModified && (
+            <div className="cb-margins-reset-row cb-tabular">
+              <span>国标标准：上 3.7 · 下 3.5 · 左 2.8 · 右 2.6 cm</span>
+              <button
+                type="button"
+                className="cb-link-btn"
+                onClick={() => updateConfig({ margins: { ...DEFAULT_CONFIG.margins } })}
+              >
+                还原边距
+              </button>
+            </div>
+          )}
         </div>
       </CollapsibleSection>
 

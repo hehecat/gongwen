@@ -1,24 +1,22 @@
 import { useEffect, useRef, useState } from 'react'
 import type { ExportStatus } from '../exporter/download'
 import type { DocumentDraft } from '../hooks/useDocumentDrafts'
-import type { BuiltinTemplate } from '../utils/builtinTemplates'
-import type { DocumentTemplate, RecentTemplateItem } from '../types/documentTemplate'
+import type { SampleDocument } from '../utils/sampleDocuments'
 import { SegmentedControl } from './FormControls'
 import {
   AlertIcon,
   BookSpecIcon,
   CheckIcon,
   ChevronDownIcon,
+  CopyIcon,
   DownloadIcon,
   FileDocIcon,
-  PinIcon,
+  MoreHorizontalIcon,
   PlusIcon,
   PrinterIcon,
-  SearchCommandIcon,
-  ShieldCheckIcon,
   SidebarRightIcon,
-  SwatchTemplateIcon,
   TrashIcon,
+  UploadIcon,
 } from './icons'
 import { formatShortcut, formatShortTimestamp } from './nodeMeta'
 
@@ -33,18 +31,6 @@ interface TopConsoleProps {
   onCreateDraft: () => void
   onDeleteDraft: (id: string) => void
 
-  activePresetLabel: string
-  isPresetModified: boolean
-  builtinTemplates: BuiltinTemplate[]
-  activeBuiltinId: string | null
-  commonTemplates: RecentTemplateItem[]
-  activeCustomTemplateId: string | null
-  pinnedTemplateIds: string[]
-  templateCount: number
-  onApplyBuiltin: (preset: BuiltinTemplate) => void
-  onApplyCustomTemplate: (templateId: string) => void
-  onOpenTemplateModal: (initialMode?: 'list' | 'create') => void
-
   desktopMode: DesktopViewMode
   onChangeDesktopMode: (mode: DesktopViewMode) => void
   mobileTab: MobileTabMode
@@ -57,7 +43,13 @@ interface TopConsoleProps {
 
   inspectorOpen: boolean
   onToggleInspector: () => void
-  onOpenCommandPalette: () => void
+
+  onImportFiles: (files: FileList | null) => void
+  onClearText: () => void
+  onCopySanitized: () => Promise<boolean>
+  samples: SampleDocument[]
+  onLoadSample: (sample: SampleDocument) => void
+
   onOpenSpecModal: () => void
   onPrint: () => void
   onExportDocx: () => void
@@ -70,6 +62,12 @@ const EXPORT_STAGE_LABELS: Record<ExportStatus['stage'], string> = {
   saving: '触发下载…',
 }
 
+const DESKTOP_MODE_OPTIONS: { value: DesktopViewMode; label: string }[] = [
+  { value: 'split', label: '双栏对照' },
+  { value: 'write', label: '专注起草' },
+  { value: 'preview', label: '版面审阅' },
+]
+
 export function TopConsole({
   drafts,
   activeDraft,
@@ -77,17 +75,6 @@ export function TopConsole({
   onSelectDraft,
   onCreateDraft,
   onDeleteDraft,
-  activePresetLabel,
-  isPresetModified,
-  builtinTemplates,
-  activeBuiltinId,
-  commonTemplates,
-  activeCustomTemplateId,
-  pinnedTemplateIds,
-  templateCount,
-  onApplyBuiltin,
-  onApplyCustomTemplate,
-  onOpenTemplateModal,
   desktopMode,
   onChangeDesktopMode,
   mobileTab,
@@ -98,21 +85,30 @@ export function TopConsole({
   onOpenChecker,
   inspectorOpen,
   onToggleInspector,
-  onOpenCommandPalette,
+  onImportFiles,
+  onClearText,
+  onCopySanitized,
+  samples,
+  onLoadSample,
   onOpenSpecModal,
   onPrint,
   onExportDocx,
   exportStatus,
 }: TopConsoleProps) {
-  const [openMenu, setOpenMenu] = useState<'drafts' | 'templates' | null>(null)
+  const [openMenu, setOpenMenu] = useState<'drafts' | 'more' | null>(null)
   const [confirmDeleteDraftId, setConfirmDeleteDraftId] = useState<string | null>(null)
   const leftClusterRef = useRef<HTMLDivElement | null>(null)
+  const moreMenuRef = useRef<HTMLDivElement | null>(null)
+  const fileInputRef = useRef<HTMLInputElement | null>(null)
 
   useEffect(() => {
     if (!openMenu) return
 
     const handlePointerDown = (e: MouseEvent) => {
-      if (leftClusterRef.current && !leftClusterRef.current.contains(e.target as Node)) {
+      const target = e.target as Node
+      const insideLeft = Boolean(leftClusterRef.current?.contains(target))
+      const insideMore = Boolean(moreMenuRef.current?.contains(target))
+      if (!insideLeft && !insideMore) {
         setOpenMenu(null)
         setConfirmDeleteDraftId(null)
       }
@@ -132,36 +128,9 @@ export function TopConsole({
     }
   }, [openMenu])
 
-  const renderCustomTemplateItem = (tpl: DocumentTemplate) => {
-    const isCurrent = tpl.id === activeCustomTemplateId && !isPresetModified
-    const isPinned = pinnedTemplateIds.includes(tpl.id)
-    return (
-      <button
-        key={tpl.id}
-        type="button"
-        className={`cb-menu-item${isCurrent ? ' is-selected' : ''}`}
-        onClick={() => {
-          onApplyCustomTemplate(tpl.id)
-          setOpenMenu(null)
-        }}
-      >
-        <div className="cb-menu-item-main">
-          <span className="cb-menu-item-title">
-            {isPinned && <PinIcon size={12} filled className="cb-pin-inline" />}
-            {tpl.name}
-          </span>
-          {tpl.description && (
-            <span className="cb-menu-item-sub">{tpl.description}</span>
-          )}
-        </div>
-        {isCurrent && <CheckIcon size={14} className="cb-menu-check" />}
-      </button>
-    )
-  }
-
   return (
     <header className="cb-topbar cb-no-print">
-      {/* Left Cluster: Brand Mark + Drafts + Active Preset */}
+      {/* Left Cluster: Brand Mark + Draft Switcher */}
       <div className="cb-topbar-left" ref={leftClusterRef}>
         <div className="cb-brand" title="GB/T 9704—2012 公文排版工作台">
           <span className="cb-brand-seal">
@@ -172,7 +141,6 @@ export function TopConsole({
 
         <span className="cb-topbar-sep" aria-hidden="true" />
 
-        {/* Draft Switcher */}
         <div className="cb-popover-anchor">
           <button
             type="button"
@@ -185,12 +153,11 @@ export function TopConsole({
           >
             <FileDocIcon size={14} className="cb-trigger-icon" />
             <span className="cb-draft-title">{activeDraft.title}</span>
-            <span
-              className={`cb-save-indicator${saveState === 'saving' ? ' is-saving' : ''}`}
-              title={saveState === 'saving' ? '正在自动保存至本地' : '已自动保存至浏览器本地'}
-            >
-              {saveState === 'saving' ? '保存中' : '已存'}
-            </span>
+            {saveState === 'saving' && (
+              <span className="cb-save-indicator is-saving" title="正在自动保存至本地">
+                保存中
+              </span>
+            )}
             <ChevronDownIcon size={13} className="cb-trigger-chevron" />
           </button>
 
@@ -267,106 +234,10 @@ export function TopConsole({
             </div>
           )}
         </div>
-
-        {/* Preset / Template Quick Switcher */}
-        <div className="cb-popover-anchor cb-hide-narrow">
-          <button
-            type="button"
-            className={`cb-preset-trigger${openMenu === 'templates' ? ' is-open' : ''}`}
-            aria-expanded={openMenu === 'templates'}
-            onClick={() => setOpenMenu((prev) => (prev === 'templates' ? null : 'templates'))}
-          >
-            <SwatchTemplateIcon size={14} className="cb-trigger-icon" />
-            <span className="cb-preset-name">{activePresetLabel}</span>
-            {isPresetModified && (
-              <span className="cb-dirty-dot" title="当前版式参数有未保存的微调" />
-            )}
-            <ChevronDownIcon size={13} className="cb-trigger-chevron" />
-          </button>
-
-          {openMenu === 'templates' && (
-            <div className="cb-popover cb-popover--left cb-popover--templates" role="dialog" aria-label="版式预设与模板">
-              <div className="cb-popover-section-label">GB/T 9704 法定预设</div>
-              <div className="cb-menu-list">
-                {builtinTemplates.map((preset) => {
-                  const selected = preset.id === activeBuiltinId
-                  return (
-                    <button
-                      key={preset.id}
-                      type="button"
-                      className={`cb-menu-item${selected ? ' is-selected' : ''}`}
-                      onClick={() => {
-                        onApplyBuiltin(preset)
-                        setOpenMenu(null)
-                      }}
-                    >
-                      <div className="cb-menu-item-main">
-                        <span className="cb-menu-item-title">
-                          {preset.name}
-                          <span className="cb-menu-tag">{preset.badge}</span>
-                        </span>
-                        <span className="cb-menu-item-sub">{preset.description}</span>
-                      </div>
-                      {selected && <CheckIcon size={14} className="cb-menu-check" />}
-                    </button>
-                  )
-                })}
-              </div>
-
-              {commonTemplates.length > 0 && (
-                <>
-                  <div className="cb-popover-divider" />
-                  <div className="cb-popover-section-label">常用自建模板</div>
-                  <div className="cb-menu-list">
-                    {commonTemplates.map((item) => renderCustomTemplateItem(item.template))}
-                  </div>
-                </>
-              )}
-
-              <div className="cb-popover-divider" />
-              <div className="cb-popover-actions-row">
-                <button
-                  type="button"
-                  className="cb-popover-action-btn"
-                  onClick={() => {
-                    setOpenMenu(null)
-                    onOpenTemplateModal('create')
-                  }}
-                >
-                  <PlusIcon size={13} />
-                  <span>将当前版式存为模板…</span>
-                </button>
-                <button
-                  type="button"
-                  className="cb-popover-action-btn cb-tabular"
-                  onClick={() => {
-                    setOpenMenu(null)
-                    onOpenTemplateModal('list')
-                  }}
-                >
-                  <span>管理模板库（{templateCount}）</span>
-                </button>
-              </div>
-            </div>
-          )}
-        </div>
       </div>
 
-      {/* Center Cluster: Desktop View Mode / Mobile Tab Switcher */}
+      {/* Center Cluster: Mobile-only tab switcher */}
       <div className="cb-topbar-center">
-        <div className="cb-desktop-modes">
-          <SegmentedControl<DesktopViewMode>
-            ariaLabel="工作台视图模式"
-            size="sm"
-            value={desktopMode}
-            onChange={onChangeDesktopMode}
-            options={[
-              { value: 'split', label: '双栏对照' },
-              { value: 'write', label: '专注起草' },
-              { value: 'preview', label: '版面审阅' },
-            ]}
-          />
-        </div>
         <div className="cb-mobile-modes">
           <SegmentedControl<MobileTabMode>
             ariaLabel="移动视图切换"
@@ -385,76 +256,63 @@ export function TopConsole({
         </div>
       </div>
 
-      {/* Right Cluster: Command, Compliance, Reference, Print, Primary Export */}
+      {/* Right Cluster: Import, Clear, Conditional Issues, Inspector Toggle, Primary Export, More */}
       <div className="cb-topbar-right">
-        <button
-          type="button"
-          className="cb-ctrl-btn cb-ctrl-btn--ghost cb-hide-mobile"
-          title={`命令面板 (${formatShortcut('K')})`}
-          onClick={onOpenCommandPalette}
-        >
-          <SearchCommandIcon size={14} />
-          <kbd className="cb-kbd">{formatShortcut('K')}</kbd>
-        </button>
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept=".docx,.txt"
+          className="cb-sr-only"
+          onChange={(e) => {
+            onImportFiles(e.target.files)
+            e.target.value = ''
+          }}
+        />
 
-        {/* Compliance Status Pill */}
         <button
           type="button"
-          className={`cb-compliance-pill cb-tabular ${
-            issueCount === 0
-              ? hasContent
-                ? 'is-ok'
-                : 'is-idle'
-              : errorCount > 0
-                ? 'is-err'
-                : 'is-warn'
-          }`}
-          title="查看 GB/T 9704 规范校对详情"
-          onClick={onOpenChecker}
+          className="cb-ctrl-btn cb-ctrl-btn--ghost"
+          title="导入本地 .docx 或 .txt 公文原稿（也支持直接拖拽至窗口）"
+          aria-label="导入文稿"
+          onClick={() => fileInputRef.current?.click()}
         >
-          {issueCount === 0 ? (
-            <>
-              <ShieldCheckIcon size={14} />
-              <span className="cb-hide-mobile">{hasContent ? '符合国标' : '国标校对'}</span>
-            </>
-          ) : (
-            <>
-              <AlertIcon size={14} />
-              <span>{issueCount} 项待规范</span>
-            </>
-          )}
+          <UploadIcon size={14} />
+          <span className="cb-hide-mobile">导入</span>
         </button>
 
         <button
           type="button"
-          className="cb-ctrl-btn cb-ctrl-btn--icon"
-          title="GB/T 9704—2012 速查手册与关于"
-          aria-label="GB/T 9704 速查与关于"
-          onClick={onOpenSpecModal}
+          className="cb-ctrl-btn cb-ctrl-btn--ghost cb-ctrl-btn--muted cb-hide-mobile"
+          disabled={!hasContent}
+          title="清空当前文稿（可一键撤销）"
+          onClick={onClearText}
         >
-          <BookSpecIcon size={15} />
+          <TrashIcon size={14} />
+          <span>清空</span>
         </button>
+
+        {hasContent && issueCount > 0 && (
+          <button
+            type="button"
+            className={`cb-compliance-pill cb-tabular ${errorCount > 0 ? 'is-err' : 'is-warn'}`}
+            title="查看 GB/T 9704 规范校对详情"
+            onClick={onOpenChecker}
+          >
+            <AlertIcon size={14} />
+            <span>{issueCount} 项待规范</span>
+          </button>
+        )}
 
         <button
           type="button"
-          className="cb-ctrl-btn cb-ctrl-btn--icon cb-hide-mobile"
+          className={`cb-ctrl-btn cb-ctrl-btn--ghost cb-hide-mobile${inspectorOpen ? ' is-active' : ''}`}
           title={inspectorOpen ? '收起右侧排版台' : '展开右侧排版台'}
           aria-label={inspectorOpen ? '收起右侧排版台' : '展开右侧排版台'}
           aria-pressed={inspectorOpen}
           onClick={onToggleInspector}
         >
-          <SidebarRightIcon size={15} />
-        </button>
-
-        <button
-          type="button"
-          className="cb-ctrl-btn cb-ctrl-btn--secondary"
-          title={`打印或另存为 PDF (${formatShortcut('P')})`}
-          aria-label="打印或另存为 PDF"
-          onClick={onPrint}
-        >
-          <PrinterIcon size={14} />
-          <span className="cb-hide-mobile">打印 / PDF</span>
+          <SidebarRightIcon size={14.5} />
+          <span>排版</span>
         </button>
 
         <button
@@ -476,6 +334,130 @@ export function TopConsole({
             </>
           )}
         </button>
+
+        <div className="cb-popover-anchor" ref={moreMenuRef}>
+          <button
+            type="button"
+            className={`cb-ctrl-btn cb-ctrl-btn--icon${openMenu === 'more' ? ' is-open' : ''}`}
+            aria-expanded={openMenu === 'more'}
+            aria-label="更多操作"
+            title="更多操作"
+            onClick={() => setOpenMenu((prev) => (prev === 'more' ? null : 'more'))}
+          >
+            <MoreHorizontalIcon size={16} />
+          </button>
+
+          {openMenu === 'more' && (
+            <div className="cb-popover cb-popover--right cb-popover--more" role="dialog" aria-label="更多操作">
+              <div className="cb-more-list">
+                <button
+                  type="button"
+                  className="cb-more-item"
+                  onClick={() => {
+                    setOpenMenu(null)
+                    onPrint()
+                  }}
+                >
+                  <span className="cb-more-item-left">
+                    <PrinterIcon size={14} className="cb-more-icon" />
+                    <span>打印 / 另存为 PDF</span>
+                  </span>
+                  <span className="cb-more-hint">{formatShortcut('P')}</span>
+                </button>
+
+                <button
+                  type="button"
+                  className="cb-more-item"
+                  disabled={!hasContent}
+                  onClick={() => {
+                    setOpenMenu(null)
+                    void onCopySanitized()
+                  }}
+                >
+                  <span className="cb-more-item-left">
+                    <CopyIcon size={14} className="cb-more-icon" />
+                    <span>复制净化后纯文本</span>
+                  </span>
+                </button>
+
+                <button
+                  type="button"
+                  className="cb-more-item cb-show-mobile"
+                  disabled={!hasContent}
+                  onClick={() => {
+                    setOpenMenu(null)
+                    onClearText()
+                  }}
+                >
+                  <span className="cb-more-item-left">
+                    <TrashIcon size={14} className="cb-more-icon" />
+                    <span>清空当前文稿</span>
+                  </span>
+                </button>
+              </div>
+
+              <div className="cb-popover-divider" />
+              <div className="cb-popover-section-label">载入标准范文</div>
+              <div className="cb-more-list">
+                {samples.map((sample) => (
+                  <button
+                    key={sample.id}
+                    type="button"
+                    className="cb-more-item"
+                    title={sample.description}
+                    onClick={() => {
+                      onLoadSample(sample)
+                      setOpenMenu(null)
+                    }}
+                  >
+                    <span className="cb-more-item-left">
+                      <FileDocIcon size={13.5} className="cb-more-icon" />
+                      <span>{sample.label}</span>
+                    </span>
+                  </button>
+                ))}
+              </div>
+
+              <div className="cb-popover-divider cb-hide-mobile" />
+              <div className="cb-popover-section-label cb-hide-mobile">工作区视图</div>
+              <div className="cb-more-list cb-hide-mobile">
+                {DESKTOP_MODE_OPTIONS.map((opt) => (
+                  <button
+                    key={opt.value}
+                    type="button"
+                    className={`cb-more-item${desktopMode === opt.value ? ' is-selected' : ''}`}
+                    onClick={() => {
+                      onChangeDesktopMode(opt.value)
+                      setOpenMenu(null)
+                    }}
+                  >
+                    <span className="cb-more-item-left">
+                      <span>{opt.label}</span>
+                    </span>
+                    {desktopMode === opt.value && <CheckIcon size={13.5} className="cb-menu-check" />}
+                  </button>
+                ))}
+              </div>
+
+              <div className="cb-popover-divider" />
+              <div className="cb-more-list">
+                <button
+                  type="button"
+                  className="cb-more-item"
+                  onClick={() => {
+                    setOpenMenu(null)
+                    onOpenSpecModal()
+                  }}
+                >
+                  <span className="cb-more-item-left">
+                    <BookSpecIcon size={14} className="cb-more-icon" />
+                    <span>GB/T 9704 速查与关于</span>
+                  </span>
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
       </div>
     </header>
   )

@@ -71,7 +71,6 @@ export default function App() {
     pinnedTemplateIds,
     readTemplateCollectionFile,
     saveCurrentAsTemplate,
-    templateCount,
     templates,
     unpinTemplate,
     updateTemplateMeta,
@@ -82,7 +81,7 @@ export default function App() {
   // Workspace UI states
   const [desktopMode, setDesktopMode] = useState<DesktopViewMode>('split')
   const [mobileTab, setMobileTab] = useState<MobileTabMode>('write')
-  const [inspectorOpen, setInspectorOpen] = useState<boolean>(true)
+  const [inspectorOpen, setInspectorOpen] = useState<boolean>(false)
   const [studioTab, setStudioTab] = useState<StudioTab>('layout')
 
   const [templateModalMode, setTemplateModalMode] = useState<'list' | 'create' | null>(null)
@@ -138,7 +137,6 @@ export default function App() {
   )
 
   const hasContent = activeDraft.text.trim().length > 0
-  const paragraphCount = (ast.title ? 1 : 0) + ast.body.length
 
   // Match active built-in preset or custom template signature
   const builtinSignatures = useMemo(
@@ -724,23 +722,6 @@ export default function App() {
           deleteDraft(id)
           pushToast({ tone: 'neutral', message: '已移除草稿' })
         }}
-        activePresetLabel={activePresetLabel}
-        isPresetModified={isPresetModified}
-        builtinTemplates={BUILTIN_TEMPLATES}
-        activeBuiltinId={matchedBuiltin?.id ?? null}
-        commonTemplates={commonTemplates}
-        activeCustomTemplateId={activeTemplate?.id ?? currentMatchingTemplate?.id ?? null}
-        pinnedTemplateIds={pinnedTemplateIds}
-        templateCount={templateCount}
-        onApplyBuiltin={handleApplyBuiltin}
-        onApplyCustomTemplate={(id) => {
-          applyTemplate(id)
-          const tpl = templates.find((t) => t.id === id)
-          if (tpl) {
-            pushToast({ tone: 'success', message: `已套用模板「${tpl.name}」` })
-          }
-        }}
-        onOpenTemplateModal={(mode = 'list') => setTemplateModalMode(mode)}
         desktopMode={desktopMode}
         onChangeDesktopMode={setDesktopMode}
         mobileTab={mobileTab}
@@ -751,7 +732,11 @@ export default function App() {
         onOpenChecker={handleOpenChecker}
         inspectorOpen={inspectorOpen}
         onToggleInspector={() => setInspectorOpen((prev) => !prev)}
-        onOpenCommandPalette={() => setCmdOpen(true)}
+        onImportFiles={(files) => void handleImportFiles(files)}
+        onClearText={handleClearText}
+        onCopySanitized={handleCopySanitized}
+        samples={SAMPLE_DOCUMENTS}
+        onLoadSample={handleLoadSample}
         onOpenSpecModal={() => setSpecModalOpen(true)}
         onPrint={handlePrint}
         onExportDocx={() => void handleExportDocx()}
@@ -762,18 +747,8 @@ export default function App() {
         <ManuscriptEditor
           text={activeDraft.text}
           onChangeText={updateActiveText}
-          overrides={activeDraft.overrides}
-          issues={issues}
-          sanitizeConfig={config.sanitize}
-          sanitizeResult={sanitizeResult}
-          onUpdateSanitize={(patch) => updateConfig({ sanitize: patch })}
-          onCommitSanitizedToRaw={handleCommitSanitizedToRaw}
           samples={SAMPLE_DOCUMENTS}
           onLoadSample={handleLoadSample}
-          onImportFiles={(files) => void handleImportFiles(files)}
-          onClearText={handleClearText}
-          onCopySanitized={handleCopySanitized}
-          paragraphCount={paragraphCount}
           pageCount={pages.length}
           jumpRequest={jumpRequest}
         />
@@ -784,8 +759,6 @@ export default function App() {
           config={config}
           draftId={activeDraft.id}
           hiddenOnScreen={desktopMode === 'write'}
-          inspectorOpen={inspectorOpen}
-          onToggleInspector={() => setInspectorOpen((prev) => !prev)}
           onSelectLine={handleJumpLine}
           onPagesChange={setPages}
         />

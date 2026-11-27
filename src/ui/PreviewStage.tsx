@@ -27,7 +27,6 @@ import {
   ChevronRightIcon,
   MinusIcon,
   PlusIcon,
-  SidebarRightIcon,
 } from './icons'
 
 const LARGE_DOC_THRESHOLD = 20000
@@ -86,8 +85,6 @@ interface PreviewStageProps {
   config: DocumentConfig
   draftId: string
   hiddenOnScreen?: boolean
-  inspectorOpen: boolean
-  onToggleInspector: () => void
   onSelectLine: (lineNumber: number) => void
   onPagesChange: (pages: PageSlice[]) => void
 }
@@ -97,8 +94,6 @@ export function PreviewStage({
   config,
   draftId,
   hiddenOnScreen = false,
-  inspectorOpen,
-  onToggleInspector,
   onSelectLine,
   onPagesChange,
 }: PreviewStageProps) {
@@ -357,32 +352,34 @@ export function PreviewStage({
 
       {/* Floating Precision Canvas HUD */}
       <div className="cb-stage-hud cb-no-print cb-tabular">
-        {/* Page Navigation */}
-        <div className="cb-hud-group">
-          <button
-            type="button"
-            className="cb-hud-btn"
-            aria-label="上一页"
-            disabled={safeCurrentPage <= 1}
-            onClick={() => jumpToPage(safeCurrentPage - 1)}
-          >
-            <ChevronLeftIcon size={14} />
-          </button>
-          <span className="cb-hud-page">
-            第 {safeCurrentPage} / {pages.length} 页
-          </span>
-          <button
-            type="button"
-            className="cb-hud-btn"
-            aria-label="下一页"
-            disabled={safeCurrentPage >= pages.length}
-            onClick={() => jumpToPage(safeCurrentPage + 1)}
-          >
-            <ChevronRightIcon size={14} />
-          </button>
-        </div>
-
-        <span className="cb-hud-sep" aria-hidden="true" />
+        {pages.length > 1 && (
+          <>
+            <div className="cb-hud-group">
+              <button
+                type="button"
+                className="cb-hud-btn"
+                aria-label="上一页"
+                disabled={safeCurrentPage <= 1}
+                onClick={() => jumpToPage(safeCurrentPage - 1)}
+              >
+                <ChevronLeftIcon size={14} />
+              </button>
+              <span className="cb-hud-page">
+                第 {safeCurrentPage} / {pages.length} 页
+              </span>
+              <button
+                type="button"
+                className="cb-hud-btn"
+                aria-label="下一页"
+                disabled={safeCurrentPage >= pages.length}
+                onClick={() => jumpToPage(safeCurrentPage + 1)}
+              >
+                <ChevronRightIcon size={14} />
+              </button>
+            </div>
+            <span className="cb-hud-sep" aria-hidden="true" />
+          </>
+        )}
 
         {/* Zoom Controls */}
         <div className="cb-hud-group">
@@ -420,19 +417,6 @@ export function PreviewStage({
             <PlusIcon size={13} />
           </button>
         </div>
-
-        <span className="cb-hud-sep cb-hide-mobile" aria-hidden="true" />
-
-        {/* Quick Inspector Drawer Toggle */}
-        <button
-          type="button"
-          className="cb-hud-btn cb-hud-btn--text cb-hide-mobile"
-          title={inspectorOpen ? '收起右侧排版台' : '展开右侧排版台'}
-          onClick={onToggleInspector}
-        >
-          <SidebarRightIcon size={13.5} />
-          <span>{inspectorOpen ? '收起排版' : '排版台'}</span>
-        </button>
       </div>
     </section>
   )

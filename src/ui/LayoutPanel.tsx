@@ -449,7 +449,7 @@ export function LayoutPanel({
       {/* 2. 末页版记 */}
       <CollapsibleSection
         title="末页版记（§7.4）"
-        defaultOpen={config.footerNote.enabled}
+        defaultOpen={false}
         meta={
           <>
             <span
@@ -540,7 +540,7 @@ export function LayoutPanel({
       </CollapsibleSection>
 
       {/* 3. 印章、签名章与页码 */}
-      <CollapsibleSection title="印章、签名章与页码" defaultOpen>
+      <CollapsibleSection title="印章、签名章与页码" defaultOpen={false}>
         <div className="cb-fields-stack">
           <SwitchField
             label="加盖印章排布（§7.3.5）"

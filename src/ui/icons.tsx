@@ -256,3 +256,13 @@ export function JumpLineIcon(props: IconProps) {
     </BaseIcon>
   )
 }
+
+export function MoreHorizontalIcon(props: IconProps) {
+  return (
+    <BaseIcon {...props}>
+      <circle cx="5.25" cy="10" r="1.2" fill="currentColor" stroke="none" />
+      <circle cx="10" cy="10" r="1.2" fill="currentColor" stroke="none" />
+      <circle cx="14.75" cy="10" r="1.2" fill="currentColor" stroke="none" />
+    </BaseIcon>
+  )
+}
