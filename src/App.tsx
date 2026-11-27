@@ -18,6 +18,7 @@ import { CommandPalette, type CommandItem } from './ui/CommandPalette'
 import { UploadIcon } from './ui/icons'
 import { InspectorStudio, type StudioTab } from './ui/InspectorStudio'
 import { ManuscriptEditor, type LineJumpRequest } from './ui/ManuscriptEditor'
+import { MobileTabBar } from './ui/MobileTabBar'
 import { MultipartConfirmModal } from './ui/MultipartConfirmModal'
 import { formatShortcut } from './ui/nodeMeta'
 import { PreviewStage } from './ui/PreviewStage'
@@ -456,10 +457,21 @@ export default function App() {
             setMultipartPrompt({ paragraphCount, totalParts, resolve })
           }),
       })
-      pushToast({
-        tone: 'success',
-        message: 'Word 公文（.docx）导出完成',
-      })
+      const isWeChatBrowser =
+        typeof navigator !== 'undefined' && /MicroMessenger/i.test(navigator.userAgent)
+      if (isWeChatBrowser) {
+        pushToast({
+          tone: 'warning',
+          durationMs: 8000,
+          message: '如微信未弹出下载，请用外部浏览器打开',
+          detail: '点击右上角「···」→「在默认浏览器中打开」即可正常保存 .docx',
+        })
+      } else {
+        pushToast({
+          tone: 'success',
+          message: 'Word 公文（.docx）导出完成',
+        })
+      }
     } catch (err) {
       if (reloadOnceOnChunkError(err, 'chunk-reload-exporter')) return
       const msg = err instanceof Error ? err.message : '导出 Word 失败'
@@ -724,8 +736,6 @@ export default function App() {
         }}
         desktopMode={desktopMode}
         onChangeDesktopMode={setDesktopMode}
-        mobileTab={mobileTab}
-        onChangeMobileTab={setMobileTab}
         issueCount={issues.length}
         errorCount={errorCount}
         hasContent={hasContent}
@@ -806,6 +816,15 @@ export default function App() {
           onNotifySuccess={(msg) => pushToast({ tone: 'success', message: msg })}
         />
       </main>
+
+      <MobileTabBar
+        activeTab={mobileTab}
+        onChangeTab={setMobileTab}
+        issueCount={issues.length}
+        errorCount={errorCount}
+        hasContent={hasContent}
+        pageCount={pages.length}
+      />
 
       {/* Drag-Over File Import Overlay */}
       {isDraggingFile && (

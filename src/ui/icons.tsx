@@ -266,3 +266,32 @@ export function MoreHorizontalIcon(props: IconProps) {
     </BaseIcon>
   )
 }
+
+export function EditPenIcon(props: IconProps) {
+  return (
+    <BaseIcon {...props}>
+      <path d="M12.75 4.25l3 3-8.5 8.5H4.25v-3l8.5-8.5z" />
+      <path d="M11 6l3 3" />
+    </BaseIcon>
+  )
+}
+
+export function PreviewPageIcon(props: IconProps) {
+  return (
+    <BaseIcon {...props}>
+      <rect x="4.25" y="2.75" width="11.5" height="14.5" rx="1.6" />
+      <path d="M7.25 6.5h5.5M7.25 9.75h5.5M7.25 13h3.5" />
+    </BaseIcon>
+  )
+}
+
+export function SlidersIcon(props: IconProps) {
+  return (
+    <BaseIcon {...props}>
+      <path d="M4 6h12M4 10h12M4 14h12" />
+      <circle cx="7.5" cy="6" r="1.5" fill="var(--cb-bg-panel)" />
+      <circle cx="12.5" cy="10" r="1.5" fill="var(--cb-bg-panel)" />
+      <circle cx="8.5" cy="14" r="1.5" fill="var(--cb-bg-panel)" />
+    </BaseIcon>
+  )
+}

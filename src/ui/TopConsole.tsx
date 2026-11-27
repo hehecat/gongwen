@@ -2,7 +2,6 @@ import { useEffect, useRef, useState } from 'react'
 import type { ExportStatus } from '../exporter/download'
 import type { DocumentDraft } from '../hooks/useDocumentDrafts'
 import type { SampleDocument } from '../utils/sampleDocuments'
-import { SegmentedControl } from './FormControls'
 import {
   AlertIcon,
   BookSpecIcon,
@@ -33,8 +32,6 @@ interface TopConsoleProps {
 
   desktopMode: DesktopViewMode
   onChangeDesktopMode: (mode: DesktopViewMode) => void
-  mobileTab: MobileTabMode
-  onChangeMobileTab: (tab: MobileTabMode) => void
 
   issueCount: number
   errorCount: number
@@ -77,8 +74,6 @@ export function TopConsole({
   onDeleteDraft,
   desktopMode,
   onChangeDesktopMode,
-  mobileTab,
-  onChangeMobileTab,
   issueCount,
   errorCount,
   hasContent,
@@ -236,27 +231,7 @@ export function TopConsole({
         </div>
       </div>
 
-      {/* Center Cluster: Mobile-only tab switcher */}
-      <div className="cb-topbar-center">
-        <div className="cb-mobile-modes">
-          <SegmentedControl<MobileTabMode>
-            ariaLabel="移动视图切换"
-            size="sm"
-            value={mobileTab}
-            onChange={onChangeMobileTab}
-            options={[
-              { value: 'write', label: '文稿' },
-              { value: 'preview', label: 'A4 预览' },
-              {
-                value: 'studio',
-                label: issueCount > 0 ? `排版 · ${issueCount}` : '排版校对',
-              },
-            ]}
-          />
-        </div>
-      </div>
-
-      {/* Right Cluster: Import, Clear, Conditional Issues, Inspector Toggle, Primary Export, More */}
+      {/* Right Cluster: Import, Clear, Conditional Issues (Desktop), Inspector Toggle, Primary Export, More */}
       <div className="cb-topbar-right">
         <input
           ref={fileInputRef}
@@ -294,7 +269,7 @@ export function TopConsole({
         {hasContent && issueCount > 0 && (
           <button
             type="button"
-            className={`cb-compliance-pill cb-tabular ${errorCount > 0 ? 'is-err' : 'is-warn'}`}
+            className={`cb-compliance-pill cb-tabular cb-hide-mobile ${errorCount > 0 ? 'is-err' : 'is-warn'}`}
             title="查看 GB/T 9704 规范校对详情"
             onClick={onOpenChecker}
           >
@@ -330,7 +305,9 @@ export function TopConsole({
           ) : (
             <>
               <DownloadIcon size={14} />
-              <span>导出 Word</span>
+              <span>
+                导出<span className="cb-hide-xs"> Word</span>
+              </span>
             </>
           )}
         </button>
@@ -362,7 +339,7 @@ export function TopConsole({
                     <PrinterIcon size={14} className="cb-more-icon" />
                     <span>打印 / 另存为 PDF</span>
                   </span>
-                  <span className="cb-more-hint">{formatShortcut('P')}</span>
+                  <span className="cb-more-hint cb-hide-mobile">{formatShortcut('P')}</span>
                 </button>
 
                 <button

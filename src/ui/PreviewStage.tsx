@@ -125,8 +125,9 @@ export function PreviewStage({
     const updateFit = () => {
       const w = scroller.clientWidth
       if (w <= 80) return
-      const target = (w - STAGE_HORIZONTAL_PADDING) / A4_CANVAS_WIDTH_PX
-      const clamped = Math.min(1.18, Math.max(0.42, Number(target.toFixed(3))))
+      const horizontalPadding = w <= 640 ? 20 : STAGE_HORIZONTAL_PADDING
+      const target = (w - horizontalPadding) / A4_CANVAS_WIDTH_PX
+      const clamped = Math.min(1.18, Math.max(0.38, Number(target.toFixed(3))))
       setFitScale(clamped)
     }
 
