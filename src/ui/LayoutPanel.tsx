@@ -195,7 +195,7 @@ export function LayoutPanel({
                 )}
 
               <div className="cb-field">
-                <label className="cb-label">公文版式（GB/T 9704 §7 / §10）</label>
+                <label className="cb-label">公文版式</label>
                 <div className="cb-format-grid">
                   {DOCUMENT_FORMAT_OPTIONS.map((opt) => {
                     const active = config.header.format === opt.value
@@ -360,7 +360,7 @@ export function LayoutPanel({
 
               <div className="cb-grid-2">
                 <div className="cb-field">
-                  <label className="cb-label">发文字号（§7.2.5）</label>
+                  <label className="cb-label">发文字号</label>
                   <input
                     type="text"
                     className="cb-input"
@@ -424,7 +424,7 @@ export function LayoutPanel({
 
               {config.header.format !== 'letter' && config.header.format !== 'command' && (
                 <div className="cb-field">
-                  <label className="cb-label">红色分隔线样式（§7.2.7）</label>
+                  <label className="cb-label">红色分隔线样式</label>
                   <SegmentedControl<HeaderSeparatorStyle>
                     size="sm"
                     fullWidth
@@ -447,7 +447,7 @@ export function LayoutPanel({
 
       {/* 2. 末页版记 */}
       <CollapsibleSection
-        title="末页版记（§7.4）"
+        title="末页版记"
         defaultOpen={false}
         meta={
           <>
@@ -466,12 +466,12 @@ export function LayoutPanel({
         <div className="cb-fields-stack">
           {!config.footerNote.enabled ? (
             <div className="cb-hint-banner">
-              末页版记锚定在公文最后一页版心最下方（GB/T 9704 §7.4）。需要抄送或印发信息时请开启。
+              末页版记锚定在公文最后一页版心最下方，需要抄送或印发信息时请开启。
             </div>
           ) : (
             <>
               <div className="cb-field">
-                <label className="cb-label">移至版记的主送机关（§7.4.2 置于抄送之上）</label>
+                <label className="cb-label">移至版记的主送机关（置于抄送之上）</label>
                 <input
                   type="text"
                   className="cb-input"
@@ -542,11 +542,11 @@ export function LayoutPanel({
       <CollapsibleSection title="印章、签名章与页码" defaultOpen={false}>
         <div className="cb-fields-stack">
           <SwitchField
-            label="加盖印章排布（§7.3.5）"
+            label="加盖印章排布"
             description={
               config.specialOptions.hasStamp
-                ? '已开启：成文日期右空四字，署名居中对齐（§7.3.5.1）'
-                : '未开启：署名右空二字，成文日期错位排布（§7.3.5.2）'
+                ? '已开启：成文日期右空四字，署名居中对齐'
+                : '未开启：署名右空二字，成文日期错位排布'
             }
             checked={config.specialOptions.hasStamp}
             onChange={(hasStamp) => updateConfig({ specialOptions: { hasStamp } })}
@@ -582,7 +582,7 @@ export function LayoutPanel({
           <div className="cb-divider" />
 
           <SwitchField
-            label="显示页码（§7.5 四号半角一字线）"
+            label="显示页码"
             description="位于版心下 7mm，格式为 — 1 —"
             checked={config.specialOptions.showPageNumber}
             onChange={(showPageNumber) =>

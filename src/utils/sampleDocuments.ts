@@ -72,7 +72,7 @@ XX省教育厅
   },
   {
     id: 'sample-letter',
-    label: '机关信函格式（§10.1）',
+    label: '机关信函格式',
     description: '展示上下 170mm 红色双线、右上发文字号、首页无页码',
     builtinTemplateId: 'builtin-letter',
     text: `关于征求〈城市绿色低碳发展方案〉意见的函
@@ -89,7 +89,7 @@ XX市发展和改革委员会
   },
   {
     id: 'sample-minutes',
-    label: '会议纪要格式（§10.3）',
+    label: '会议纪要格式',
     description: '展示纪要标志与 3 号黑体“出席/请假/列席”回行对齐排布',
     builtinTemplateId: 'builtin-minutes',
     text: `市政府第45次常务会议纪要

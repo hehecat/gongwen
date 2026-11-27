@@ -55,7 +55,7 @@ export const BUILTIN_TEMPLATES: BuiltinTemplate[] = [
   makePreset(
     'builtin-upward-signer',
     '上行文（请示/报告）',
-    '发文字号居左空一字，签发人居右空一字，带红星分隔线（GB/T 9704 §7.2.6）',
+    '发文字号居左空一字，签发人居右空一字，带红星分隔线',
     '上行文',
     {
       header: {
@@ -81,8 +81,8 @@ export const BUILTIN_TEMPLATES: BuiltinTemplate[] = [
   makePreset(
     'builtin-letter',
     '机关信函格式',
-    '上下 170mm 红色双线，右上发文字号，首页不显示页码，版记不加印发与分隔线（§10.1）',
-    '信函 §10.1',
+    '上下 170mm 红色双线，右上发文字号，首页不显示页码，版记不加印发与分隔线',
+    '信函',
     {
       header: {
         enabled: true,
@@ -104,8 +104,8 @@ export const BUILTIN_TEMPLATES: BuiltinTemplate[] = [
   makePreset(
     'builtin-minutes',
     '会议纪要格式',
-    '“XXXXX 纪要”红色大字标志，支持“出席/请假/列席”3 号黑体+仿宋回行对齐（§10.3）',
-    '纪要 §10.3',
+    '“XXXXX 纪要”红色大字标志，支持“出席/请假/列席”3 号黑体+仿宋回行对齐',
+    '纪要',
     {
       header: {
         enabled: true,

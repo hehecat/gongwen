@@ -319,10 +319,10 @@ export const PAGE_NUMBER_STYLE_OPTIONS: { label: string; value: PageNumberStyle 
 ]
 
 export const DOCUMENT_FORMAT_OPTIONS: { label: string; value: DocumentFormat; description: string }[] = [
-  { label: '标准红头公文', value: 'standard', description: 'GB/T 9704 §7 通用版式' },
-  { label: '信函格式', value: 'letter', description: 'GB/T 9704 §10.1 上下双红线' },
-  { label: '命令（令）', value: 'command', description: 'GB/T 9704 §10.2 令号与签名章' },
-  { label: '会议纪要', value: 'minutes', description: 'GB/T 9704 §10.3 纪要标志与出席' },
+  { label: '标准红头公文', value: 'standard', description: '通用红头版式' },
+  { label: '信函格式', value: 'letter', description: '上下双红线' },
+  { label: '命令（令）', value: 'command', description: '令号与签名章' },
+  { label: '会议纪要', value: 'minutes', description: '纪要标志与出席' },
 ]
 
 // ---- 版式常量 (GB/T 9704) ----
