@@ -1,85 +1,162 @@
-* {
+:root {
+  /* Carbon Edition — Warm Alabaster, Inkstone & Cinnabar Seal Visual System */
+  --cb-bg-shell: #f4f3ef;
+  --cb-bg-stage: #e9e7e0;
+  --cb-bg-panel: #faf9f6;
+  --cb-bg-elevated: #ffffff;
+  --cb-bg-muted: #eeece6;
+  --cb-bg-hover: rgba(28, 27, 24, 0.045);
+  --cb-bg-active: rgba(28, 27, 24, 0.08);
+
+  /* Carbon Ink Steps (100% / ~62% / ~42%) */
+  --cb-ink-1: #1c1b18;
+  --cb-ink-2: #625f58;
+  --cb-ink-3: #918d84;
+
+  /* Crisp 1px Borders (~8.5% / ~15% ink) */
+  --cb-border: rgba(28, 27, 24, 0.085);
+  --cb-border-strong: rgba(28, 27, 24, 0.155);
+  --cb-border-focus: rgba(184, 50, 39, 0.48);
+
+  /* Single Intentional Accent: Mineral Cinnabar Seal (朱砂) */
+  --cb-accent: #b83227;
+  --cb-accent-hover: #9f291f;
+  --cb-accent-active: #892219;
+  --cb-accent-soft: rgba(184, 50, 39, 0.085);
+  --cb-accent-ring: rgba(184, 50, 39, 0.2);
+
+  /* Semantic Compliance Tones */
+  --cb-ok: #236b48;
+  --cb-ok-soft: rgba(35, 107, 72, 0.09);
+  --cb-warn: #a85d0a;
+  --cb-warn-soft: rgba(168, 93, 10, 0.1);
+  --cb-err: #b83227;
+  --cb-err-soft: rgba(184, 50, 39, 0.095);
+  --cb-info: #3d5a78;
+  --cb-info-soft: rgba(61, 90, 120, 0.09);
+
+  /* Geometry & Pitch */
+  --cb-control-h: 32px;
+  --cb-r-outer: 12px;
+  --cb-r-card: 10px;
+  --cb-r-ctrl: 7px;
+  --cb-r-inner: 5px;
+
+  /* Typography */
+  --cb-font-sans: -apple-system, BlinkMacSystemFont, "PingFang SC", "Hiragino Sans GB",
+    "Microsoft YaHei", "Noto Sans CJK SC", "Source Han Sans SC", sans-serif;
+  --cb-font-serif: "Songti SC", "STSong", "SimSun", "FangSong_GB2312", "FangSong", serif;
+  --cb-font-mono: ui-monospace, "SFMono-Regular", Menlo, Monaco, Consolas, monospace;
+  --cb-text-ui: 13px;
+  --cb-text-meta: 12px;
+
+  /* Shadows & Tactile Stationery Depth */
+  --cb-shadow-popover:
+    0 1px 2px rgba(24, 23, 20, 0.06),
+    0 10px 28px -4px rgba(24, 23, 20, 0.12),
+    0 24px 48px -12px rgba(24, 23, 20, 0.1);
+  --cb-shadow-modal:
+    0 2px 6px rgba(24, 23, 20, 0.07),
+    0 20px 52px -8px rgba(24, 23, 20, 0.2),
+    0 0 0 1px rgba(28, 27, 24, 0.08);
+  --cb-shadow-hud:
+    0 1px 2px rgba(24, 23, 20, 0.06),
+    0 8px 24px -4px rgba(24, 23, 20, 0.12),
+    0 0 0 1px rgba(28, 27, 24, 0.085);
+  --gw-shadow-paper:
+    0 1px 2px rgba(24, 23, 20, 0.06),
+    0 8px 24px -4px rgba(24, 23, 20, 0.095),
+    0 24px 48px -12px rgba(24, 23, 20, 0.08),
+    0 0 0 1px rgba(24, 23, 20, 0.065);
+
+  /* Motion Language */
+  --cb-ease: cubic-bezier(0.22, 1, 0.36, 1);
+  --cb-dur-hover: 160ms;
+  --cb-dur-press: 110ms;
+  --cb-dur-overlay: 200ms;
+
+  color-scheme: light;
+}
+
+*,
+*::before,
+*::after {
   box-sizing: border-box;
 }
 
-:root {
-  --gw-red: #b42318;
-  --gw-red-hover: #961d14;
-  --gw-red-soft: #fdf2f2;
-  --gw-red-border: #f5c2c0;
-  --gw-ink: #18181b;
-  --gw-ink-hover: #27272a;
-  --gw-ink-soft: #f2f3f5;
-  --gw-surface: #ffffff;
-  --gw-surface-subtle: #f7f8fa;
-  --gw-desk: #e9ebee;
-  --gw-border: #e5e7eb;
-  --gw-border-strong: #d1d5db;
-  --gw-text: #18181b;
-  --gw-text-muted: #52525b;
-  --gw-text-faint: #71717a;
-  --gw-warn: #b45309;
-  --gw-warn-soft: #fef3c7;
-  --gw-warn-border: #fde68a;
-  --gw-ok: #15803d;
-  --gw-ok-soft: #dcfce7;
-  --gw-danger: #dc2626;
-  --gw-radius-sm: 4px;
-  --gw-radius-md: 5px;
-  --gw-radius-lg: 8px;
-  --gw-ease-out: cubic-bezier(0.16, 1, 0.3, 1);
-  --gw-shadow-paper:
-    0 1px 3px rgba(0, 0, 0, 0.08),
-    0 8px 24px rgba(0, 0, 0, 0.08);
-  --gw-shadow-float:
-    0 4px 16px rgba(0, 0, 0, 0.1),
-    0 0 0 1px rgba(0, 0, 0, 0.06);
-  --gw-shadow-popover: var(--gw-shadow-float);
-
-  font-family: 'Noto Sans SC', 'PingFang SC', 'Microsoft YaHei', system-ui, -apple-system, sans-serif;
+html,
+body,
+#root {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background-color: var(--cb-bg-shell);
+  color: var(--cb-ink-1);
+  font-family: var(--cb-font-sans);
+  font-size: var(--cb-text-ui);
   line-height: 1.5;
-  font-weight: 400;
-  color: var(--gw-text);
-  background-color: var(--gw-surface);
-  font-synthesis: none;
-  text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
 }
 
 button,
+input,
 select,
-a {
-  touch-action: manipulation;
+textarea {
+  font-family: inherit;
+  font-size: inherit;
+  color: inherit;
 }
 
-button:focus-visible,
-select:focus-visible,
-a:focus-visible {
-  outline: 2px solid var(--gw-ink);
-  outline-offset: 2px;
+button {
+  cursor: pointer;
+  border: none;
+  background: none;
+  padding: 0;
 }
 
-@keyframes gw-popover-in {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
-  }
+button:disabled {
+  cursor: not-allowed;
+  opacity: 0.48;
 }
 
-@keyframes gw-modal-in {
-  from {
-    opacity: 0;
-    transform: translateY(4px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+:focus-visible {
+  outline: 2px solid var(--cb-border-focus);
+  outline-offset: 1px;
 }
 
+/* Tabular numbers utility & automatic application to numeric contexts */
+.cb-tabular {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Subtle custom scrollbars */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(28, 27, 24, 0.14);
+  border-radius: 999px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(28, 27, 24, 0.26);
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+
+/* Respect Reduced Motion Globally */
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
@@ -91,20 +168,39 @@ a:focus-visible {
   }
 }
 
-body {
-  margin: 0;
-  min-height: 100vh;
-}
-
-#root {
-  height: 100vh;
-}
-
+/* 1:1 Print & Save-as-PDF Guarantee (Preserving A4Page.css @media print math) */
 @media print {
+  html,
   body,
   #root {
+    width: auto !important;
     height: auto !important;
-    min-height: 0 !important;
+    overflow: visible !important;
     background: #ffffff !important;
+  }
+
+  .cb-no-print {
+    display: none !important;
+  }
+
+  .cb-app,
+  .cb-workspace,
+  .cb-stage-pane,
+  .cb-stage-scroll,
+  .cb-stage-inner,
+  .cb-a4-host {
+    display: block !important;
+    position: static !important;
+    width: auto !important;
+    height: auto !important;
+    max-width: none !important;
+    max-height: none !important;
+    min-height: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    border: none !important;
+    box-shadow: none !important;
+    background: transparent !important;
+    overflow: visible !important;
   }
 }
