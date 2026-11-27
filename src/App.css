@@ -969,6 +969,9 @@
   left: 16px;
   right: 16px;
   bottom: 14px;
+  z-index: 2;
+  max-height: calc(100% - 76px);
+  overflow-y: auto;
   background: var(--cb-bg-elevated);
   border: 1px solid var(--cb-border-strong);
   border-radius: var(--cb-r-card);
@@ -1018,11 +1021,18 @@
   align-items: center;
   gap: 5px;
   flex-shrink: 0;
-  transition: background-color var(--cb-dur-hover) var(--cb-ease);
+  cursor: pointer;
+  transition:
+    background-color var(--cb-dur-hover) var(--cb-ease),
+    transform var(--cb-dur-press) var(--cb-ease);
 }
 
 .cb-empty-upload-btn:hover {
   background: var(--cb-bg-muted);
+}
+
+.cb-empty-upload-btn:active {
+  transform: scale(0.99);
 }
 
 .cb-empty-sample-grid {
@@ -1040,14 +1050,20 @@
   display: flex;
   flex-direction: column;
   gap: 2px;
+  cursor: pointer;
   transition:
     background-color var(--cb-dur-hover) var(--cb-ease),
-    border-color var(--cb-dur-hover) var(--cb-ease);
+    border-color var(--cb-dur-hover) var(--cb-ease),
+    transform var(--cb-dur-press) var(--cb-ease);
 }
 
 .cb-empty-sample-card:hover {
   background: var(--cb-bg-muted);
   border-color: var(--cb-border-strong);
+}
+
+.cb-empty-sample-card:active {
+  transform: scale(0.99);
 }
 
 .cb-empty-sample-name {
