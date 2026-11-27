@@ -963,6 +963,8 @@
   bottom: 14px;
   transform: translateX(-50%);
   z-index: 20;
+  width: max-content;
+  max-width: calc(100% - 20px);
   height: 30px;
   padding: 0 6px;
   border-radius: 999px;
@@ -973,6 +975,7 @@
   display: inline-flex;
   align-items: center;
   gap: 4px;
+  white-space: nowrap;
   font-size: var(--cb-text-meta);
   color: var(--cb-ink-1);
   opacity: 0.42;
@@ -988,6 +991,7 @@
   display: inline-flex;
   align-items: center;
   gap: 2px;
+  flex-shrink: 0;
 }
 
 .cb-hud-btn {
@@ -997,6 +1001,7 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  flex-shrink: 0;
   color: var(--cb-ink-2);
   transition: background-color var(--cb-dur-hover) var(--cb-ease), color var(--cb-dur-hover) var(--cb-ease);
 }
@@ -1020,6 +1025,11 @@
 }
 
 .cb-hud-zoom-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  white-space: nowrap;
+  flex-shrink: 0;
   height: 24px;
   padding: 0 8px;
   border-radius: 999px;
@@ -2949,16 +2959,23 @@
     opacity: 0.92;
     height: 36px;
     bottom: 12px;
+    padding: 0 5px;
+    gap: 2px;
   }
 
   .cb-hud-btn {
-    width: 32px;
-    height: 32px;
+    width: 30px;
+    height: 30px;
+  }
+
+  .cb-hud-page {
+    padding: 0 4px;
+    font-size: 12px;
   }
 
   .cb-hud-zoom-pill {
     height: 28px;
-    padding: 0 10px;
+    padding: 0 7px;
     font-size: 12px;
   }
 
