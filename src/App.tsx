@@ -2,13 +2,16 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Editor } from './components/Editor/Editor'
 import { Preview, type ViewLayoutMode } from './components/Preview/Preview'
 import { Toolbar } from './components/Toolbar/Toolbar'
-import { SettingsDrawer, type SettingsTabId } from './components/SettingsDrawer/SettingsDrawer'
-import { CheckerPanel } from './components/CheckerPanel/CheckerPanel'
+import { Inspector, type InspectorTabId } from './components/Inspector/Inspector'
+import type { TypoSectionId } from './components/Inspector/TypographyTab'
+import { TemplateManagerModal } from './components/Modals/TemplateManagerModal'
+import { AboutSpecModal } from './components/Modals/AboutSpecModal'
 import { StatusBar } from './components/StatusBar/StatusBar'
 import { Toast, type ToastItem } from './components/common/Toast'
 import { ConfirmDialog, type ConfirmDialogState } from './components/common/ConfirmDialog'
 import { useDocumentParser } from './hooks/useDocumentParser'
 import { useDocumentDrafts } from './hooks/useDocumentDrafts'
+import { useDocumentTemplates } from './hooks/useDocumentTemplates'
 import type { PageSlice } from './hooks/usePagination'
 import { useDocumentConfig } from './contexts/useDocumentConfig'
 import { applyLineFixToText, checkGongwen, type CheckIssue } from './checker'
@@ -27,7 +30,7 @@ function loadSplitPercent(): number {
   } catch {
     // 忽略读取异常
   }
-  return 45
+  return 44
 }
 
 function App() {
@@ -45,6 +48,7 @@ function App() {
   } = useDocumentDrafts()
 
   const { config, updateConfig, replaceConfig } = useDocumentConfig()
+  const templateStore = useDocumentTemplates(config, replaceConfig)
   const configRef = useRef(config)
   useEffect(() => {
     configRef.current = config
@@ -57,9 +61,16 @@ function App() {
   const [mobilePane, setMobilePane] = useState<'editor' | 'preview'>('editor')
   const [splitPercent, setSplitPercent] = useState<number>(loadSplitPercent)
 
-  const [settingsOpen, setSettingsOpen] = useState(false)
-  const [settingsTab, setSettingsTab] = useState<SettingsTabId>('templates')
-  const [checkerOpen, setCheckerOpen] = useState(false)
+  // 右侧停靠检查器默认收起
+  const [inspectorOpen, setInspectorOpen] = useState(false)
+  const [inspectorTab, setInspectorTab] = useState<InspectorTabId>('format')
+  const [typoOpenSection, setTypoOpenSection] = useState<TypoSectionId | null>(null)
+  const [templateModalState, setTemplateModalState] = useState<{
+    open: boolean
+    initialAction: 'browse' | 'create'
+  }>({ open: false, initialAction: 'browse' })
+  const [aboutModalOpen, setAboutModalOpen] = useState(false)
+
   const [pages, setPages] = useState<PageSlice[]>([])
   const [highlightRequest, setHighlightRequest] = useState<{ lineNumber: number; seq: number } | null>(null)
   const [toast, setToast] = useState<ToastItem | null>(null)
@@ -166,7 +177,7 @@ function App() {
     }
   }, [askConfirm, ast, showToast])
 
-  // 全局快捷键：Esc 关闭抽屉/面板；Cmd/Ctrl+S 导出 Word
+  // 全局快捷键：Esc 依次关闭弹窗 / 窄屏检查器；Cmd/Ctrl+S 导出 Word；Cmd/Ctrl+\ 切换面板
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
@@ -175,12 +186,16 @@ function App() {
           setConfirmState(null)
           return
         }
-        if (settingsOpen) {
-          setSettingsOpen(false)
+        if (templateModalState.open) {
+          setTemplateModalState((prev) => ({ ...prev, open: false }))
           return
         }
-        if (checkerOpen) {
-          setCheckerOpen(false)
+        if (aboutModalOpen) {
+          setAboutModalOpen(false)
+          return
+        }
+        if (inspectorOpen && window.innerWidth < 1024) {
+          setInspectorOpen(false)
         }
         return
       }
@@ -190,11 +205,26 @@ function App() {
         if (!exporting && (ast.title !== null || ast.body.length > 0)) {
           void handleExport()
         }
+        return
+      }
+
+      if ((e.metaKey || e.ctrlKey) && e.key === '\\') {
+        e.preventDefault()
+        setInspectorOpen((prev) => !prev)
       }
     }
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [ast.body.length, ast.title, checkerOpen, confirmState, exporting, handleExport, settingsOpen])
+  }, [
+    aboutModalOpen,
+    ast.body.length,
+    ast.title,
+    confirmState,
+    exporting,
+    handleExport,
+    inspectorOpen,
+    templateModalState.open,
+  ])
 
   const handleClear = useCallback(() => {
     const prevText = activeDraft.text
@@ -325,8 +355,16 @@ function App() {
       return
     }
     if (fix.kind === 'adjust-line-spacing' && fix.nextLineSpacing) {
-      updateConfig({ body: { lineSpacing: fix.nextLineSpacing } })
-      showToast({ type: 'success', message: `已将正文行距微调至 ${fix.nextLineSpacing} 磅。` })
+      const prevLineSpacing = configRef.current.body.lineSpacing
+      const nextLineSpacing = fix.nextLineSpacing
+      updateConfig({ body: { lineSpacing: nextLineSpacing } })
+      showToast({
+        type: 'success',
+        message: `已将正文行距调至 ${nextLineSpacing} 磅。`,
+        durationMs: 6000,
+        actionLabel: '撤销',
+        onAction: () => updateConfig({ body: { lineSpacing: prevLineSpacing } }),
+      })
     }
   }, [activeDraft.text, sanitizeResult.text, showToast, updateActiveText, updateConfig])
 
@@ -359,36 +397,41 @@ function App() {
     }
   }, [activeDraft.text, checkIssues, sanitizeResult.text, showToast, updateActiveText, updateConfig])
 
-  const handleOpenSettings = useCallback((tab?: SettingsTabId) => {
-    if (tab) {
-      setSettingsTab(tab)
-      setSettingsOpen(true)
-      setCheckerOpen(false)
-      return
-    }
-    setSettingsOpen((prev) => {
-      if (!prev) setCheckerOpen(false)
-      return !prev
+  const handleOpenTemplatesModal = useCallback((initialCreate = false) => {
+    setTemplateModalState({
+      open: true,
+      initialAction: initialCreate ? 'create' : 'browse',
     })
   }, [])
 
-  const handleToggleChecker = useCallback(() => {
-    setCheckerOpen((prev) => {
-      if (!prev) setSettingsOpen(false)
-      return !prev
-    })
+  const handleOpenSanitizeFromStatus = useCallback(() => {
+    setTypoOpenSection('sanitize')
+    setInspectorTab('typography')
+    setInspectorOpen(true)
   }, [])
 
-  // 拖拽调节左右分栏宽度
+  const handleOpenOutlineFromStatus = useCallback(() => {
+    setInspectorTab('outline')
+    setInspectorOpen(true)
+  }, [])
+
+  // 拖拽调节编辑区与预览区宽度（按编辑+预览局部容器宽计算）
   const handleDividerMouseDown = useCallback((e: React.MouseEvent) => {
     e.preventDefault()
     const container = mainContainerRef.current
     if (!container) return
 
+    const prevUserSelect = document.body.style.userSelect
+    const prevCursor = document.body.style.cursor
+    document.body.style.userSelect = 'none'
+    document.body.style.cursor = 'col-resize'
+
     const onMouseMove = (moveEvent: MouseEvent) => {
       const rect = container.getBoundingClientRect()
-      if (rect.width <= 0) return
-      const pct = ((moveEvent.clientX - rect.left) / rect.width) * 100
+      const inspectorReserve = inspectorOpen && window.innerWidth >= 1024 ? 340 : 0
+      const canvasWidth = rect.width - inspectorReserve
+      if (canvasWidth <= 0) return
+      const pct = ((moveEvent.clientX - rect.left) / canvasWidth) * 100
       const clamped = Math.min(70, Math.max(25, Math.round(pct * 10) / 10))
       setSplitPercent(clamped)
     }
@@ -396,6 +439,8 @@ function App() {
     const onMouseUp = () => {
       window.removeEventListener('mousemove', onMouseMove)
       window.removeEventListener('mouseup', onMouseUp)
+      document.body.style.userSelect = prevUserSelect
+      document.body.style.cursor = prevCursor
       setSplitPercent((latest) => {
         try {
           localStorage.setItem(SPLIT_STORAGE_KEY, String(latest))
@@ -408,10 +453,15 @@ function App() {
 
     window.addEventListener('mousemove', onMouseMove)
     window.addEventListener('mouseup', onMouseUp)
-  }, [])
+  }, [inspectorOpen])
 
   const editorStyle = layoutMode === 'split'
-    ? { width: `${splitPercent}%`, flex: 'none' }
+    ? {
+        width: inspectorOpen
+          ? `calc((100% - 340px - 1px) * ${splitPercent / 100})`
+          : `calc((100% - 1px) * ${splitPercent / 100})`,
+        flex: 'none',
+      }
     : undefined
 
   return (
@@ -419,7 +469,9 @@ function App() {
       <Toolbar
         ast={ast}
         drafts={drafts}
-        activeDraftId={activeDraft.id}
+        activeDraft={activeDraft}
+        layoutMode={layoutMode}
+        onChangeLayoutMode={setLayoutMode}
         onSelectDraft={selectDraft}
         onCreateDraft={() => {
           createDraft('')
@@ -427,15 +479,16 @@ function App() {
         }}
         onDeleteDraft={handleDeleteDraft}
         onLoadSample={handleLoadSample}
-        onApplyBuiltinTemplate={handleApplyBuiltinTemplate}
-        onOpenSettings={handleOpenSettings}
-        settingsOpen={settingsOpen}
-        onToggleChecker={handleToggleChecker}
-        checkerOpen={checkerOpen}
-        issueCount={checkIssues.length}
+        onClear={handleClear}
+        onCopySanitized={handleCopySanitized}
         onImport={handleImport}
         onPrint={() => window.print()}
         onExport={handleExport}
+        inspectorOpen={inspectorOpen}
+        onToggleInspector={() => setInspectorOpen((prev) => !prev)}
+        issueCount={checkIssues.length}
+        onOpenTemplatesModal={() => handleOpenTemplatesModal(false)}
+        onOpenAboutModal={() => setAboutModalOpen(true)}
         importing={importing}
         exporting={exporting}
         exportStatusMessage={exportStatusMessage}
@@ -468,17 +521,10 @@ function App() {
             <Editor
               value={activeDraft.text}
               onChange={updateActiveText}
-              ast={ast}
-              overrides={activeDraft.overrides}
-              onChangeOverride={setActiveOverride}
-              onClearOverrides={clearActiveOverrides}
               onFileImport={handleImport}
-              onCopySanitized={handleCopySanitized}
-              onClear={handleClear}
               importing={importing}
               highlightRequest={highlightRequest}
               layoutMode={layoutMode}
-              onChangeLayoutMode={setLayoutMode}
             />
           </div>
         )}
@@ -497,13 +543,36 @@ function App() {
           <div className="app-preview">
             <Preview
               ast={ast}
-              layoutMode={layoutMode}
-              onChangeLayoutMode={setLayoutMode}
               onSelectLine={handleLocateLine}
               onPagesChange={setPages}
             />
           </div>
         )}
+
+        <Inspector
+          open={inspectorOpen}
+          activeTab={inspectorTab}
+          onTabChange={(tab) => {
+            setInspectorTab(tab)
+            if (tab !== 'typography') setTypoOpenSection(null)
+          }}
+          onClose={() => setInspectorOpen(false)}
+          templateStore={templateStore}
+          onApplyBuiltinTemplate={handleApplyBuiltinTemplate}
+          onOpenTemplatesModal={handleOpenTemplatesModal}
+          typoOpenSection={typoOpenSection}
+          onToggleTypoSection={(id) => {
+            if (typoOpenSection === id) setTypoOpenSection(null)
+          }}
+          ast={ast}
+          overrides={activeDraft.overrides}
+          onChangeOverride={setActiveOverride}
+          onClearOverrides={clearActiveOverrides}
+          issues={checkIssues}
+          onLocateLine={handleLocateLine}
+          onApplyCheckFix={handleApplyCheckFix}
+          onApplyAllCheckFixes={handleApplyAllCheckFixes}
+        />
       </div>
 
       <StatusBar
@@ -514,26 +583,22 @@ function App() {
         sanitizeEnabled={config.sanitize.enabled}
         overrideCount={Object.keys(activeDraft.overrides).length}
         saveState={saveState}
-        onOpenSanitizeSettings={() => handleOpenSettings('sanitizeParser')}
+        onOpenOutline={handleOpenOutlineFromStatus}
+        onOpenSanitizeSettings={handleOpenSanitizeFromStatus}
       />
 
-      {settingsOpen && (
-        <SettingsDrawer
-          activeTab={settingsTab}
-          onTabChange={setSettingsTab}
-          onClose={() => setSettingsOpen(false)}
-        />
-      )}
+      <TemplateManagerModal
+        open={templateModalState.open}
+        initialAction={templateModalState.initialAction}
+        templateStore={templateStore}
+        onApplyBuiltinTemplate={handleApplyBuiltinTemplate}
+        onClose={() => setTemplateModalState((prev) => ({ ...prev, open: false }))}
+      />
 
-      {checkerOpen && (
-        <CheckerPanel
-          issues={checkIssues}
-          onClose={() => setCheckerOpen(false)}
-          onLocateLine={handleLocateLine}
-          onApplyFix={handleApplyCheckFix}
-          onApplyAllFixes={handleApplyAllCheckFixes}
-        />
-      )}
+      <AboutSpecModal
+        open={aboutModalOpen}
+        onClose={() => setAboutModalOpen(false)}
+      />
 
       <ConfirmDialog
         dialog={confirmState?.dialog ?? null}

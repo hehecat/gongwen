@@ -58,4 +58,47 @@ describe('gongwenChecker', () => {
     expect(issues.some((i) => i.ruleId === 'first-page-no-body')).toBe(true)
     expect(issues.some((i) => i.ruleId === 'orphan-signature')).toBe(true)
   })
+
+  it('优先使用分页求解器给出的一次性目标行距与文案', () => {
+    const ast = parseGongwen('关于通知\n各部门：\n一、内容\n正文\n国务院办公厅\n2026年11月26日')
+    const tightenIssues = checkGongwen({
+      ast,
+      rawText: '关于通知\n各部门：\n一、内容\n正文\n国务院办公厅\n2026年11月26日',
+      config: DEFAULT_CONFIG,
+      pages: [
+        { nodeTypes: [NodeType.DOCUMENT_TITLE, NodeType.ADDRESSEE, NodeType.PARAGRAPH] },
+        {
+          nodeTypes: [NodeType.SIGNATURE, NodeType.DATE],
+          orphanFixChecked: true,
+          suggestedLineSpacing: 27.2,
+          suggestedLineSpacingDirection: 'tighten',
+        },
+      ],
+    })
+
+    const tightenIssue = tightenIssues.find((i) => i.ruleId === 'orphan-signature')!
+    expect(tightenIssue.fix?.nextLineSpacing).toBe(27.2)
+    expect(tightenIssue.fix?.label).toContain('27.2 磅')
+    expect(tightenIssue.fix?.label).toContain('并入上页')
+
+    const loosenIssues = checkGongwen({
+      ast,
+      rawText: '关于通知\n各部门：\n一、内容\n正文\n国务院办公厅\n2026年11月26日',
+      config: DEFAULT_CONFIG,
+      pages: [
+        { nodeTypes: [NodeType.DOCUMENT_TITLE, NodeType.ADDRESSEE, NodeType.PARAGRAPH] },
+        {
+          nodeTypes: [NodeType.SIGNATURE, NodeType.DATE],
+          orphanFixChecked: true,
+          suggestedLineSpacing: 30.8,
+          suggestedLineSpacingDirection: 'loosen',
+        },
+      ],
+    })
+
+    const loosenIssue = loosenIssues.find((i) => i.ruleId === 'orphan-signature')!
+    expect(loosenIssue.fix?.nextLineSpacing).toBe(30.8)
+    expect(loosenIssue.fix?.label).toContain('30.8 磅')
+    expect(loosenIssue.fix?.label).toContain('带入末行正文')
+  })
 })

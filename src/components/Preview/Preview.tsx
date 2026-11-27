@@ -1,4 +1,13 @@
-import { startTransition, useDeferredValue, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
+import {
+  startTransition,
+  useCallback,
+  useDeferredValue,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type CSSProperties,
+} from 'react'
 import type { GongwenAST } from '../../types/ast'
 import { useDocumentConfig } from '../../contexts/useDocumentConfig'
 import { cmToPagePercent, CHARS_PER_LINE } from '../../types/documentConfig'
@@ -18,8 +27,6 @@ export type ViewLayoutMode = 'split' | 'editor' | 'preview'
 
 interface PreviewProps {
   ast: GongwenAST
-  layoutMode: ViewLayoutMode
-  onChangeLayoutMode: (mode: ViewLayoutMode) => void
   onSelectLine?: (lineNumber: number) => void
   onPagesChange?: (pages: PageSlice[]) => void
 }
@@ -29,11 +36,12 @@ const LARGE_DOCUMENT_SAMPLE_SIZE = 500
 const MEASURE_SAMPLE_CHAR = '测'
 const PREVIEW_LINE_FIT_TOLERANCE_PX = 1
 
-const ZOOM_OPTIONS: { label: string; value: 'fit' | number }[] = [
-  { label: '适应宽度', value: 'fit' },
-  { label: '75%', value: 0.75 },
-  { label: '100%', value: 1 },
-  { label: '125%', value: 1.25 },
+const ZOOM_STEPS: number[] = [0.65, 0.75, 0.9, 1, 1.15, 1.25]
+const ZOOM_SELECT_OPTIONS: { label: string; value: string }[] = [
+  { label: '适应', value: 'fit' },
+  { label: '75%', value: '0.75' },
+  { label: '100%', value: '1' },
+  { label: '125%', value: '1.25' },
 ]
 
 interface CharacterMeasure {
@@ -43,18 +51,17 @@ interface CharacterMeasure {
 
 export function Preview({
   ast,
-  layoutMode,
-  onChangeLayoutMode,
   onSelectLine,
   onPagesChange,
 }: PreviewProps) {
   const measurerRef = useRef<HTMLDivElement>(null)
   const scrollRef = useRef<HTMLDivElement>(null)
   const pageRefs = useRef<Map<number, HTMLDivElement>>(new Map())
+  const visiblePageRef = useRef(1)
 
   const [containerWidthPx, setContainerWidthPx] = useState(A4_CANVAS_WIDTH_PX)
   const [zoomMode, setZoomMode] = useState<'fit' | number>('fit')
-  const [activePageJump, setActivePageJump] = useState(1)
+  const [visiblePage, setVisiblePage] = useState(1)
   const [characterMeasure, setCharacterMeasure] = useState<CharacterMeasure | null>(null)
 
   const { config } = useDocumentConfig()
@@ -143,6 +150,59 @@ export function Preview({
     observer.observe(scroll)
     return () => observer.disconnect()
   }, [])
+
+  // 追踪当前视口主页面号（通过 rAF 节流）
+  const syncVisiblePage = useCallback(() => {
+    const scrollEl = scrollRef.current
+    if (!scrollEl || pages.length <= 1) {
+      if (visiblePageRef.current !== 1) {
+        visiblePageRef.current = 1
+        setVisiblePage(1)
+      }
+      return
+    }
+
+    const scrollRect = scrollEl.getBoundingClientRect()
+    const anchorY = scrollRect.top + scrollRect.height * 0.35
+    let bestPage = 1
+    let bestDist = Infinity
+
+    for (let i = 1; i <= pages.length; i++) {
+      const el = pageRefs.current.get(i)
+      if (!el) continue
+      const rect = el.getBoundingClientRect()
+      const dist = Math.abs(rect.top + rect.height * 0.35 - anchorY)
+      if (dist < bestDist) {
+        bestDist = dist
+        bestPage = i
+      }
+    }
+
+    if (visiblePageRef.current !== bestPage) {
+      visiblePageRef.current = bestPage
+      setVisiblePage(bestPage)
+    }
+  }, [pages.length])
+
+  useEffect(() => {
+    const scrollEl = scrollRef.current
+    if (!scrollEl) return
+    let rafId = 0
+
+    const handleScroll = () => {
+      if (rafId) return
+      rafId = window.requestAnimationFrame(() => {
+        rafId = 0
+        syncVisiblePage()
+      })
+    }
+
+    scrollEl.addEventListener('scroll', handleScroll, { passive: true })
+    return () => {
+      scrollEl.removeEventListener('scroll', handleScroll)
+      if (rafId) window.cancelAnimationFrame(rafId)
+    }
+  }, [syncVisiblePage])
 
   // 度量标准 28 字行宽（固定 595.28px 画布下不受窗口大小影响）
   useEffect(() => {
@@ -235,101 +295,59 @@ export function Preview({
 
   const fitScale = Math.min(1, containerWidthPx / A4_CANVAS_WIDTH_PX)
   const zoomScale = zoomMode === 'fit' ? fitScale : zoomMode
+  const clampedPage = Math.max(1, Math.min(visiblePage, Math.max(1, pages.length)))
 
   const boldFirst = deferredConfig.specialOptions.boldFirstSentence
   const boldHeading2 = deferredConfig.specialOptions.boldHeading2
   const boldHeading3 = deferredConfig.specialOptions.boldHeading3
 
   function handleJumpToPage(pageNum: number) {
-    setActivePageJump(pageNum)
-    const target = pageRefs.current.get(pageNum)
+    const safePage = Math.max(1, Math.min(pageNum, pages.length))
+    visiblePageRef.current = safePage
+    setVisiblePage(safePage)
+    const target = pageRefs.current.get(safePage)
     target?.scrollIntoView({ behavior: 'smooth', block: 'start' })
   }
 
+  function stepZoom(direction: -1 | 1) {
+    const current = zoomMode === 'fit' ? fitScale : zoomMode
+    if (direction < 0) {
+      const lower = [...ZOOM_STEPS].reverse().find((s) => s < current - 0.03)
+      setZoomMode(lower ?? ZOOM_STEPS[0])
+      return
+    }
+    const higher = ZOOM_STEPS.find((s) => s > current + 0.03)
+    setZoomMode(higher ?? ZOOM_STEPS[ZOOM_STEPS.length - 1])
+  }
+
+  const selectZoomValue = zoomMode === 'fit'
+    ? 'fit'
+    : ZOOM_SELECT_OPTIONS.some((o) => Number(o.value) === zoomMode)
+      ? String(zoomMode)
+      : 'custom'
+
   return (
     <div className="preview-container">
-      <div className="preview-header">
-        <div className="preview-header-main">
-          <span className="preview-label">A4 版式预览</span>
-          <span className="preview-hint">
+      {isLargeDocument && (
+        <div className="preview-large-banner">
+          <span className="preview-large-note">
             {isSamplePreview
-              ? `抽样 ${pages.length} 页`
-              : `共 ${pages.length} 页`}
+              ? `超大文档：预览前 ${LARGE_DOCUMENT_SAMPLE_SIZE} 段（共 ${ast.body.length} 段），导出全量不受影响`
+              : `完整预览中：共 ${ast.body.length} 段`}
           </span>
+          <button
+            type="button"
+            className="preview-large-btn"
+            onClick={() => {
+              startTransition(() => {
+                setFullPreviewDocKey((prev) => (prev === previewDocKey ? null : previewDocKey))
+              })
+            }}
+          >
+            {isSamplePreview ? '展开全文预览' : '恢复快速预览'}
+          </button>
         </div>
-
-        <div className="preview-controls">
-          {pages.length > 1 && (
-            <label className="preview-control-group" title="快速跳转到指定页">
-              <span className="preview-control-label">页码</span>
-              <select
-                className="preview-select"
-                value={Math.min(activePageJump, pages.length)}
-                onChange={(e) => handleJumpToPage(Number(e.target.value))}
-              >
-                {pages.map((_, idx) => (
-                  <option key={idx + 1} value={idx + 1}>
-                    第 {idx + 1} 页
-                  </option>
-                ))}
-              </select>
-            </label>
-          )}
-
-          <div className="preview-zoom-bar" role="group" aria-label="缩放比例">
-            {ZOOM_OPTIONS.map((opt) => (
-              <button
-                key={String(opt.value)}
-                type="button"
-                className={`preview-chip-btn ${zoomMode === opt.value ? 'preview-chip-btn--active' : ''}`}
-                onClick={() => setZoomMode(opt.value)}
-              >
-                {opt.label}
-              </button>
-            ))}
-          </div>
-
-          <div className="preview-layout-bar" role="group" aria-label="视图布局">
-            <button
-              type="button"
-              className={`preview-chip-btn ${layoutMode === 'split' ? 'preview-chip-btn--active' : ''}`}
-              onClick={() => onChangeLayoutMode('split')}
-              title="双栏对照"
-            >
-              双栏
-            </button>
-            <button
-              type="button"
-              className={`preview-chip-btn ${layoutMode === 'preview' ? 'preview-chip-btn--active' : ''}`}
-              onClick={() => onChangeLayoutMode(layoutMode === 'preview' ? 'split' : 'preview')}
-              title="全屏预览"
-            >
-              {layoutMode === 'preview' ? '退出全屏' : '专注预览'}
-            </button>
-          </div>
-        </div>
-
-        {isLargeDocument && (
-          <div className="preview-actions">
-            <span className="preview-mode-note">
-              {isSamplePreview
-                ? `超大文档：预览前 ${LARGE_DOCUMENT_SAMPLE_SIZE} 段（共 ${ast.body.length} 段），导出全量不受影响`
-                : `完整预览中：共 ${ast.body.length} 段`}
-            </span>
-            <button
-              type="button"
-              className="preview-action-btn"
-              onClick={() => {
-                startTransition(() => {
-                  setFullPreviewDocKey((prev) => (prev === previewDocKey ? null : previewDocKey))
-                })
-              }}
-            >
-              {isSamplePreview ? '展开全文预览' : '恢复快速预览'}
-            </button>
-          </div>
-        )}
-      </div>
+      )}
 
       <div ref={scrollRef} className="preview-scroll" style={cssVars}>
         {/* 隐藏度量容器：固定 595.28px */}
@@ -391,6 +409,92 @@ export function Preview({
             </div>
           </div>
         ))}
+      </div>
+
+      {/* A4 纸面底部悬浮控制胶囊 */}
+      <div className="preview-floating-pill" role="toolbar" aria-label="页面导航与缩放">
+        <button
+          type="button"
+          className="preview-pill-icon"
+          disabled={clampedPage <= 1}
+          onClick={() => handleJumpToPage(clampedPage - 1)}
+          aria-label="上一页"
+          title="上一页"
+        >
+          ‹
+        </button>
+
+        {pages.length > 1 ? (
+          <label className="preview-pill-page-select-wrap" title="选择并跳转到指定页">
+            <select
+              className="preview-pill-select preview-pill-select--page"
+              aria-label="跳转页码"
+              value={clampedPage}
+              onChange={(e) => handleJumpToPage(Number(e.target.value))}
+            >
+              {pages.map((_, idx) => (
+                <option key={idx + 1} value={idx + 1}>
+                  第 {idx + 1} / {pages.length} 页
+                </option>
+              ))}
+            </select>
+          </label>
+        ) : (
+          <span className="preview-pill-text">第 1 / 1 页</span>
+        )}
+
+        <button
+          type="button"
+          className="preview-pill-icon"
+          disabled={clampedPage >= pages.length}
+          onClick={() => handleJumpToPage(clampedPage + 1)}
+          aria-label="下一页"
+          title="下一页"
+        >
+          ›
+        </button>
+
+        <span className="preview-pill-divider" aria-hidden="true" />
+
+        <button
+          type="button"
+          className="preview-pill-icon"
+          onClick={() => stepZoom(-1)}
+          aria-label="缩小预览"
+          title="缩小"
+        >
+          −
+        </button>
+
+        <select
+          className="preview-pill-select"
+          aria-label="缩放比例"
+          value={selectZoomValue}
+          onChange={(e) => {
+            const val = e.target.value
+            if (val === 'fit') setZoomMode('fit')
+            else if (val !== 'custom') setZoomMode(Number(val))
+          }}
+        >
+          {ZOOM_SELECT_OPTIONS.map((opt) => (
+            <option key={opt.value} value={opt.value}>
+              {opt.value === 'fit' ? `适应 (${Math.round(fitScale * 100)}%)` : opt.label}
+            </option>
+          ))}
+          {selectZoomValue === 'custom' && (
+            <option value="custom">{Math.round(zoomScale * 100)}%</option>
+          )}
+        </select>
+
+        <button
+          type="button"
+          className="preview-pill-icon"
+          onClick={() => stepZoom(1)}
+          aria-label="放大预览"
+          title="放大"
+        >
+          +
+        </button>
       </div>
     </div>
   )

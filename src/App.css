@@ -3,6 +3,7 @@
   flex-direction: column;
   height: 100vh;
   overflow: hidden;
+  background: var(--gw-surface, #ffffff);
 }
 
 .app-mobile-tabs {
@@ -13,6 +14,7 @@
   display: flex;
   flex: 1;
   min-height: 0;
+  min-width: 0;
 }
 
 .app-editor {
@@ -22,16 +24,45 @@
 }
 
 .app-resizer {
-  width: 5px;
+  position: relative;
+  width: 1px;
   flex-shrink: 0;
-  background: #e5e7eb;
+  background: var(--gw-border, #e2e8f0);
   cursor: col-resize;
-  transition: background 0.15s;
+  transition: background-color 0.15s ease;
+}
+
+.app-resizer::before {
+  content: '';
+  position: absolute;
+  inset: 0 -5px;
+  z-index: 5;
+}
+
+.app-resizer::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 3px;
+  height: 36px;
+  border-radius: 999px;
+  background: var(--gw-border-strong, #cbd5e1);
+  opacity: 0;
+  transition: opacity 0.15s ease, background-color 0.15s ease;
+  pointer-events: none;
 }
 
 .app-resizer:hover,
 .app-resizer:active {
-  background: #3b82f6;
+  background: var(--gw-ink, #0f172a);
+}
+
+.app-resizer:hover::after,
+.app-resizer:active::after {
+  opacity: 1;
+  background: var(--gw-ink, #0f172a);
 }
 
 .app-preview {
@@ -43,29 +74,30 @@
 @media (max-width: 900px) {
   .app-mobile-tabs {
     display: flex;
-    background: #f8fafc;
-    border-bottom: 1px solid #e5e7eb;
-    padding: 4px 12px;
-    gap: 8px;
+    background: var(--gw-surface-subtle, #f8fafc);
+    border-bottom: 1px solid var(--gw-border, #e2e8f0);
+    padding: 4px 10px;
+    gap: 6px;
     flex-shrink: 0;
   }
 
   .app-mobile-tab {
     flex: 1;
-    border: 1px solid #d1d5db;
-    background: #ffffff;
-    color: #4b5563;
-    border-radius: 6px;
-    padding: 6px 10px;
-    font-size: 13px;
+    border: 1px solid var(--gw-border, #e2e8f0);
+    background: var(--gw-surface, #ffffff);
+    color: var(--gw-text-muted, #475569);
+    border-radius: var(--gw-radius-sm, 6px);
+    padding: 5px 10px;
+    font-size: 12.5px;
     font-weight: 500;
     cursor: pointer;
   }
 
   .app-mobile-tab--active {
-    border-color: #2563eb;
-    background: #eff6ff;
-    color: #1d4ed8;
+    border-color: var(--gw-ink, #0f172a);
+    background: var(--gw-ink, #0f172a);
+    color: #ffffff;
+    font-weight: 600;
   }
 
   .app-resizer {

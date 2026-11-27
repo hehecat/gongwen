@@ -12,9 +12,10 @@
 .confirm-dialog {
   width: min(400px, 100%);
   background: #ffffff;
-  border-radius: 10px;
-  box-shadow: 0 20px 50px rgba(15, 23, 42, 0.2);
+  border-radius: var(--gw-radius-lg, 8px);
+  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.16), 0 0 0 1px rgba(0, 0, 0, 0.06);
   overflow: hidden;
+  animation: gw-modal-in 140ms var(--gw-ease-out);
 }
 
 .confirm-header {
@@ -50,31 +51,32 @@
 }
 
 .confirm-btn {
-  padding: 7px 14px;
-  border-radius: 6px;
+  padding: 6px 14px;
+  border-radius: var(--gw-radius-md, 5px);
   border: 1px solid transparent;
   font-size: 13px;
   font-weight: 500;
   cursor: pointer;
+  transition: background-color 0.12s ease;
 }
 
 .confirm-btn--cancel {
   background: #ffffff;
-  border-color: #d1d5db;
-  color: #374151;
+  border-color: var(--gw-border-strong, #d1d5db);
+  color: var(--gw-text, #18181b);
 }
 
 .confirm-btn--cancel:hover {
-  background: #f3f4f6;
+  background: var(--gw-ink-soft, #f2f3f5);
 }
 
 .confirm-btn--primary {
-  background: #2563eb;
+  background: var(--gw-red, #b42318);
   color: #ffffff;
 }
 
 .confirm-btn--primary:hover {
-  background: #1d4ed8;
+  background: var(--gw-red-hover, #961d14);
 }
 
 .confirm-btn--danger {

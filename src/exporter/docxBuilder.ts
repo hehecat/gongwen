@@ -240,7 +240,7 @@ function nodeToParagraph(
   node: DocumentNode,
   config: DocumentConfig,
   cache: BuildStyleCache,
-  spacingBefore = 0,
+  spacingBefore?: number,
   signatureContent?: string,
   dateContent?: string,
   isLastTitleLine = true,
@@ -254,7 +254,7 @@ function nodeToParagraph(
   const runStyle = cache.runStyles[node.type] ?? getRunStyle(node.type, config)
   const useCharacterIndent = cache.useCharacterIndent.has(node.type)
 
-  if (spacingBefore > 0) {
+  if (spacingBefore !== undefined) {
     paragraphStyle = {
       ...paragraphStyle,
       spacing: { ...paragraphStyle.spacing, before: spacingBefore },
@@ -468,6 +468,14 @@ export function buildDocument(ast: GongwenAST, config: DocumentConfig): Document
           node.content,
         ),
       )
+      continue
+    }
+
+    if (
+      node.type === NodeType.MINUTES_ATTENDANCE
+      && prevNode?.type === NodeType.MINUTES_ATTENDANCE
+    ) {
+      children.push(nodeToParagraph(node, config, cache, 0))
       continue
     }
 

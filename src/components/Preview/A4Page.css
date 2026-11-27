@@ -19,7 +19,7 @@
   width: 595.28px;
   height: 841.89px;
   background: white;
-  box-shadow: 0 2px 14px rgba(15, 23, 42, 0.12);
+  box-shadow: var(--gw-shadow-paper, 0 2px 14px rgba(15, 23, 42, 0.12));
   border-radius: 2px;
   overflow: hidden;
   color: #000000;
@@ -179,7 +179,7 @@
   margin: 0;
 }
 
-/* §10.3 纪要出席/请假/列席行: 左空二字 + 冒号后首字对齐 */
+/* §10.3 纪要出席/请假/列席行: 左空二字 + 冒号后首字对齐；连续出席/请假/列席仅首行前空一行 */
 .a4-minutes-attendance {
   font-family: var(--body-font, 'FangSong_GB2312'), 'FangSong', 'STFangsong', serif;
   font-size: var(--body-size, 16px);
@@ -189,6 +189,10 @@
   text-align: justify;
   line-height: var(--body-line-height, 28.9px);
   margin: var(--body-line-height, 28.9px) 0 0 0;
+}
+
+.a4-minutes-attendance + .a4-minutes-attendance {
+  margin-top: 0;
 }
 
 /* §7.3.7 附件另面标识: 3号黑体左上角顶格 */

@@ -727,4 +727,41 @@ describe('v2 解析精度与扩展要素增强', () => {
     expect(ast.body[1].type).toBe(NodeType.PARAGRAPH)
     expect(ast.body[1].overridden).toBe(true)
   })
+
+  it('会议纪要标题后跟长叙述段（含句号并以冒号结尾）不被吞入标题', () => {
+    const text = [
+      '市政府第45次常务会议纪要',
+      '',
+      '2026年11月24日，市长李明主持召开市政府第45次常务会议，研究部署冬季民生保障、安全生产隐患排查整治等重点工作。会议纪要如下：',
+      '',
+      '一、关于冬季供暖和民生保障工作',
+    ].join('\n')
+    const ast = parseGongwen(text)
+    expect(ast.title!.content).toBe('市政府第45次常务会议纪要')
+    expect(ast.body[0].type).toBe(NodeType.PARAGRAPH)
+    expect(ast.body[0].content).toBe('2026年11月24日，市长李明主持召开市政府第45次常务会议，研究部署冬季民生保障、安全生产隐患排查整治等重点工作。会议纪要如下：')
+    expect(ast.body[1].type).toBe(NodeType.HEADING_1)
+  })
+
+  it('含机关关键词的完整标题不误判为文头机关前缀行', () => {
+    const text = [
+      '市财政局预算调整通知',
+      '',
+      '为规范预算执行管理，现要求如下：',
+    ].join('\n')
+    const ast = parseGongwen(text)
+    expect(ast.title!.content).toBe('市财政局预算调整通知')
+    expect(ast.body[0].type).toBe(NodeType.PARAGRAPH)
+  })
+
+  it('直接以句号或冒号叙述句开头时，title 为 null 且首段按正文排版', () => {
+    const text = [
+      '2026年11月24日，市长李明主持召开会议，研究部署相关工作。会议纪要如下：',
+      '一、总体要求',
+    ].join('\n')
+    const ast = parseGongwen(text)
+    expect(ast.title).toBeNull()
+    expect(ast.body[0].type).toBe(NodeType.PARAGRAPH)
+    expect(ast.body[1].type).toBe(NodeType.HEADING_1)
+  })
 })

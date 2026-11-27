@@ -2,6 +2,13 @@ import { useEffect, useState, type RefObject } from 'react'
 import { NodeType, type DocumentNode } from '../types/ast'
 import type { DocumentFormat, HeaderOrgAlign, HeaderSeparatorStyle } from '../types/documentConfig'
 import { A4_CANVAS_HEIGHT_PX, A4_CANVAS_WIDTH_PX, cmToPx } from '../layout/constants'
+import {
+  computeHeaderBodyLineMultiples,
+  isOrphanSignaturePages,
+  paginateMeasuredLines,
+  solveOrphanSignatureLineSpacing,
+  type MeasuredLine,
+} from '../layout/paginationSolver'
 
 /** 单页裁剪信息 */
 export interface PageSlice {
@@ -19,6 +26,12 @@ export interface PageSlice {
   isContinuation: boolean
   /** 该页包含的非空行节点类型 */
   nodeTypes: NodeType[]
+  /** 求解器针对孤行落款给出的精准目标行距 */
+  suggestedLineSpacing?: number
+  /** 求解器建议方向（收紧并入上页 / 放宽带入末行正文） */
+  suggestedLineSpacingDirection?: 'tighten' | 'loosen'
+  /** 是否已由分页求解器检验过孤行修复可行性 */
+  orphanFixChecked?: boolean
 }
 
 export interface PaginationConfig {
@@ -93,6 +106,9 @@ function arePagesEqual(prev: PageSlice[], next: PageSlice[]): boolean {
       || a.startNodeIndex !== b.startNodeIndex
       || a.endNodeIndex !== b.endNodeIndex
       || a.isContinuation !== b.isContinuation
+      || a.suggestedLineSpacing !== b.suggestedLineSpacing
+      || a.suggestedLineSpacingDirection !== b.suggestedLineSpacingDirection
+      || a.orphanFixChecked !== b.orphanFixChecked
       || a.nodeTypes.length !== b.nodeTypes.length
     ) {
       return false
@@ -118,7 +134,7 @@ function createEmptySlice(clipHeight: number): PageSlice {
 }
 
 /**
- * DOM 度量分页 hook（O(N) 节点切片 + 固定 A4 画布精确度量）
+ * DOM 度量分页 hook（O(N) 节点切片 + 固定 A4 画布精确度量 + 孤行落款行距求解）
  */
 export function usePagination(
   title: DocumentNode | null,
@@ -159,7 +175,6 @@ export function usePagination(
       const headerSection = scrollContainer.querySelector('.a4-header-section') as HTMLElement | null
       if (headerSection) {
         const hs = getComputedStyle(headerSection)
-        // 用 offsetHeight + margin 读取未受外部 scale 影响的原始像素高度
         headerHeight = headerSection.offsetHeight
           + parseFloat(hs.marginTop) + parseFloat(hs.marginBottom)
       }
@@ -185,16 +200,7 @@ export function usePagination(
         return
       }
 
-      interface LinePos {
-        top: number
-        bottom: number
-        nodeIndex: number
-        nodeType: NodeType
-        isSpacer: boolean
-        pageBreakBefore: boolean
-      }
-
-      const lines: LinePos[] = []
+      const lines: MeasuredLine[] = []
       const nodeFirstTop = new Map<number, number>()
       const contentRect = contentEl.getBoundingClientRect()
 
@@ -240,48 +246,11 @@ export function usePagination(
         }
       }
 
-      const totalContentHeight = lines.length > 0 ? lines[lines.length - 1].bottom : 0
-
-      // Phase 1: 按行边界分页（同时处理附件另面强制分页）
-      const breakOffsets: number[] = [0]
-      let pageStart = 0
-      let currentAvailable = firstPageAvailable
-
-      for (const line of lines) {
-        const forceBreak = line.pageBreakBefore && line.top - pageStart > 0.5
-        const overflowBreak = line.bottom - pageStart > currentAvailable && line.top - pageStart > 0.5
-        if (forceBreak || overflowBreak) {
-          pageStart = line.top
-          breakOffsets.push(pageStart)
-          currentAvailable = fullAvailable
-        }
-      }
-
-      // Phase 2: 末页预留版记高度
-      if (footerNoteHeight > 0) {
-        let maxIterations = 10
-        let stable = false
-        while (!stable && maxIterations-- > 0) {
-          stable = true
-          const lastIdx = breakOffsets.length - 1
-          const lastStart = breakOffsets[lastIdx]
-          const isAlsoFirstPage = lastIdx === 0
-          const lastPageBase = isAlsoFirstPage ? firstPageAvailable : fullAvailable
-          const lastPageAvailable = Math.max(40, lastPageBase - footerNoteHeight)
-          const lastPageContent = totalContentHeight - lastStart
-
-          if (lastPageContent > lastPageAvailable + 0.5) {
-            for (const line of lines) {
-              if (line.top < lastStart + 0.5) continue
-              if (line.bottom - lastStart > lastPageAvailable && line.top - lastStart > 0.5) {
-                breakOffsets.push(line.top)
-                stable = false
-                break
-              }
-            }
-          }
-        }
-      }
+      const {
+        breakOffsets,
+        totalContentHeight,
+        pageNodeTypes,
+      } = paginateMeasuredLines(lines, firstPageAvailable, fullAvailable, footerNoteHeight)
 
       // Phase 3: 构建每页的节点切片区间
       const result: PageSlice[] = breakOffsets.map((offset, pageIndex) => {
@@ -300,14 +269,10 @@ export function usePagination(
 
         let startNodeIndex = pageLines[0].nodeIndex
         let endNodeIndex = pageLines[0].nodeIndex
-        const nodeTypes: NodeType[] = []
 
         for (const line of pageLines) {
           if (line.nodeIndex < startNodeIndex) startNodeIndex = line.nodeIndex
           if (line.nodeIndex > endNodeIndex) endNodeIndex = line.nodeIndex
-          if (!line.isSpacer && !nodeTypes.includes(line.nodeType)) {
-            nodeTypes.push(line.nodeType)
-          }
         }
 
         const isContinuation = pageIndex > 0
@@ -323,9 +288,33 @@ export function usePagination(
           startNodeIndex,
           endNodeIndex,
           isContinuation,
-          nodeTypes,
+          nodeTypes: pageNodeTypes[pageIndex] ?? [],
         }
       })
+
+      if (isOrphanSignaturePages(pageNodeTypes) && result.length > 0) {
+        const minFontSize = Math.max(
+          config.body.fontSize,
+          config.advanced.h1.fontSize,
+          config.advanced.h2.fontSize,
+          config.advanced.h3.fontSize,
+        )
+        const suggestion = solveOrphanSignatureLineSpacing({
+          lines,
+          firstPageAvailable,
+          fullAvailable,
+          footerNoteHeight,
+          currentLineSpacing: config.body.lineSpacing,
+          minFontSize,
+          headerBodyLineMultiples: computeHeaderBodyLineMultiples(config.header),
+        })
+        const lastSlice = result[result.length - 1]
+        lastSlice.orphanFixChecked = true
+        if (suggestion) {
+          lastSlice.suggestedLineSpacing = suggestion.lineSpacing
+          lastSlice.suggestedLineSpacingDirection = suggestion.direction
+        }
+      }
 
       setPages((prev) => (arePagesEqual(prev, result) ? prev : result))
     }

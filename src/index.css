@@ -3,15 +3,92 @@
 }
 
 :root {
+  --gw-red: #b42318;
+  --gw-red-hover: #961d14;
+  --gw-red-soft: #fdf2f2;
+  --gw-red-border: #f5c2c0;
+  --gw-ink: #18181b;
+  --gw-ink-hover: #27272a;
+  --gw-ink-soft: #f2f3f5;
+  --gw-surface: #ffffff;
+  --gw-surface-subtle: #f7f8fa;
+  --gw-desk: #e9ebee;
+  --gw-border: #e5e7eb;
+  --gw-border-strong: #d1d5db;
+  --gw-text: #18181b;
+  --gw-text-muted: #52525b;
+  --gw-text-faint: #71717a;
+  --gw-warn: #b45309;
+  --gw-warn-soft: #fef3c7;
+  --gw-warn-border: #fde68a;
+  --gw-ok: #15803d;
+  --gw-ok-soft: #dcfce7;
+  --gw-danger: #dc2626;
+  --gw-radius-sm: 4px;
+  --gw-radius-md: 5px;
+  --gw-radius-lg: 8px;
+  --gw-ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --gw-shadow-paper:
+    0 1px 3px rgba(0, 0, 0, 0.08),
+    0 8px 24px rgba(0, 0, 0, 0.08);
+  --gw-shadow-float:
+    0 4px 16px rgba(0, 0, 0, 0.1),
+    0 0 0 1px rgba(0, 0, 0, 0.06);
+  --gw-shadow-popover: var(--gw-shadow-float);
+
   font-family: 'Noto Sans SC', 'PingFang SC', 'Microsoft YaHei', system-ui, -apple-system, sans-serif;
   line-height: 1.5;
   font-weight: 400;
-  color: #1f2937;
-  background-color: #ffffff;
+  color: var(--gw-text);
+  background-color: var(--gw-surface);
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+
+button,
+select,
+a {
+  touch-action: manipulation;
+}
+
+button:focus-visible,
+select:focus-visible,
+a:focus-visible {
+  outline: 2px solid var(--gw-ink);
+  outline-offset: 2px;
+}
+
+@keyframes gw-popover-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes gw-modal-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }
 
 body {

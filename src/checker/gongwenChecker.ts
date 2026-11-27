@@ -36,6 +36,9 @@ export interface CheckIssue {
 
 export interface CheckPageSnapshot {
   nodeTypes: NodeType[]
+  suggestedLineSpacing?: number
+  suggestedLineSpacingDirection?: 'tighten' | 'loosen'
+  orphanFixChecked?: boolean
 }
 
 export interface CheckGongwenInput {
@@ -415,7 +418,8 @@ export function checkGongwen({
     }
 
     if (pages.length > 1) {
-      const lastTypes = pages[pages.length - 1].nodeTypes
+      const lastPage = pages[pages.length - 1]
+      const lastTypes = lastPage.nodeTypes
       const onlyTailMeta =
         lastTypes.length > 0
         && lastTypes.every(
@@ -425,24 +429,45 @@ export function checkGongwen({
             || t === NodeType.POSTSCRIPT,
         )
       if (onlyTailMeta) {
-        const nextLineSpacing = Number(
-          Math.max(config.body.fontSize, config.body.lineSpacing - 0.3).toFixed(1),
-        )
+        let fix: CheckFixAction | undefined
+        let detail = '建议微调正文行距或上下页边距，使落款与末行正文同页显示。'
+
+        if (lastPage.suggestedLineSpacing !== undefined) {
+          const target = lastPage.suggestedLineSpacing
+          const isLoosen = lastPage.suggestedLineSpacingDirection === 'loosen'
+          fix = {
+            label: isLoosen
+              ? `正文行距调至 ${target} 磅（带入末行正文）`
+              : `正文行距收紧至 ${target} 磅（并入上页）`,
+            kind: 'adjust-line-spacing',
+            nextLineSpacing: target,
+          }
+          detail = isLoosen
+            ? `已计算可一次性消除孤行落款的目标行距：略微放宽至 ${target} 磅，使末行正文随落款同页显示。`
+            : `已计算可一次性消除孤行落款的目标行距：收紧至 ${target} 磅，使落款并入上一页显示。`
+        } else if (lastPage.orphanFixChecked) {
+          detail = '仅靠常规行距微调无法消除本页孤行落款，建议在「排版 → 页面与版心」适当调整上下页边距。'
+        } else {
+          const fallbackLineSpacing = Number(
+            Math.max(config.body.fontSize, config.body.lineSpacing - 0.3).toFixed(1),
+          )
+          if (fallbackLineSpacing < config.body.lineSpacing) {
+            fix = {
+              label: `正文行距微调至 ${fallbackLineSpacing} 磅`,
+              kind: 'adjust-line-spacing',
+              nextLineSpacing: fallbackLineSpacing,
+            }
+          }
+        }
+
         issues.push({
           id: 'orphan-signature',
           ruleId: 'orphan-signature',
           severity: 'warning',
           clause: 'GB/T 9704 §7.3.5.5',
           title: '末页仅剩落款/成文日期（另页单印落款）',
-          detail: '建议微调正文行距或上下页边距，使落款与末行正文同页显示。',
-          fix:
-            nextLineSpacing < config.body.lineSpacing
-              ? {
-                  label: `正文行距微调至 ${nextLineSpacing} 磅`,
-                  kind: 'adjust-line-spacing',
-                  nextLineSpacing,
-                }
-              : undefined,
+          detail,
+          fix,
         })
       }
     }

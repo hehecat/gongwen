@@ -111,6 +111,8 @@ function isPossibleAddressee(line: string, parserConfig?: Partial<ParserConfig>)
   if (line.length > ADDRESSEE_MAX_LENGTH) return false
   if (HEADING_1_RE.test(line) || ATTACHMENT_RE.test(line)) return false
   if (detectNodeType(line, parserConfig) === NodeType.MINUTES_ATTENDANCE) return false
+  if (/[。；;！？!?]/.test(line)) return false
+  if (/(?:如下|以下|如下事项|有关事项)[：:]$/.test(line)) return false
   return true
 }
 
@@ -118,7 +120,10 @@ const PREAMBLE_MAX_LINES = 4
 const TITLE_FRAGMENT_MAX_LEN = 40
 const TITLE_MERGED_MAX_LEN = 120
 const ORG_PREFIX_MAX_LEN = 20
-const TITLE_STRONG_ENDINGS = ['。', '；', ';', '！', '!', '？', '?']
+const TITLE_STRONG_ENDINGS = ['。', '；', ';', '！', '!', '？', '?', '：', ':']
+const TITLE_INTERNAL_SENTENCE_RE = /[。；;！？!?]/
+const TITLE_LIKE_ORG_EXCLUDE_RE =
+  /(?:^关于|(?:通知|报告|请示|决定|意见|函|纪要|通告|公告|批复|命令|通报|议案|决议|公报|办法|规定|方案|计划|总结|说明|清单|细则|条例|纲要|要点)$|第[0-9一二三四五六七八九十百]+次)/
 
 function isStructuralPreambleStop(line: string, parserConfig?: Partial<ParserConfig>): boolean {
   if (isPossibleAddressee(line, parserConfig)) return true
@@ -132,6 +137,7 @@ function isOrgPrefixLine(line: string, parserConfig?: Partial<ParserConfig>): bo
   if (isPossibleAddressee(text, parserConfig)) return false
   if (detectNodeType(text, parserConfig) !== NodeType.PARAGRAPH) return false
   if (SIGNATURE_EXCLUDE_ENDINGS.some((e) => text.endsWith(e))) return false
+  if (TITLE_LIKE_ORG_EXCLUDE_RE.test(text)) return false
   return hasSignatureOrgHint(text)
 }
 
@@ -142,6 +148,7 @@ function isTitleFragment(line: string, parserConfig?: Partial<ParserConfig>): bo
   if (isPossibleAddressee(text, parserConfig)) return false
   if (detectNodeType(text, parserConfig) !== NodeType.PARAGRAPH) return false
   if (TITLE_STRONG_ENDINGS.some((e) => text.endsWith(e))) return false
+  if (TITLE_INTERNAL_SENTENCE_RE.test(text)) return false
   return true
 }
 
@@ -152,6 +159,7 @@ function isStandaloneTitleLine(line: string, parserConfig?: Partial<ParserConfig
   if (isPossibleAddressee(text, parserConfig)) return false
   if (detectNodeType(text, parserConfig) !== NodeType.PARAGRAPH) return false
   if (TITLE_STRONG_ENDINGS.some((e) => text.endsWith(e))) return false
+  if (TITLE_INTERNAL_SENTENCE_RE.test(text)) return false
   return true
 }
 
@@ -238,7 +246,11 @@ function extractPreamble(
     && !isStandaloneTitleLine(firstTitle, parserConfig)
     && !isTitleFragment(firstTitle, parserConfig)
   ) {
-    if (TITLE_STRONG_ENDINGS.some((e) => firstTitle.endsWith(e)) || firstTitle.length > TITLE_MERGED_MAX_LEN) {
+    if (
+      TITLE_STRONG_ENDINGS.some((e) => firstTitle.endsWith(e))
+      || TITLE_INTERNAL_SENTENCE_RE.test(firstTitle)
+      || firstTitle.length > TITLE_MERGED_MAX_LEN
+    ) {
       return { title: null, startIndex: i }
     }
     return {

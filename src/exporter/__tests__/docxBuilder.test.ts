@@ -204,4 +204,29 @@ describe('getWordHeadingMeta', () => {
     const mediaFiles = Object.keys(zip.files).filter((name) => name.startsWith('word/media/'))
     expect(mediaFiles.length).toBeGreaterThan(0)
   })
+
+  it('纪要连续出席/请假/列席仅首行前留段前空行 (§10.3)', async () => {
+    const ast: GongwenAST = {
+      title: { type: NodeType.DOCUMENT_TITLE, content: '市政府第45次常务会议纪要', lineNumber: 1 },
+      body: [
+        { type: NodeType.PARAGRAPH, content: '会议纪要正文。', lineNumber: 2 },
+        { type: NodeType.MINUTES_ATTENDANCE, content: '出席：李明、张伟', lineNumber: 3 },
+        { type: NodeType.MINUTES_ATTENDANCE, content: '请假：刘强', lineNumber: 4 },
+        { type: NodeType.MINUTES_ATTENDANCE, content: '列席：赵刚', lineNumber: 5 },
+      ],
+    }
+
+    const buffer = await Packer.toBuffer(buildDocument(ast, DEFAULT_CONFIG))
+    const zip = await JSZip.loadAsync(buffer)
+    const xml = await zip.file('word/document.xml')?.async('string')
+
+    expect(xml).toBeDefined()
+    const attendanceParas = [...xml!.matchAll(/<w:p>.*?<\/w:p>/g)]
+      .map((m) => m[0])
+      .filter((p) => p.includes('出席') || p.includes('请假') || p.includes('列席'))
+    expect(attendanceParas).toHaveLength(3)
+    expect(attendanceParas[0]).toContain('w:before="578"')
+    expect(attendanceParas[1]).toContain('w:before="0"')
+    expect(attendanceParas[2]).toContain('w:before="0"')
+  })
 })
