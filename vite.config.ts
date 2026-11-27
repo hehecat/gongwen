@@ -172,6 +172,7 @@ export default defineConfig({
             },
             workbox: {
               globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
+              navigateFallbackDenylist: [/^\/gongwen\/v2(\/|$)/],
               cleanupOutdatedCaches: true,
               clientsClaim: true,
               skipWaiting: true,

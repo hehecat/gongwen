@@ -2,7 +2,7 @@ name: Deploy to GitHub Pages
 
 on:
   push:
-    branches: [main]
+    branches: [main, v2]
   workflow_dispatch:
 
 permissions:
@@ -18,18 +18,56 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout main (v1)
+        uses: actions/checkout@v4
         with:
+          ref: main
+          path: site-main
           fetch-depth: 0
+
+      - name: Checkout v2
+        uses: actions/checkout@v4
+        with:
+          ref: v2
+          path: site-v2
+          fetch-depth: 0
+
       - uses: actions/setup-node@v4
         with:
           node-version: 22
           cache: npm
-      - run: npm ci
-      - run: npm run build
+          cache-dependency-path: |
+            site-main/package-lock.json
+            site-v2/package-lock.json
+
+      - name: Install and build main (v1 -> /gongwen/)
+        working-directory: site-main
+        run: |
+          npm ci
+          npm run build
+
+      - name: Install, verify, and build v2 (v2 -> /gongwen/v2/)
+        working-directory: site-v2
+        env:
+          VITE_BASE: /gongwen/v2/
+        run: |
+          npm ci
+          npm run lint
+          npm test
+          npm run build
+
+      - name: Assemble combined Pages bundle
+        run: |
+          rm -rf pages-dist
+          mkdir -p pages-dist/v2
+          cp -r site-main/dist/. pages-dist/
+          cp -r site-v2/dist/. pages-dist/v2/
+          test -f pages-dist/index.html
+          test -f pages-dist/v2/index.html
+
       - uses: actions/upload-pages-artifact@v3
         with:
-          path: dist
+          path: pages-dist
 
   deploy:
     needs: build
