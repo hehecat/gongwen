@@ -52,11 +52,12 @@ export function SpecAboutModal({ onClose }: SpecAboutModalProps) {
         <div className="cb-modal-toolbar">
           <SegmentedControl<'spec' | 'about'>
             size="sm"
+            fullWidth
             value={tab}
             onChange={setTab}
             options={[
-              { value: 'spec', label: 'GB/T 9704—2012 核心规范速查' },
-              { value: 'about', label: '关于工作台与更新记录' },
+              { value: 'spec', label: '国标规范速查' },
+              { value: 'about', label: '关于与更新记录' },
             ]}
           />
         </div>

@@ -321,6 +321,7 @@
   display: inline-grid;
   grid-auto-flow: column;
   grid-auto-columns: 1fr;
+  max-width: 100%;
   padding: 2px;
   background: var(--cb-bg-muted);
   border-radius: var(--cb-r-ctrl);
@@ -360,11 +361,14 @@
 .cb-seg-btn {
   position: relative;
   z-index: 1;
+  min-width: 0;
   padding: 0 12px;
   font-size: var(--cb-text-meta);
   font-weight: 500;
   color: var(--cb-ink-2);
   white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -1440,6 +1444,7 @@
 
 .cb-select {
   width: 100%;
+  min-width: 0;
   height: var(--cb-control-h);
   padding: 0 26px 0 9px;
   border-radius: var(--cb-r-ctrl);
@@ -1447,6 +1452,8 @@
   background: var(--cb-bg-elevated);
   color: var(--cb-ink-1);
   font-size: var(--cb-text-meta);
+  overflow: hidden;
+  text-overflow: ellipsis;
   appearance: none;
   cursor: pointer;
 }
@@ -2990,16 +2997,64 @@
     padding-bottom: env(safe-area-inset-bottom, 0px);
   }
 
-  /* Studio Form Controls & Scroll */
+  .cb-modal-head {
+    padding: 14px 16px 10px;
+  }
+
+  .cb-modal-toolbar {
+    padding: 10px 16px;
+  }
+
+  .cb-modal-toolbar .cb-seg {
+    display: grid;
+    width: 100%;
+  }
+
+  .cb-modal-toolbar .cb-seg-btn {
+    padding: 0 8px;
+  }
+
+  .cb-modal-toolbar-right {
+    width: 100%;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .cb-modal-body {
+    padding: 14px 16px 18px;
+  }
+
+  /* Studio Form Controls & Scroll (unified 36px control pitch) */
   .cb-input,
+  .cb-select,
+  .cb-stepper {
+    height: 36px;
+    font-size: 13.5px;
+  }
+
   .cb-select {
-    height: 40px;
-    font-size: 16px;
+    padding: 0 24px 0 9px;
   }
 
   .cb-input--textarea {
     height: auto;
-    font-size: 16px;
+    font-size: 14px;
+  }
+
+  .cb-stepper-btn {
+    width: 30px;
+  }
+
+  .cb-stepper-input {
+    font-size: 13.5px;
+  }
+
+  @supports (-webkit-touch-callout: none) {
+    .cb-input,
+    .cb-input--textarea,
+    .cb-stepper-input {
+      font-size: 16px;
+    }
   }
 
   .cb-grid-3 {

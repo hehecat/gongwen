@@ -268,8 +268,8 @@ export function TemplateLibraryModal({
             value={tab}
             onChange={setTab}
             options={[
-              { value: 'list', label: `全部模板（${templates.length} 自建 + 5 法定）` },
-              { value: 'create', label: '将当前版式存为新模板' },
+              { value: 'list', label: `全部模板（${templates.length + 5}）` },
+              { value: 'create', label: '存为新模板' },
             ]}
           />
 
