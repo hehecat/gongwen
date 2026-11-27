@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useState } from 'react'
 import {
   ASCII_FONT_OPTIONS,
   DEFAULT_CONFIG,
@@ -11,6 +11,7 @@ import {
 } from '../types/documentConfig'
 import {
   CollapsibleSection,
+  FontComboField,
   NumberStepper,
   SelectField,
   SwitchField,
@@ -47,22 +48,6 @@ export function TypographyPanel({
 }: TypographyPanelProps) {
   const [newFontName, setNewFontName] = useState('')
 
-  const mergedFontOptions = useMemo(() => {
-    const existingValues = new Set(FONT_OPTIONS.map((f) => f.value))
-    const extras = customFonts
-      .filter((name) => !existingValues.has(name))
-      .map((name) => ({ label: `${name}（本机）`, value: name }))
-    return [...FONT_OPTIONS, ...extras]
-  }, [customFonts])
-
-  const mergedAsciiOptions = useMemo(() => {
-    const existingValues = new Set(ASCII_FONT_OPTIONS.map((f) => f.value))
-    const extras = customFonts
-      .filter((name) => !existingValues.has(name))
-      .map((name) => ({ label: `${name}（本机）`, value: name }))
-    return [...ASCII_FONT_OPTIONS, ...extras]
-  }, [customFonts])
-
   const marginsModified =
     config.margins.top !== DEFAULT_CONFIG.margins.top
     || config.margins.bottom !== DEFAULT_CONFIG.margins.bottom
@@ -89,10 +74,13 @@ export function TypographyPanel({
             </div>
             <div className="cb-field">
               <label className="cb-label">标题字体</label>
-              <SelectField
+              <FontComboField
                 ariaLabel="公文标题字体"
                 value={config.title.fontFamily}
-                options={mergedFontOptions}
+                options={FONT_OPTIONS}
+                customFonts={customFonts}
+                onAddCustomFont={onAddCustomFont}
+                onRemoveCustomFont={onRemoveCustomFont}
                 onChange={(fontFamily) => updateConfig({ title: { fontFamily } })}
               />
             </div>
@@ -129,19 +117,27 @@ export function TypographyPanel({
             <div className="cb-grid-2">
               <div className="cb-field">
                 <label className="cb-label">中文字体</label>
-                <SelectField
+                <FontComboField
                   ariaLabel="正文中文字体"
                   value={config.body.fontFamily}
-                  options={mergedFontOptions}
+                  options={FONT_OPTIONS}
+                  customFonts={customFonts}
+                  onAddCustomFont={onAddCustomFont}
+                  onRemoveCustomFont={onRemoveCustomFont}
                   onChange={(fontFamily) => updateConfig({ body: { fontFamily } })}
                 />
               </div>
               <div className="cb-field">
                 <label className="cb-label">西文与数字</label>
-                <SelectField
+                <FontComboField
                   ariaLabel="正文英数字体"
                   value={config.body.asciiFontFamily}
-                  options={mergedAsciiOptions}
+                  options={ASCII_FONT_OPTIONS}
+                  customFonts={customFonts}
+                  onAddCustomFont={onAddCustomFont}
+                  onRemoveCustomFont={onRemoveCustomFont}
+                  allowEmpty
+                  placeholder="跟随中文字体"
                   onChange={(asciiFontFamily) =>
                     updateConfig({ body: { asciiFontFamily } })
                   }
@@ -308,10 +304,13 @@ export function TypographyPanel({
                 <div className="cb-grid-2">
                   <div className="cb-field">
                     <label className="cb-label">中文字体</label>
-                    <SelectField
+                    <FontComboField
                       ariaLabel={`${title}中文字体`}
                       value={elem.fontFamily}
-                      options={mergedFontOptions}
+                      options={FONT_OPTIONS}
+                      customFonts={customFonts}
+                      onAddCustomFont={onAddCustomFont}
+                      onRemoveCustomFont={onRemoveCustomFont}
                       onChange={(fontFamily) =>
                         updateConfig({ advanced: { [key]: { fontFamily } } })
                       }
@@ -319,10 +318,15 @@ export function TypographyPanel({
                   </div>
                   <div className="cb-field">
                     <label className="cb-label">西文字体</label>
-                    <SelectField
+                    <FontComboField
                       ariaLabel={`${title}西文字体`}
                       value={elem.asciiFontFamily}
-                      options={mergedAsciiOptions}
+                      options={ASCII_FONT_OPTIONS}
+                      customFonts={customFonts}
+                      onAddCustomFont={onAddCustomFont}
+                      onRemoveCustomFont={onRemoveCustomFont}
+                      allowEmpty
+                      placeholder="跟随中文字体"
                       onChange={(asciiFontFamily) =>
                         updateConfig({ advanced: { [key]: { asciiFontFamily } } })
                       }

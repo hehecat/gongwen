@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from 'react'
+import { useRef, useState } from 'react'
 import {
   DOCUMENT_FORMAT_OPTIONS,
   FONT_OPTIONS,
@@ -15,9 +15,9 @@ import type { BuiltinTemplate } from '../utils/builtinTemplates'
 import { convertFileToSupportedDataUrl } from '../utils/imageConversion'
 import {
   CollapsibleSection,
+  FontComboField,
   NumberStepper,
   SegmentedControl,
-  SelectField,
   SwitchField,
 } from './FormControls'
 import {
@@ -41,6 +41,8 @@ interface LayoutPanelProps {
   onApplyCustomTemplate: (templateId: string) => void
   onOpenTemplateModal: (mode?: 'list' | 'create') => void
   customFonts: string[]
+  onAddCustomFont: (name: string) => void
+  onRemoveCustomFont: (name: string) => void
   onNotifyError: (msg: string) => void
   onNotifySuccess: (msg: string) => void
 }
@@ -58,19 +60,13 @@ export function LayoutPanel({
   onApplyCustomTemplate,
   onOpenTemplateModal,
   customFonts,
+  onAddCustomFont,
+  onRemoveCustomFont,
   onNotifyError,
   onNotifySuccess,
 }: LayoutPanelProps) {
   const [uploadingImage, setUploadingImage] = useState(false)
   const redheadInputRef = useRef<HTMLInputElement | null>(null)
-
-  const mergedFontOptions = useMemo(() => {
-    const existingValues = new Set(FONT_OPTIONS.map((f) => f.value))
-    const extras = customFonts
-      .filter((name) => !existingValues.has(name))
-      .map((name) => ({ label: `${name}（本机）`, value: name }))
-    return [...FONT_OPTIONS, ...extras]
-  }, [customFonts])
 
   const handleUploadRedheadImage = async (file: File | undefined) => {
     if (!file) return
@@ -318,10 +314,13 @@ export function LayoutPanel({
 
               <div className="cb-field">
                 <label className="cb-label">标志字体</label>
-                <SelectField
+                <FontComboField
                   ariaLabel="发文机关标志字体"
                   value={config.header.orgNameFontFamily}
-                  options={mergedFontOptions}
+                  options={FONT_OPTIONS}
+                  customFonts={customFonts}
+                  onAddCustomFont={onAddCustomFont}
+                  onRemoveCustomFont={onRemoveCustomFont}
                   onChange={(orgNameFontFamily) =>
                     updateConfig({ header: { orgNameFontFamily } })
                   }
@@ -611,10 +610,13 @@ export function LayoutPanel({
               </div>
               <div className="cb-field">
                 <label className="cb-label">页码字体</label>
-                <SelectField
+                <FontComboField
                   ariaLabel="页码字体"
                   value={config.specialOptions.pageNumberFont}
-                  options={mergedFontOptions}
+                  options={FONT_OPTIONS}
+                  customFonts={customFonts}
+                  onAddCustomFont={onAddCustomFont}
+                  onRemoveCustomFont={onRemoveCustomFont}
                   onChange={(pageNumberFont) =>
                     updateConfig({ specialOptions: { pageNumberFont } })
                   }

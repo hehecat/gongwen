@@ -150,6 +150,8 @@ export function InspectorStudio({
               onApplyCustomTemplate={onApplyCustomTemplate}
               onOpenTemplateModal={onOpenTemplateModal}
               customFonts={customFonts}
+              onAddCustomFont={onAddCustomFont}
+              onRemoveCustomFont={onRemoveCustomFont}
               onNotifyError={onNotifyError}
               onNotifySuccess={onNotifySuccess}
             />

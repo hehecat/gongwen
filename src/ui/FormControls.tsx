@@ -1,5 +1,14 @@
-import { useId, useState, type ReactNode } from 'react'
-import { ChevronDownIcon, MinusIcon, PlusIcon } from './icons'
+import {
+  useCallback,
+  useEffect,
+  useId,
+  useRef,
+  useState,
+  type KeyboardEvent,
+  type ReactNode,
+} from 'react'
+import { createPortal } from 'react-dom'
+import { CheckIcon, ChevronDownIcon, CloseIcon, MinusIcon, PlusIcon } from './icons'
 
 /* ---- Tactile Toggle Switch ---- */
 interface SwitchProps {
@@ -262,6 +271,411 @@ export function SelectField({
         ))}
       </select>
       <ChevronDownIcon size={13} className="cb-select-chevron" />
+    </div>
+  )
+}
+
+/* ---- Editable + Selectable Font Combobox ---- */
+export interface FontComboFieldProps {
+  value: string
+  onChange: (value: string) => void
+  options: { label: string; value: string }[]
+  customFonts: string[]
+  onAddCustomFont: (name: string) => void
+  onRemoveCustomFont: (name: string) => void
+  ariaLabel?: string
+  placeholder?: string
+  allowEmpty?: boolean
+}
+
+interface DropdownPos {
+  left: number
+  width: number
+  top?: number
+  bottom?: number
+  maxHeight: number
+}
+
+type ComboItem =
+  | { kind: 'custom'; value: string; label: string }
+  | { kind: 'builtin'; value: string; label: string }
+  | { kind: 'create'; value: string; label: string }
+
+export function FontComboField({
+  value,
+  onChange,
+  options,
+  customFonts,
+  onAddCustomFont,
+  onRemoveCustomFont,
+  ariaLabel,
+  placeholder,
+  allowEmpty = false,
+}: FontComboFieldProps) {
+  const wrapRef = useRef<HTMLDivElement | null>(null)
+  const inputRef = useRef<HTMLInputElement | null>(null)
+  const menuRef = useRef<HTMLDivElement | null>(null)
+
+  const [open, setOpen] = useState(false)
+  const [draft, setDraft] = useState(value)
+  const [hasTyped, setHasTyped] = useState(false)
+  const [activeIdx, setActiveIdx] = useState(-1)
+  const [menuPos, setMenuPos] = useState<DropdownPos | null>(null)
+
+  const builtinValues = new Set(options.map((opt) => opt.value))
+  const uniqueCustom = customFonts.filter((font) => !builtinValues.has(font))
+
+  const trimmedDraft = draft.trim()
+  const query = hasTyped ? trimmedDraft.toLowerCase() : ''
+
+  const filteredCustom = query
+    ? uniqueCustom.filter((font) => font.toLowerCase().includes(query))
+    : uniqueCustom
+
+  const filteredBuiltin = query
+    ? options.filter(
+        (opt) =>
+          opt.label.toLowerCase().includes(query)
+          || opt.value.toLowerCase().includes(query),
+      )
+    : options
+
+  const exactMatch =
+    trimmedDraft !== ''
+    && (builtinValues.has(trimmedDraft)
+      || uniqueCustom.includes(trimmedDraft)
+      || options.some((opt) => opt.label === trimmedDraft))
+
+  const showCreateOption = hasTyped && trimmedDraft !== '' && !exactMatch
+
+  const flatItems: ComboItem[] = [
+    ...filteredCustom.map((font) => ({
+      kind: 'custom' as const,
+      value: font,
+      label: font,
+    })),
+    ...filteredBuiltin.map((opt) => ({
+      kind: 'builtin' as const,
+      value: opt.value,
+      label: opt.label,
+    })),
+    ...(showCreateOption
+      ? [{ kind: 'create' as const, value: trimmedDraft, label: trimmedDraft }]
+      : []),
+  ]
+
+  const computeMenuPos = useCallback((): DropdownPos | null => {
+    const rect = wrapRef.current?.getBoundingClientRect()
+    if (!rect) return null
+    const viewportW = window.innerWidth
+    const viewportH = window.visualViewport?.height ?? window.innerHeight
+    const width = Math.min(Math.max(rect.width, 196), viewportW - 16)
+    const left = Math.max(8, Math.min(rect.left, viewportW - width - 8))
+    const spaceBelow = viewportH - rect.bottom - 10
+    const spaceAbove = rect.top - 10
+
+    if (spaceBelow < 180 && spaceAbove > spaceBelow) {
+      return {
+        left,
+        width,
+        bottom: window.innerHeight - rect.top + 4,
+        maxHeight: Math.min(240, Math.max(120, spaceAbove - 4)),
+      }
+    }
+
+    return {
+      left,
+      width,
+      top: rect.bottom + 4,
+      maxHeight: Math.min(240, Math.max(120, spaceBelow)),
+    }
+  }, [])
+
+  const closeMenu = useCallback(() => {
+    setOpen(false)
+    setHasTyped(false)
+    setActiveIdx(-1)
+  }, [])
+
+  const openMenu = useCallback(() => {
+    setDraft(value)
+    setHasTyped(false)
+    setActiveIdx(-1)
+    setMenuPos(computeMenuPos())
+    setOpen(true)
+  }, [computeMenuPos, value])
+
+  const commitDraft = useCallback(() => {
+    const trimmed = draft.trim()
+    if (trimmed === '') {
+      if (allowEmpty && value !== '') {
+        onChange('')
+      }
+    } else {
+      const isBuiltin = options.some((opt) => opt.value === trimmed)
+      if (!isBuiltin && !customFonts.includes(trimmed)) {
+        onAddCustomFont(trimmed)
+      }
+      if (trimmed !== value) {
+        onChange(trimmed)
+      }
+    }
+    closeMenu()
+  }, [allowEmpty, closeMenu, customFonts, draft, onAddCustomFont, onChange, options, value])
+
+  const selectItem = useCallback(
+    (item: ComboItem) => {
+      const isBuiltin = options.some((opt) => opt.value === item.value)
+      if (item.kind === 'create' && !isBuiltin && !customFonts.includes(item.value)) {
+        onAddCustomFont(item.value)
+      }
+      if (item.value !== value) {
+        onChange(item.value)
+      }
+      closeMenu()
+      inputRef.current?.blur()
+    },
+    [closeMenu, customFonts, onAddCustomFont, onChange, options, value],
+  )
+
+  useEffect(() => {
+    if (!open) return
+
+    const updatePos = () => {
+      const next = computeMenuPos()
+      if (next) setMenuPos(next)
+    }
+
+    const handlePointerDown = (e: PointerEvent) => {
+      const target = e.target as Node
+      if (wrapRef.current?.contains(target) || menuRef.current?.contains(target)) {
+        return
+      }
+      commitDraft()
+    }
+
+    updatePos()
+    document.addEventListener('pointerdown', handlePointerDown)
+    window.addEventListener('resize', updatePos)
+    window.addEventListener('scroll', updatePos, true)
+    window.visualViewport?.addEventListener('resize', updatePos)
+    return () => {
+      document.removeEventListener('pointerdown', handlePointerDown)
+      window.removeEventListener('resize', updatePos)
+      window.removeEventListener('scroll', updatePos, true)
+      window.visualViewport?.removeEventListener('resize', updatePos)
+    }
+  }, [commitDraft, computeMenuPos, open])
+
+  const handleKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
+    if (!open) {
+      if (e.key === 'ArrowDown' || e.key === 'Enter') {
+        e.preventDefault()
+        openMenu()
+      }
+      return
+    }
+
+    switch (e.key) {
+      case 'ArrowDown':
+        e.preventDefault()
+        if (flatItems.length > 0) {
+          setActiveIdx((prev) => (prev < flatItems.length - 1 ? prev + 1 : 0))
+        }
+        break
+      case 'ArrowUp':
+        e.preventDefault()
+        if (flatItems.length > 0) {
+          setActiveIdx((prev) => (prev > 0 ? prev - 1 : flatItems.length - 1))
+        }
+        break
+      case 'Enter':
+        e.preventDefault()
+        if (activeIdx >= 0 && activeIdx < flatItems.length) {
+          selectItem(flatItems[activeIdx])
+        } else {
+          commitDraft()
+          inputRef.current?.blur()
+        }
+        break
+      case 'Escape':
+        e.preventDefault()
+        setDraft(value)
+        closeMenu()
+        inputRef.current?.blur()
+        break
+      case 'Tab':
+        commitDraft()
+        break
+    }
+  }
+
+  return (
+    <div className="cb-font-combo" ref={wrapRef}>
+      <input
+        ref={inputRef}
+        type="text"
+        className="cb-font-combo-input"
+        role="combobox"
+        aria-expanded={open}
+        aria-autocomplete="list"
+        aria-label={ariaLabel}
+        placeholder={placeholder ?? (allowEmpty ? '跟随中文字体' : '输入或选择字体')}
+        value={open ? draft : value}
+        onFocus={() => {
+          if (!open) openMenu()
+        }}
+        onChange={(e) => {
+          setDraft(e.target.value)
+          setHasTyped(true)
+          setActiveIdx(-1)
+          if (!open) {
+            setMenuPos(computeMenuPos())
+            setOpen(true)
+          }
+        }}
+        onKeyDown={handleKeyDown}
+      />
+
+      <button
+        type="button"
+        tabIndex={-1}
+        className={`cb-font-combo-toggle${open ? ' is-open' : ''}`}
+        aria-label="展开字体列表"
+        onMouseDown={(e) => e.preventDefault()}
+        onClick={() => {
+          if (open) {
+            commitDraft()
+          } else {
+            openMenu()
+            inputRef.current?.focus()
+          }
+        }}
+      >
+        <ChevronDownIcon size={13} />
+      </button>
+
+      {open && menuPos && typeof document !== 'undefined' && createPortal(
+        <div
+          ref={menuRef}
+          className="cb-font-combo-menu"
+          role="listbox"
+          aria-label={ariaLabel}
+          style={{
+            left: `${menuPos.left}px`,
+            width: `${menuPos.width}px`,
+            maxHeight: `${menuPos.maxHeight}px`,
+            ...(menuPos.top !== undefined
+              ? { top: `${menuPos.top}px` }
+              : { bottom: `${menuPos.bottom}px` }),
+          }}
+        >
+          {filteredCustom.length > 0 && (
+            <>
+              <div className="cb-font-combo-section">自定义字体</div>
+              {filteredCustom.map((font) => {
+                const idx = flatItems.findIndex(
+                  (item) => item.kind === 'custom' && item.value === font,
+                )
+                const selected = value === font
+                return (
+                  <div
+                    key={`custom-${font}`}
+                    role="option"
+                    aria-selected={selected}
+                    className={`cb-font-combo-item${selected ? ' is-selected' : ''}${idx === activeIdx ? ' is-active' : ''}`}
+                    onMouseDown={(e) => e.preventDefault()}
+                    onMouseEnter={() => setActiveIdx(idx)}
+                    onClick={() =>
+                      selectItem({ kind: 'custom', value: font, label: font })
+                    }
+                  >
+                    <span className="cb-font-combo-item-label">{font}</span>
+                    <button
+                      type="button"
+                      className="cb-font-combo-del"
+                      aria-label={`移除自定义字体 ${font}`}
+                      title="移除"
+                      onMouseDown={(e) => e.preventDefault()}
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        onRemoveCustomFont(font)
+                      }}
+                    >
+                      <CloseIcon size={11} />
+                    </button>
+                  </div>
+                )
+              })}
+            </>
+          )}
+
+          {filteredBuiltin.length > 0 && (
+            <>
+              {filteredCustom.length > 0 && <div className="cb-font-combo-divider" />}
+              {filteredBuiltin.map((opt) => {
+                const idx = flatItems.findIndex(
+                  (item) => item.kind === 'builtin' && item.value === opt.value,
+                )
+                const selected = value === opt.value
+                return (
+                  <div
+                    key={`builtin-${opt.value || '__empty__'}`}
+                    role="option"
+                    aria-selected={selected}
+                    className={`cb-font-combo-item${selected ? ' is-selected' : ''}${idx === activeIdx ? ' is-active' : ''}`}
+                    onMouseDown={(e) => e.preventDefault()}
+                    onMouseEnter={() => setActiveIdx(idx)}
+                    onClick={() =>
+                      selectItem({ kind: 'builtin', value: opt.value, label: opt.label })
+                    }
+                  >
+                    <span className="cb-font-combo-item-label">{opt.label}</span>
+                    {selected && <CheckIcon size={13} className="cb-menu-check" />}
+                  </div>
+                )
+              })}
+            </>
+          )}
+
+          {showCreateOption && (
+            <>
+              {(filteredCustom.length > 0 || filteredBuiltin.length > 0) && (
+                <div className="cb-font-combo-divider" />
+              )}
+              {(() => {
+                const idx = flatItems.findIndex((item) => item.kind === 'create')
+                return (
+                  <div
+                    role="option"
+                    aria-selected={false}
+                    className={`cb-font-combo-item cb-font-combo-item--create${idx === activeIdx ? ' is-active' : ''}`}
+                    onMouseDown={(e) => e.preventDefault()}
+                    onMouseEnter={() => setActiveIdx(idx)}
+                    onClick={() =>
+                      selectItem({
+                        kind: 'create',
+                        value: trimmedDraft,
+                        label: trimmedDraft,
+                      })
+                    }
+                  >
+                    <PlusIcon size={12.5} />
+                    <span className="cb-font-combo-item-label">
+                      使用自定义字体「{trimmedDraft}」
+                    </span>
+                  </div>
+                )
+              })()}
+            </>
+          )}
+
+          {flatItems.length === 0 && (
+            <div className="cb-font-combo-empty">输入任意系统字体名按回车生效</div>
+          )}
+        </div>,
+        document.body,
+      )}
     </div>
   )
 }

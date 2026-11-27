@@ -1481,6 +1481,162 @@
   color: var(--cb-ink-3);
 }
 
+/* Editable Font Combobox & Portal Menu */
+.cb-font-combo {
+  position: relative;
+  display: flex;
+  align-items: center;
+  height: var(--cb-control-h);
+  border-radius: var(--cb-r-ctrl);
+  border: 1px solid var(--cb-border-strong);
+  background: var(--cb-bg-elevated);
+  transition:
+    border-color var(--cb-dur-hover) var(--cb-ease),
+    box-shadow var(--cb-dur-hover) var(--cb-ease);
+}
+
+.cb-font-combo:focus-within {
+  border-color: var(--cb-border-focus);
+  box-shadow: 0 0 0 2px var(--cb-accent-ring);
+}
+
+.cb-font-combo-input {
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+  border: none;
+  background: transparent;
+  padding: 0 26px 0 9px;
+  color: var(--cb-ink-1);
+  font-size: var(--cb-text-meta);
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.cb-font-combo-input:focus {
+  outline: none;
+}
+
+.cb-font-combo-input::placeholder {
+  color: var(--cb-ink-3);
+}
+
+.cb-font-combo-toggle {
+  position: absolute;
+  right: 2px;
+  top: 2px;
+  bottom: 2px;
+  width: 24px;
+  border-radius: var(--cb-r-inner);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--cb-ink-3);
+  transition:
+    color var(--cb-dur-hover) var(--cb-ease),
+    background-color var(--cb-dur-hover) var(--cb-ease),
+    transform 160ms var(--cb-ease);
+}
+
+.cb-font-combo-toggle:hover,
+.cb-font-combo-toggle.is-open {
+  color: var(--cb-ink-1);
+  background: var(--cb-bg-hover);
+}
+
+.cb-font-combo-toggle.is-open svg {
+  transform: rotate(180deg);
+}
+
+.cb-font-combo-menu {
+  position: fixed;
+  z-index: 80;
+  overflow-y: auto;
+  padding: 5px;
+  border-radius: var(--cb-r-card);
+  border: 1px solid var(--cb-border-strong);
+  background: var(--cb-bg-elevated);
+  box-shadow: var(--cb-shadow-popover);
+  overscroll-behavior: contain;
+  animation: cb-popover-in 150ms var(--cb-ease);
+}
+
+.cb-font-combo-section {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--cb-ink-3);
+  padding: 3px 8px 4px;
+}
+
+.cb-font-combo-divider {
+  height: 1px;
+  background: var(--cb-border);
+  margin: 4px 0;
+}
+
+.cb-font-combo-item {
+  width: 100%;
+  min-height: 30px;
+  padding: 4px 8px;
+  border-radius: var(--cb-r-inner);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  font-size: var(--cb-text-meta);
+  color: var(--cb-ink-1);
+  cursor: pointer;
+  user-select: none;
+  transition: background-color var(--cb-dur-hover) var(--cb-ease);
+}
+
+.cb-font-combo-item:hover,
+.cb-font-combo-item.is-active {
+  background: var(--cb-bg-hover);
+}
+
+.cb-font-combo-item.is-selected {
+  font-weight: 500;
+  color: var(--cb-accent);
+}
+
+.cb-font-combo-item--create {
+  justify-content: flex-start;
+  color: var(--cb-accent);
+  font-weight: 500;
+}
+
+.cb-font-combo-item-label {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cb-font-combo-del {
+  width: 22px;
+  height: 22px;
+  border-radius: 4px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--cb-ink-3);
+  flex-shrink: 0;
+}
+
+.cb-font-combo-del:hover {
+  color: var(--cb-err);
+  background: var(--cb-err-soft);
+}
+
+.cb-font-combo-empty {
+  padding: 8px;
+  font-size: var(--cb-text-meta);
+  color: var(--cb-ink-3);
+  text-align: center;
+}
+
 /* Tactile Switch */
 .cb-switch-row {
   display: flex;
@@ -3044,13 +3200,24 @@
   /* Studio Form Controls & Scroll (unified 36px control pitch) */
   .cb-input,
   .cb-select,
-  .cb-stepper {
+  .cb-stepper,
+  .cb-font-combo {
     height: 36px;
     font-size: 13.5px;
   }
 
   .cb-select {
     padding: 0 24px 0 9px;
+  }
+
+  .cb-font-combo-input {
+    padding: 0 24px 0 9px;
+    font-size: 13.5px;
+  }
+
+  .cb-font-combo-item {
+    min-height: 38px;
+    font-size: 13.5px;
   }
 
   .cb-input--textarea {
@@ -3069,7 +3236,8 @@
   @supports (-webkit-touch-callout: none) {
     .cb-input,
     .cb-input--textarea,
-    .cb-stepper-input {
+    .cb-stepper-input,
+    .cb-font-combo-input {
       font-size: 16px;
     }
   }
